@@ -186,7 +186,7 @@ Consolidated. Nothing here is a defect; every check is green. These are scope an
 
 | # | Item | Why it needs you | Cost of waiting |
 |---|---|---|---|
-| 1 | **Demo data** — 32 invented rows still in the ledger | You said you would delete them by hand. Also: drop the `seed()` call so it can never re-seed? | Rises once real payables sit beside them; only the amounts distinguish them |
+| 1 | ~~Demo data~~ — **done 2026-09-01** | Ledger cleared; the seed was removed so it cannot come back. Config row kept on purpose — its absence, not an empty ledger, is what marks a workspace new | Resolved |
 | 2 | **Backups** | Supabase docs, verified: free-plan backups are *not downloadable*, and free projects pause after a 7-day low-activity window. Upgrade to Pro, or I script an export | **Highest.** No restore path today |
 | 3 | **Password rotation** | Deferred by you twice. Now the only thing in front of a public URL, shared across all three accounts | Compounding |
 | 4 | **`ackRequirePhoto`** — I set it **off** in your live config | It was stored `true` while it did nothing; now it genuinely blocks. Leaving it on would have started rejecting saves nobody chose | None |
@@ -201,6 +201,9 @@ Consolidated. Nothing here is a defect; every check is green. These are scope an
 
 Not forgotten. Each was a decision, with a reason.
 
+- **The ledger is empty and the seed is gone.** A new workspace opens blank. Company and category
+  lists survived the clear because emptying them would blank every dropdown — they are
+  configuration, not content, and they are still the prototype's lists (see open item 7).
 - **`autoGen` and `ackAutoNotify` were removed, not built.** Both describe work that must happen
   while nobody has the app open. No scheduler exists. They return the day one does — Supabase cron
   plus an edge function, or the empty `apps/api/`. Recorded in [Decisions](../docs/Decisions.md) D10.
@@ -269,6 +272,13 @@ Hard-won. Each cost real time in this session.
    whole suite against `vite preview` three times.
 10. **The completed filter is off by default**, so a row marked paid leaves the Tracker view. This
     is correct behaviour, not a lost row.
+11. **No spec may assume the ledger has content.** It is empty. Use `makeReceipt` / `makeRecurring`
+    from `e2e/db.js`, create the fixture *before* `signIn` (the app reads its data once at mount),
+    and let the sweep remove it.
+12. **One unexplained run.** On 2026-09-01 a single suite run reported `6 passed` — only
+    `app.spec.js` — with no failure or skip reported. It has not reproduced in five consecutive
+    runs since. If it recurs, check whether `playwright.config.js` loaded `.env.local`, because
+    `haveCredentials()` skips the whole functional file when it did not.
 
 ---
 
@@ -286,8 +296,9 @@ npm run build
 Credentials come from Supabase → Authentication → Users; `apps/web/.env.local` supplies the two
 `VITE_` variables and is git-ignored, so a fresh checkout needs it recreated from `.env.example`.
 
-**Expected ledger baseline afterwards:** 20 transactions, 6 receipts, 6 recurring rules, one
-config row, zero stored files, and no row tagged `E2E-` or carrying a probe note. If a run leaves
+**Expected ledger baseline afterwards:** zero transactions, receipts and recurring rules; one
+config row holding 21 companies, 13 categories, empty notes and the settings; zero stored files;
+and no row tagged `E2E-` or carrying a probe note. Anything else means a run left residue. If a run leaves
 residue, `e2e/db.js` `cleanup()` sweeps every `E2E-` tag and orphaned storage objects.
 
 **Last verified green:** 2026-09-01 — 33 unit, 24 e2e (local, `vite preview`, and production),
