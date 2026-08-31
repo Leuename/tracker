@@ -126,7 +126,7 @@ Five screens behind a fixed left rail, all sharing one in-memory store.
 | `src/screens/` | One file per screen. |
 | `src/modals/` | The six overlays: add, edit, payment method, liquidate, add recurring, filters. |
 | `src/styles.css` | The prototype's inline styles lifted into classes, so `:hover` and focus states work. |
-| `src/assets/` | `tracker-background.jpg`, the photo behind the signed-in app. EXIF stripped, since the built asset is public. |
+| `src/assets/` | `tracker-background.jpg`, the photo behind the signed-in app and behind every add/edit dialog. EXIF stripped, since the built asset is public. |
 | `src/tokens/` | `spacing.css` and `typography.css`, copied from the CraftUI CRM design-system export — the two token files the prototype itself links. |
 
 ### About the tokens
