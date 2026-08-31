@@ -48,6 +48,18 @@ export const fromRecurring = (r) => ({
   desc: r.description, dueDate: ns(r.due_date), amount: Number(r.amount),
 })
 
+/**
+ * An update payload: the same row without its key.
+ *
+ * Editing a payable never means rewriting its primary key, and the database
+ * agrees — `UPDATE` on `id` is not granted to clients. Sending it anyway makes
+ * every edit fail with a column-privilege error.
+ */
+export const forUpdate = (row) => {
+  const { id, ...rest } = row
+  return rest
+}
+
 /** The slices that live in the single `app_config` jsonb row. */
 export const CONFIG_KEYS = ['notes', 'companies', 'categories', 'settings']
 

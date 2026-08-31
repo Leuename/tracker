@@ -12,6 +12,7 @@ import EditTransaction from './modals/EditTransaction.jsx'
 import PayMethod from './modals/PayMethod.jsx'
 import Liquidate from './modals/Liquidate.jsx'
 import AddRecurring from './modals/AddRecurring.jsx'
+import AddReceipt from './modals/AddReceipt.jsx'
 import Filters from './modals/Filters.jsx'
 
 const NAV = [
@@ -75,6 +76,7 @@ export default function App() {
       {state.payOpen ? <PayMethod /> : null}
       {state.liqOpen ? <Liquidate /> : null}
       {state.recOpen ? <AddRecurring /> : null}
+      {state.rcpOpen ? <AddReceipt /> : null}
       {state.toast ? <div className="toast" role="status">{state.toast}</div> : null}
     </div>
   )

@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "test": "node --test src/logic.test.js src/rows.test.js src/errors.test.js",
     "smoke": "node --env-file=.env.local src/smoke.mjs",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "security": "node --env-file=.env.local security/probe.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.4",

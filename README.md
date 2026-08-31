@@ -184,3 +184,20 @@ the prototype's choice; it is preserved rather than corrected.
 implements: [Awesome Guidelines Integration](../../Awesome%20Guidelines%20Integration.md)
 
 Related: [Repository Evidence](../../Repository%20Evidence.md) · [Decisions](../../Decisions.md) · [Handoff](../../Handoff.md) · [company_tracker scope](../../company_tracker/AGENTS.md)
+
+## Response headers
+
+`vercel.json` sets the headers Vercel does not provide by default. They were added because a
+security probe found all four missing, not on principle:
+
+| Header | Stops |
+|---|---|
+| `Content-Security-Policy` | A script from anywhere but this origin, and any framing at all. `style-src` allows `'unsafe-inline'` because the app uses React `style` attributes; scripts have no such exemption. |
+| `X-Frame-Options: DENY` | Clickjacking, for anything that predates `frame-ancestors`. |
+| `X-Content-Type-Options: nosniff` | A response being reinterpreted as a script. |
+| `Referrer-Policy` | The app's URL leaking to third parties in full. |
+| `Permissions-Policy` | Camera, microphone, geolocation, payment and USB, none of which this app uses. |
+| `Cross-Origin-Opener-Policy` | A cross-origin opener keeping a handle on this window. |
+
+`connect-src` names the Supabase project explicitly. **Point the app at a different project and
+this header has to change with it**, or every query is blocked with no error in the UI.

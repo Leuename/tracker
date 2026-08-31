@@ -68,6 +68,8 @@ export function useActions() {
     const row = {
       id: Date.now(), co: f.co, cat: f.cat, desc: f.desc, period: f.period, due: f.due,
       amount: amt, status: f.status, done: f.status === 'completed' ? TODAY : '',
+      // The add form collects notes; without this they were typed and dropped.
+      notes: f.notes || '',
     }
     set((s) => ({
       txns: [row, ...s.txns],
@@ -185,6 +187,39 @@ export function useActions() {
     const next = { ...r, status: v, date: '', actual: null }
     set((s) => ({ receipts: s.receipts.map((x) => x.id === r.id ? next : x) }))
     save(db.updateReceipt(next), 'the receipt')
+  }
+
+  // The status dropdown starts on whatever `ackDefaultStatus` says — the
+  // setting was stored but unwired until this form existed to honour it.
+  const ACK_STATUS = { Pending: 'pending', Released: 'released', 'On hold': 'hold' }
+
+  const openReceipt = () => set((s) => ({
+    rcpOpen: true,
+    rcpError: '',
+    rcp: { co: '', name: '', desc: '', amount: '', status: ACK_STATUS[s.settings.ackDefaultStatus] || 'pending' },
+  }))
+
+  const closeReceipt = () => set({ rcpOpen: false, rcpError: '' })
+
+  const setRcp = (k) => (e) => {
+    const v = e.target.value
+    set((s) => ({ rcp: { ...s.rcp, [k]: v }, rcpError: '' }))
+  }
+
+  const saveReceipt = () => {
+    const r = state.rcp
+    const amt = amountOf(r.amount)
+    if (!r.co || !r.name.trim() || !amt) {
+      set({ rcpError: 'Company, who received the cash, and amount are required.' })
+      return
+    }
+    const row = {
+      id: Date.now(), co: r.co, name: r.name.trim(), desc: r.desc.trim() || 'Cash advance',
+      amount: amt, status: r.status, date: '', actual: null,
+    }
+    set((s) => ({ receipts: [...s.receipts, row], rcpOpen: false, rcpError: '' }))
+    save(db.insertReceipt(row), 'the new receipt')
+    flash(row.co + ' · ' + row.name + ' — receipt added')
   }
 
   const openLiquidate = (r) => () =>
@@ -309,6 +344,7 @@ export function useActions() {
     openPay, confirmPay, cancelPay,
     openPeriod, applyPeriod,
     setReceiptStatus, openLiquidate, saveLiq,
+    openReceipt, closeReceipt, setRcp, saveReceipt,
     updRec, removeRec, openRecurring, setR, saveRecurring,
     generate, undoGenerate, generatedFor,
     addNote, toggleNote,

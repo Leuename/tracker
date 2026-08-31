@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  CONFIG_KEYS, configOf, fromReceipt, fromRecurring, fromTxn, toReceipt, toRecurring, toTxn,
+  CONFIG_KEYS, configOf, forUpdate, fromReceipt, fromRecurring, fromTxn, toReceipt, toRecurring, toTxn,
 } from './rows.js'
 import { initialState } from './data.js'
 
@@ -79,5 +79,19 @@ test('configOf picks exactly the slices stored in app_config', () => {
   // Screen, filters and open dialogs are UI state and must never be persisted.
   for (const k of ['screen', 'filtersOpen', 'addOpen', 'toast', 'search']) {
     assert.ok(!(k in cfg), k + ' must not be written to app_config')
+  }
+})
+
+test('an update payload never carries the primary key', () => {
+  // The database does not grant UPDATE on `id`, so a payload containing it is
+  // rejected outright and every edit silently fails to save.
+  const row = toTxn(initialState.txns[0])
+  assert.ok('id' in row, 'an insert does carry the client-generated id')
+  const update = forUpdate(row)
+  assert.ok(!('id' in update))
+  // Everything else must survive, or an edit would blank the fields it omits.
+  for (const k of Object.keys(row)) {
+    if (k === 'id') continue
+    assert.deepEqual(update[k], row[k], k + ' must survive forUpdate')
   }
 })

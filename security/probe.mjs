@@ -1,0 +1,191 @@
+/**
+ * Authorised security probe against this project's own Supabase and deployment.
+ *
+ * Everything here is a read-only or self-cleaning check of controls we claim to
+ * have. It asserts the boundary holds; it does not try to break anything it
+ * would then leave broken.
+ *
+ *   npm run security                      # against the deployment
+ *   SEC_ORIGIN=http://localhost:4173 npm run security
+ */
+import { createClient } from '@supabase/supabase-js'
+import { readFileSync, readdirSync } from 'node:fs'
+
+const URL_ = process.env.VITE_SUPABASE_URL
+const KEY = process.env.VITE_SUPABASE_PUBLISHABLE_KEY
+const ORIGIN = process.env.SEC_ORIGIN || 'https://tracker-six-flax.vercel.app'
+const EMAIL = process.env.E2E_EMAIL
+const PASSWORD = process.env.E2E_PASSWORD
+
+const results = []
+const check = (name, ok, detail = '') => {
+  results.push({ name, ok, detail })
+  console.log((ok ? '  PASS  ' : '  FAIL  ') + name + (detail ? ' — ' + detail : ''))
+}
+
+const rest = (path, init = {}) =>
+  fetch(URL_ + '/rest/v1/' + path, { ...init, headers: { apikey: KEY, ...(init.headers || {}) } })
+
+console.log('\n== 1. Anonymous access ==')
+for (const table of ['txns', 'receipts', 'recurring', 'app_config']) {
+  const r = await rest(table + '?select=*')
+  const body = await r.text()
+  check(`anon cannot read ${table}`, r.status === 401 || r.status === 403,
+    `HTTP ${r.status} ${body.slice(0, 80)}`)
+}
+{
+  const r = await rest('txns', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id: 1, co: 'X', cat: 'Y', description: 'anon write probe', amount: 1 }),
+  })
+  check('anon cannot write txns', r.status === 401 || r.status === 403, 'HTTP ' + r.status)
+}
+
+console.log('\n== 2. Forged and tampered tokens ==')
+const signedIn = createClient(URL_, KEY, { auth: { persistSession: false } })
+const { data: auth, error: authErr } = await signedIn.auth.signInWithPassword({ email: EMAIL, password: PASSWORD })
+if (authErr) { console.error('cannot sign in: ' + authErr.message); process.exit(2) }
+const good = auth.session.access_token
+
+const b64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64url')
+const claims = JSON.parse(Buffer.from(good.split('.')[1], 'base64url').toString())
+
+const withToken = (tok, table = 'txns') =>
+  rest(table + '?select=id&limit=1', { headers: { Authorization: 'Bearer ' + tok } })
+
+{
+  const none = b64({ alg: 'none', typ: 'JWT' }) + '.' + b64(claims) + '.'
+  const r = await withToken(none)
+  check('alg:none token is rejected', r.status === 401, 'HTTP ' + r.status)
+}
+{
+  const [h, p] = good.split('.')
+  const r = await withToken(`${h}.${p}.${'A'.repeat(86)}`)
+  check('token with a replaced signature is rejected', r.status === 401, 'HTTP ' + r.status)
+}
+{
+  // Same signature, claims rewritten to a different subject and a stronger role.
+  const forged = good.split('.')[0] + '.' +
+    b64({ ...claims, sub: '00000000-0000-0000-0000-000000000000', role: 'service_role' }) + '.' +
+    good.split('.')[2]
+  const r = await withToken(forged)
+  check('token with rewritten claims is rejected', r.status === 401, 'HTTP ' + r.status)
+}
+{
+  const r = await withToken(good)
+  check('a genuine token still works', r.status === 200, 'HTTP ' + r.status)
+}
+
+console.log('\n== 3. What a signed-in client can reach beyond its own tables ==')
+{
+  const r = await withToken(good, 'users?select=*')
+  check('auth.users is not exposed through the API', r.status >= 400, 'HTTP ' + r.status)
+}
+{
+  const r = await fetch(URL_ + '/rest/v1/', { headers: { apikey: KEY, Authorization: 'Bearer ' + good } })
+  const body = await r.text()
+  const isSpec = body.includes('"swagger"') || body.includes('"openapi"')
+  check('the OpenAPI schema is not served to clients', !isSpec, 'HTTP ' + r.status + ', ' + body.length + ' bytes')
+}
+{
+  const r = await rest('rpc/pg_sleep', {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + good, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ seconds: 0 }),
+  })
+  check('built-in functions are not callable over RPC', r.status >= 400, 'HTTP ' + r.status)
+}
+
+console.log('\n== 4. Injection through PostgREST filters ==')
+{
+  const payload = encodeURIComponent("1;drop table txns;--")
+  const r = await rest('txns?select=id&id=eq.' + payload, { headers: { Authorization: 'Bearer ' + good } })
+  const stillThere = await withToken(good)
+  check('a SQL payload in a filter is rejected, not executed',
+    r.status >= 400 && stillThere.status === 200, 'filter HTTP ' + r.status)
+}
+{
+  const r = await rest("txns?select=*&description=like.*'*", { headers: { Authorization: 'Bearer ' + good } })
+  check('an unbalanced quote in a filter does not error the server', r.status < 500, 'HTTP ' + r.status)
+}
+
+console.log('\n== 5. What a signed-in client may write ==')
+const c = await (async () => signedIn)()
+{
+  // Mass assignment: created_at is server-managed and should not be settable.
+  const id = Date.now()
+  const { error } = await c.from('txns').insert({
+    id, co: 'GTOI', cat: 'Other', description: 'SEC created_at probe', amount: 1,
+    created_at: '1999-01-01T00:00:00Z',
+  })
+  const { data } = await c.from('txns').select('created_at').eq('id', id).maybeSingle()
+  const spoofed = data && String(data.created_at).startsWith('1999')
+  check('created_at cannot be back-dated by the client', !spoofed,
+    error ? 'insert rejected: ' + error.code : 'stored ' + (data && data.created_at))
+  await c.from('txns').delete().eq('id', id)
+}
+{
+  // The config row is a singleton; a client must not be able to add a second.
+  const { error } = await c.from('app_config').insert({ id: false, data: { injected: true } })
+  check('a second app_config row cannot be created', !!error, error ? error.code : 'INSERT SUCCEEDED')
+  if (!error) await c.from('app_config').delete().eq('id', false)
+}
+{
+  // updated_at is server-managed too; a client must not be able to set it.
+  const { error } = await c.from('app_config').update({ data: (await c.from('app_config').select('data').maybeSingle()).data.data, updated_at: '1999-01-01T00:00:00Z' }).eq('id', true)
+  check('app_config.updated_at cannot be set by the client', !!error, error ? error.code : 'UPDATE SUCCEEDED')
+}
+
+console.log('\n== 6. Secrets in the shipped bundle ==')
+try {
+  const dir = 'dist/assets'
+  const files = readdirSync(dir).filter((f) => f.endsWith('.js') || f.endsWith('.css'))
+  const text = files.map((f) => readFileSync(dir + '/' + f, 'utf8')).join('\n')
+  check('no service_role key in the bundle', !/service_role/.test(text))
+  // Match an actual key value, not supabase-js's own `startsWith("sb_secret_")`
+  // format check, which is a string literal in the library and not a secret.
+  check('no secret-format key in the bundle', !/sb_secret_[A-Za-z0-9_-]{12,}/.test(text))
+  check('no database connection string in the bundle', !/postgres(ql)?:\/\//.test(text))
+  const jwts = text.match(/eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\./g) || []
+  const roles = jwts.map((t) => {
+    try { return JSON.parse(Buffer.from(t.split('.')[1], 'base64url').toString()).role } catch { return null }
+  })
+  check('no privileged JWT in the bundle', !roles.includes('service_role'), 'roles found: ' + (roles.join(',') || 'none'))
+} catch (e) {
+  check('bundle scan', false, 'could not read dist/assets — run npm run build first')
+}
+
+console.log('\n== 7. Sign-up and account enumeration ==')
+{
+  const r = await fetch(URL_ + '/auth/v1/signup', {
+    method: 'POST',
+    headers: { apikey: KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: 'sec-probe-' + Date.now() + '@zoneoffice.ph', password: 'a-long-probe-password-9931' }),
+  })
+  const body = await r.text()
+  check('self-serve sign-up is refused', r.status >= 400, 'HTTP ' + r.status + ' ' + body.slice(0, 60))
+}
+
+console.log('\n== 8. Deployment response headers ==')
+{
+  const r = await fetch(ORIGIN, { redirect: 'follow' })
+  const h = (n) => r.headers.get(n)
+  check('served over HTTPS', ORIGIN.startsWith('https://') ? r.url.startsWith('https://') : true, r.url)
+  check('HSTS is set', !!h('strict-transport-security') || !ORIGIN.startsWith('https://'), h('strict-transport-security') || 'missing')
+  check('framing is restricted', !!(h('x-frame-options') || /frame-ancestors/.test(h('content-security-policy') || '')),
+    h('x-frame-options') || h('content-security-policy') || 'missing')
+  check('MIME sniffing is disabled', h('x-content-type-options') === 'nosniff', h('x-content-type-options') || 'missing')
+  check('a Content-Security-Policy is set', !!h('content-security-policy'), h('content-security-policy') || 'missing')
+  check('referrer policy is set', !!h('referrer-policy'), h('referrer-policy') || 'missing')
+}
+
+await signedIn.auth.signOut()
+
+const failed = results.filter((r) => !r.ok)
+console.log('\n' + results.length + ' checks, ' + failed.length + ' failed')
+if (failed.length) {
+  console.log('\nFailing:')
+  for (const f of failed) console.log('  - ' + f.name + (f.detail ? ' — ' + f.detail : ''))
+}
+process.exit(failed.length ? 1 : 0)

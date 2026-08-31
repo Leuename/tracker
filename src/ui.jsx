@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { cloneElement, isValidElement, useEffect, useId } from 'react'
 import { periodLabel } from './logic.js'
 import { useActions } from './actions.js'
 
@@ -35,18 +35,34 @@ export function Switch({ on, onClick, label }) {
   )
 }
 
+/**
+ * A labelled form control.
+ *
+ * The caption is a real <label> tied to the control by id, not a styled div.
+ * Without that the inputs in every dialog have no accessible name: a screen
+ * reader announces "edit text, blank" for the amount on a payment form, and
+ * clicking the caption does not focus the field.
+ *
+ * The id is generated here and handed to the child, so no caller has to invent
+ * one. A child that already carries an id keeps it.
+ */
 export function Field({ label, hint, children }) {
+  const id = useId()
+  const control = isValidElement(children) && !children.props.id
+    ? cloneElement(children, { id })
+    : children
+
   return (
     <div>
-      <div className="label">{label}{hint ? <span className="optional"> {hint}</span> : null}</div>
-      {children}
+      <label className="label" htmlFor={id}>{label}{hint ? <span className="optional"> {hint}</span> : null}</label>
+      {control}
     </div>
   )
 }
 
-export function Select({ value, onChange, options, placeholder, invalid, className = 'field' }) {
+export function Select({ id, value, onChange, options, placeholder, invalid, className = 'field' }) {
   return (
-    <select className={className + (invalid ? ' invalid' : '')} value={value} onChange={onChange}>
+    <select id={id} className={className + (invalid ? ' invalid' : '')} value={value} onChange={onChange}>
       {placeholder ? <option value="">{placeholder}</option> : null}
       {options.map((o) => <option key={o} value={o}>{o}</option>)}
     </select>
@@ -69,8 +85,9 @@ export function PeriodPicker({ which, value }) {
 
   return (
     <div className="period-anchor">
-      <div className="label">Period covered</div>
-      <button type="button" className="period-trigger" onClick={openPeriod(which, value)}>
+      <div className="label" id={'period-' + which}>Period covered</div>
+      <button type="button" className="period-trigger" aria-labelledby={'period-' + which}
+              onClick={openPeriod(which, value)}>
         <span className="value">{value}</span>
         <span className="caret">▾</span>
       </button>

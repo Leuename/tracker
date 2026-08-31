@@ -1,4 +1,15 @@
+import { readFileSync } from 'node:fs'
 import { defineConfig, devices } from '@playwright/test'
+
+// The specs verify Postgres directly after each UI action, so the test process
+// needs the same two variables the app does. Vite loads .env.local itself;
+// Playwright does not, so read it here rather than making every run repeat them.
+try {
+  for (const line of readFileSync(new URL('.env.local', import.meta.url), 'utf8').split('\n')) {
+    const m = /^([A-Z0-9_]+)=(.*)$/.exec(line.trim())
+    if (m && !process.env[m[1]]) process.env[m[1]] = m[2]
+  }
+} catch { /* not every environment has one; the specs report what is missing */ }
 
 /**
  * These tests drive the real app against the real Supabase project — there is

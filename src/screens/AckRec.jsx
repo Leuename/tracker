@@ -12,7 +12,7 @@ const STATUSES = [
 ]
 
 export default function AckRec() {
-  const { state, flash, setReceiptStatus, openLiquidate } = useActions()
+  const { state, setReceiptStatus, openLiquidate, openReceipt } = useActions()
 
   const open = state.receipts.filter((r) => r.status !== 'liquidated')
   const liquidated = state.receipts.filter((r) => r.status === 'liquidated')
@@ -25,8 +25,7 @@ export default function AckRec() {
         <h1>Acknowledgement receipts</h1>
         <div className="sub">cash released, waiting to be liquidated</div>
         <div className="spacer" />
-        <button type="button" className="btn primary"
-                onClick={() => flash('Add-receipt form comes next — say the word and I will build it')}>
+        <button type="button" className="btn primary" onClick={openReceipt}>
           + Add receipt
         </button>
       </header>

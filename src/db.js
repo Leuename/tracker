@@ -2,7 +2,7 @@ import { supabase } from './supabase.js'
 import { initialState } from './data.js'
 import { isAuthError, sessionExpired } from './errors.js'
 import {
-  configOf, fromReceipt, fromRecurring, fromTxn, toReceipt, toRecurring, toTxn,
+  configOf, forUpdate, fromReceipt, fromRecurring, fromTxn, toReceipt, toRecurring, toTxn,
 } from './rows.js'
 
 /**
@@ -89,22 +89,31 @@ export const load = retryOnce(read)
 const queries = {
   insertTxn: (t) => supabase.from('txns').insert(toTxn(t)).then(ok),
   insertTxns: (rows) => supabase.from('txns').insert(rows.map(toTxn)).then(ok),
-  updateTxn: (t) => supabase.from('txns').update(toTxn(t)).eq('id', t.id).then(ok),
+  updateTxn: (t) => supabase.from('txns').update(forUpdate(toTxn(t))).eq('id', t.id).then(ok),
   deleteTxn: (id) => supabase.from('txns').delete().eq('id', id).then(ok),
   deleteTxns: (ids) => supabase.from('txns').delete().in('id', ids).then(ok),
 
-  updateReceipt: (r) => supabase.from('receipts').update(toReceipt(r)).eq('id', r.id).then(ok),
+  insertReceipt: (r) => supabase.from('receipts').insert(toReceipt(r)).then(ok),
+  updateReceipt: (r) => supabase.from('receipts').update(forUpdate(toReceipt(r))).eq('id', r.id).then(ok),
 
   insertRecurring: (p) => supabase.from('recurring').insert(toRecurring(p)).then(ok),
-  updateRecurring: (p) => supabase.from('recurring').update(toRecurring(p)).eq('id', p.id).then(ok),
+  updateRecurring: (p) => supabase.from('recurring').update(forUpdate(toRecurring(p))).eq('id', p.id).then(ok),
   deleteRecurring: (id) => supabase.from('recurring').delete().eq('id', id).then(ok),
 
-  // `id` is the singleton column: always true, so this upsert always targets
-  // the one shared row.
-  saveConfig: (state) =>
-    supabase.from('app_config')
-      .upsert({ id: true, data: configOf(state), updated_at: new Date().toISOString() })
-      .then(ok),
+  /**
+   * The config row is a singleton pinned by `id = true`. An upsert would carry
+   * that `id` into its DO UPDATE, and clients are not granted UPDATE on it, so
+   * update the existing row and fall back to an insert only when there is none
+   * — which happens once, on a workspace that has never been seeded.
+   *
+   * `updated_at` is deliberately absent: a trigger owns it.
+   */
+  saveConfig: async (state) => {
+    const payload = { data: configOf(state) }
+    const updated = await supabase.from('app_config').update(payload).eq('id', true).select('id').then(ok)
+    if (updated && updated.length) return updated
+    return supabase.from('app_config').insert({ id: true, ...payload }).then(ok)
+  },
 }
 
 // Writes need the same protection as the initial read: a tab left open past
