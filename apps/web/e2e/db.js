@@ -66,6 +66,45 @@ export async function config() {
   return data ? data.data : null
 }
 
+/**
+ * Fixtures.
+ *
+ * The ledger used to arrive pre-filled with demo rows and several specs quietly
+ * leaned on them — a receipt to liquidate, a rule to generate from. The demo
+ * data is gone, so a spec that needs a row now makes it, tagged, and the sweep
+ * removes it. A suite that depends on data it did not create is a suite that
+ * breaks the day someone tidies up.
+ */
+// Every fixture in a run must be distinguishable on screen. Sharing one name
+// made two receipts match the same row locator and the click became ambiguous.
+let seq = 0
+const unique = () => MARK + '-' + (++seq)
+
+export async function makeReceipt(fields = {}) {
+  const c = await db()
+  const tag = unique()
+  const row = {
+    id: Date.now() + Math.floor(Math.random() * 1000),
+    co: 'VAR', name: tag + ' holder', description: tag + ' cash advance',
+    amount: 5000, status: 'released', date: null, actual: null, ...fields,
+  }
+  const { error } = await c.from('receipts').insert(row)
+  if (error) throw error
+  return row
+}
+
+export async function makeRecurring(fields = {}) {
+  const c = await db()
+  const row = {
+    id: Date.now() + Math.floor(Math.random() * 1000),
+    co: 'GTOI', cat: 'Rental Expense', freq: 'Monthly',
+    description: unique() + ' monthly rule', due_date: '2026-09-15', amount: 1000, ...fields,
+  }
+  const { error } = await c.from('recurring').insert(row)
+  if (error) throw error
+  return row
+}
+
 /** Snapshot a receipt so a test can put it back exactly as it found it. */
 export async function restoreReceipt(before) {
   const c = await db()

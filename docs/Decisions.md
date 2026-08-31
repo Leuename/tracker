@@ -72,6 +72,20 @@ Liquidation documents go to the `receipts` bucket: private, 10 MB limit, images 
 
 Server-managed columns are enforced by column-level grants rather than convention. `created_at` and `app_config.updated_at` cannot be set by a client, and `id` cannot be updated. A consequence worth remembering: **an update must not send the primary key**, or the write is refused. `forUpdate()` in `apps/web/src/rows.js` is what enforces that, and `rows.test.js` pins it.
 
+## D12 — The Ledger Holds Only Real Data
+
+The owner cleared the demo data on 2026-09-01, and the seed was removed with it. A workspace with
+no config row now opens empty rather than filling itself with 32 invented rows.
+
+Two consequences worth keeping in mind. The config row is deliberately preserved when clearing
+data: `load()` reads its absence as "never used", so deleting it is what would trigger a fresh
+start, not deleting the payables. And the company and category lists survive a clear, because
+emptying them would blank every dropdown in the app — they are configuration, not content.
+
+Tests may no longer assume the ledger contains anything. A spec that needs a receipt or a rule
+creates it, tagged, and the sweep removes it. This is why `e2e/db.js` grew `makeReceipt` and
+`makeRecurring`.
+
 ## Guideline Basis
 
 - **AGENT-03** ensures adapter workflows stop rather than invent authorization.

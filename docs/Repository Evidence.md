@@ -39,6 +39,8 @@ PostgREST answers an expired token with `{"code":"PGRST303","message":"JWT expir
 
 Names and mock data in the exported CRM interface are presentation evidence only, and the same holds for the seed rows transcribed into `apps/web/src/data.js`.
 
+The ledger was cleared of demo data on 2026-09-01 and now holds zero transactions, receipts and recurring rules. One `app_config` row remains, carrying 21 company codes, 13 categories, empty notes and the settings; it is kept deliberately, since `load()` treats its absence as a never-used workspace.
+
 As of 2026-09-01 the schema also holds a `receipts.file_path` column and a private `receipts` storage bucket (10 MB, images and PDF only), with column-level grants that keep `created_at`, `app_config.updated_at` and `id` out of a client's reach. Two settings, `autoGen` and `ackAutoNotify`, were removed from the app and from the stored config because nothing performs the scheduled work they described.
 
 `apps/web` proves only what its own build and test run demonstrate. As of 2026-09-01 that is: it compiles, 33 offline assertions pass, 24 Playwright specs pass against the dev server, a preview of the production build and the deployment itself, a 33-check security probe passes, `npm audit` is clean, and `npm run smoke` completes against the live project — sign-up, seed of 20 transactions, 6 receipts and 6 recurring rules, then a payment, an insert, a liquidation, a config change, a full reload that read every one of them back, and a delete. The account it created was removed afterwards.

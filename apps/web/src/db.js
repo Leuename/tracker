@@ -38,23 +38,18 @@ const retryOnce = (fn) => async (...args) => {
 }
 
 /**
- * The very first sign-in fills the empty ledger with the prototype's demo rows
- * so the app does not open blank. This runs once for the workspace, not once
- * per account — the second person to sign in finds the first one's data.
+ * A workspace that has never been used starts empty.
  *
- * Delete the `seed()` call in `load()` to start from nothing instead. Do that
- * before real payables go in: these 32 rows are invented, and once they are
- * mixed with genuine ones only the amounts tell them apart.
+ * It used to be filled with the prototype's 32 demo rows so the app did not
+ * open blank. That was right for a demo and wrong the moment real payables
+ * went in: invented rows sitting beside genuine ones are told apart only by
+ * their amounts. The config row is still written, because its absence is what
+ * marks a workspace as new — without it this would run on every sign-in.
  */
-async function seed() {
-  const s = initialState
-  // Entities first, config row last: it is the "already seeded" marker, so a
-  // partial failure must not leave it behind on an empty workspace.
-  await supabase.from('txns').insert(s.txns.map(toTxn)).then(ok)
-  await supabase.from('receipts').insert(s.receipts.map(toReceipt)).then(ok)
-  await supabase.from('recurring').insert(s.recurring.map(toRecurring)).then(ok)
-  await supabase.from('app_config').insert({ data: configOf(s) }).then(ok)
-  return { txns: s.txns, receipts: s.receipts, recurring: s.recurring, ...configOf(s) }
+async function start() {
+  const defaults = configOf(initialState)
+  await supabase.from('app_config').insert({ id: true, data: defaults }).then(ok)
+  return { txns: [], receipts: [], recurring: [], ...defaults, notes: [] }
 }
 
 /** Read the shared dataset, seeding it on the workspace's first run. */
@@ -68,7 +63,7 @@ async function read() {
 
   // No config row is the one reliable marker of a never-used workspace:
   // deleting every payable still leaves one behind.
-  if (!config) return seed()
+  if (!config) return start()
 
   const cfg = config.data || {}
   return {

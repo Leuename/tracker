@@ -99,10 +99,11 @@ holds no privilege here. Every query in `db.js` goes through `retryOnce`, which 
 token once and repeats the request. If the refresh fails the session is really gone, so the app
 signs out and shows the sign-in form instead of an error the user cannot act on.
 
-**The first sign-in ever seeds the shared ledger** with the prototype's 32 demo rows, so the app
-does not open blank. It runs once for the workspace, not once per account. Drop the `seed()` call
-in `src/db.js` to start empty — worth doing before real payables go in, since once invented rows
-are mixed with genuine ones only the amounts tell them apart.
+**A new workspace starts empty.** It used to be filled with the prototype's 32 demo rows so the
+app did not open blank; that was right for a demo and wrong once real payables went in, since
+invented rows beside genuine ones are told apart only by their amounts. The demo data was cleared
+on 2026-09-01 and the seed removed. `start()` in `src/db.js` still writes the config row, because
+its absence is what marks a workspace as new.
 
 ## What it does
 

@@ -32,49 +32,65 @@ if (error) {
 }
 step('signed in as ' + email + ' (' + auth.user.id + ')')
 
-const first = await load()
-assert.ok(first.txns.length > 0, 'load must seed an empty workspace')
-step('loaded ' + first.txns.length + ' transactions, ' + first.receipts.length + ' receipts, ' + first.recurring.length + ' recurring')
+const created = { txns: [], receipts: [] }
+let restoreConfig = false
 
-// A payable marked paid by check: the whole point of persistence is that the
-// check number and completion date are still there after a reload.
-const target = first.txns.find((t) => t.status === 'pending')
-const paid = { ...target, status: 'completed', done: '2026-08-31', payType: 'Check', checkNo: '004182' }
-await db.updateTxn(paid)
+try {
+  const first = await load()
+  step('loaded ' + first.txns.length + ' transactions, ' + first.receipts.length + ' receipts, ' + first.recurring.length + ' recurring')
 
-const added = { id: Date.now(), co: 'GTOI', cat: 'Other', desc: 'smoke row', period: 'Aug 2026', due: '2026-09-30', amount: 1234.5, status: 'pending', done: '' }
-await db.insertTxn(added)
+  // Everything below works on a row this script creates. It used to edit a
+  // seeded row, which stopped existing when the demo data was cleared — and on a
+  // real ledger, editing whatever happened to be first is not acceptable anyway.
+  const added = { id: Date.now(), co: 'GTOI', cat: 'Other', desc: 'smoke row', period: 'Sep 2026', due: '2026-09-30', amount: 1234.5, status: 'pending', done: '' }
+  await db.insertTxn(added)
+  created.txns.push(added.id)
 
-const liq = { ...first.receipts.find((r) => r.status !== 'liquidated'), status: 'liquidated', date: '2026-08-31', actual: 999 }
-await db.updateReceipt(liq)
+  const paid = { ...added, status: 'completed', done: '2026-09-01', payType: 'Check', checkNo: '004182' }
+  await db.updateTxn(paid)
 
-await db.saveConfig({ ...first, categories: [...first.categories, 'Smoke Category'] })
-step('wrote a payment, an insert, a liquidation and a config change')
+  const receipt = { id: Date.now() + 1, co: 'VAR', name: 'smoke holder', desc: 'smoke advance', amount: 2000, status: 'released', date: '', actual: null, filePath: '' }
+  await db.insertReceipt(receipt)
+  created.receipts.push(receipt.id)
+  const liq = { ...receipt, status: 'liquidated', date: '2026-09-01', actual: 999 }
+  await db.updateReceipt(liq)
 
-const again = await load()
-const back = again.txns.find((t) => t.id === paid.id)
-assert.equal(back.status, 'completed')
-assert.equal(back.checkNo, '004182', 'check number must survive the reload')
-assert.equal(back.done, '2026-08-31')
+  await db.saveConfig({ ...first, categories: [...first.categories, 'Smoke Category'] })
+  restoreConfig = true
+  step('wrote a payment, an insert, a liquidation and a config change')
 
-const newRow = again.txns.find((t) => t.id === added.id)
-assert.equal(newRow.desc, 'smoke row')
-assert.equal(newRow.amount, 1234.5, 'a fractional amount must not be rounded')
+  const again = await load()
+  const back = again.txns.find((t) => t.id === paid.id)
+  assert.equal(back.status, 'completed')
+  assert.equal(back.checkNo, '004182', 'check number must survive the reload')
+  assert.equal(back.done, paid.done, 'the completion date must round-trip')
 
-const backLiq = again.receipts.find((r) => r.id === liq.id)
-assert.equal(backLiq.status, 'liquidated')
-assert.equal(backLiq.actual, 999)
+  const newRow = again.txns.find((t) => t.id === added.id)
+  assert.equal(newRow.desc, 'smoke row')
+  assert.equal(newRow.amount, 1234.5, 'a fractional amount must not be rounded')
 
-assert.ok(again.categories.includes('Smoke Category'), 'config must persist')
-step('every write read back correctly')
+  const backLiq = again.receipts.find((r) => r.id === liq.id)
+  assert.equal(backLiq.status, 'liquidated')
+  assert.equal(backLiq.actual, 999)
 
-// Leave the shared category list as it was found.
-await db.saveConfig(first)
+  assert.ok(again.categories.includes('Smoke Category'), 'config must persist')
+  step('every write read back correctly')
 
-await db.deleteTxn(added.id)
-const third = await load()
-assert.equal(third.txns.find((t) => t.id === added.id), undefined, 'delete must stick')
-step('delete confirmed')
+  // Leave the shared category list as it was found.
+  await db.saveConfig(first)
+
+  await db.deleteTxn(added.id)
+  const third = await load()
+  assert.equal(third.txns.find((t) => t.id === added.id), undefined, 'delete must stick')
+  step('delete confirmed')
+
+} finally {
+  // Runs whether the assertions passed or threw.
+  if (created.txns.length) await supabase.from('txns').delete().in('id', created.txns)
+  if (created.receipts.length) await supabase.from('receipts').delete().in('id', created.receipts)
+  // The category list is shared configuration, not a row this script owns.
+  if (restoreConfig) await db.saveConfig(first)
+}
 
 console.log('smoke passed')
 await supabase.auth.signOut()

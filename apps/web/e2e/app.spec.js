@@ -43,8 +43,10 @@ test('the dashboard totals the payables it loaded', async ({ page }) => {
   }
   const total = await peso('PAYABLES')
   const parts = await Promise.all(['COMPLETED', 'PENDING', 'OVERDUE', 'ON HOLD'].map(peso))
+  // Holds on an empty ledger too, which is a real state now that the demo rows
+  // are gone: zero must equal zero rather than the spec assuming content.
   expect(parts.reduce((a, b) => a + b, 0)).toBe(total)
-  expect(total).toBeGreaterThan(0)
+  expect(total).toBeGreaterThanOrEqual(0)
 })
 
 test('every screen loads its own data', async ({ page }) => {
@@ -60,7 +62,10 @@ test('every screen loads its own data', async ({ page }) => {
 
   await rail.getByRole('button', { name: 'Masterlist' }).click()
   await expect(page.getByRole('heading', { name: 'Masterlist' })).toBeVisible()
-  await expect(page.getByLabel('Company').first()).toBeVisible()
+  // Assert the screen's own chrome, not a rule row: the masterlist is legitimately
+  // empty on a fresh ledger, and a spec that requires content fails on a correct app.
+  await expect(page.getByRole('button', { name: '+ Add payable' })).toBeVisible()
+  await expect(page.getByText('Recurring payables')).toBeVisible()
 })
 
 test('the session survives a reload, and signing out ends it', async ({ page }) => {

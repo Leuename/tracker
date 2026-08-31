@@ -248,13 +248,12 @@ test('a receipt can be added and reaches the database', async ({ page }) => {
 })
 
 test('liquidating a receipt stores the date, the actual amount and the difference', async ({ page }) => {
+  // Create the fixture BEFORE signing in: the app loads its data once at mount,
+  // so a row inserted afterwards is not in the state the screen is rendering.
+  const c = await D.db()
+  const before = await D.makeReceipt({ amount: 5000 })
   await signIn(page)
   await go(page, 'AckRec')
-
-  const c = await D.db()
-  const { data: open } = await c.from('receipts').select('*').neq('status', 'liquidated').limit(1)
-  const before = open[0]
-  expect(before, 'need one unliquidated receipt to exercise this').toBeTruthy()
 
   try {
     await page.locator('.sheet-row', { hasText: before.name }).getByRole('button', { name: 'Liquidate' }).click()
@@ -320,6 +319,10 @@ test('a masterlist rule can be added, edited in place and removed', async ({ pag
 test('generate writes a month, guards duplicates, and undo takes it back', async ({ page }) => {
   await signIn(page)
   const c = await D.db()
+  await D.makeRecurring({ due_date: '2026-12-15' })
+  await page.reload()
+  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible({ timeout: 25_000 })
+
   const idsBefore = new Set(((await c.from('txns').select('id')).data || []).map((r) => r.id))
   const count = async () => ((await c.from('txns').select('id')).data || []).length
   const before = idsBefore.size
@@ -356,6 +359,9 @@ test('generate writes a month, guards duplicates, and undo takes it back', async
 test('undo removes exactly the rows that generate created', async ({ page }) => {
   await signIn(page)
   const c = await D.db()
+  await D.makeRecurring({ due_date: '2026-11-15' })
+  await page.reload()
+  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible({ timeout: 25_000 })
   const idsBefore = new Set(((await c.from('txns').select('id')).data || []).map((r) => r.id))
 
   await go(page, 'Masterlist')
@@ -444,9 +450,9 @@ test('a scripting payload in a description is stored and shown as text', async (
 test('a liquidation document is uploaded, recorded and reachable', async ({ page }) => {
   await signIn(page)
   const c = await D.db()
-  const { data: open } = await c.from('receipts').select('*').neq('status', 'liquidated').limit(1)
-  const before = open[0]
-  test.skip(!before, 'needs one unliquidated receipt')
+  const before = await D.makeReceipt({ amount: 4000 })
+  await page.reload()
+  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible({ timeout: 25_000 })
 
   try {
     await go(page, 'AckRec')
@@ -494,12 +500,11 @@ test('a liquidation document is uploaded, recorded and reachable', async ({ page
 })
 
 test('requiring a receipt file actually blocks the liquidation', async ({ page }) => {
-  await signIn(page)
+  // Fixture first, for the same reason as above: the app reads its data once.
   const c = await D.db()
   const beforeConfig = await D.config()
-  const { data: open } = await c.from('receipts').select('*').neq('status', 'liquidated').limit(1)
-  const receipt = open[0]
-  test.skip(!receipt, 'needs one unliquidated receipt')
+  const receipt = await D.makeReceipt({ amount: 3000 })
+  await signIn(page)
 
   try {
     // Turn the setting on through the UI it belongs to.
