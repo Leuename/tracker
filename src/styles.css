@@ -33,6 +33,7 @@
   --danger-soft: #F3C9D5;
 
   --scrim: rgba(42, 26, 34, .52);
+  --modal-wash: 0.90;
   --topbar-h: 76px;
   --rail-w: 84px;
 }
@@ -353,8 +354,16 @@ input[type='date'].inline-field { padding: 5px 7px; }
 /* The filters drawer keeps the live screen behind it — you are filtering what
    is on that screen, so seeing it matters more than the photo does. */
 .scrim.anchor-right { justify-content: flex-end; background: rgba(42, 26, 34, .30); z-index: 38; padding: 0; }
+/* The dialog carries the photo too, behind a heavy white wash. Its background
+   is `fixed` like the scrim's, so the panel shows the same part of the picture
+   it is sitting on — a frosted pane rather than a second, offset copy.
+   --modal-wash stays high on purpose: the labels, figures and status colours
+   have to stay the prominent thing on a form people type money into. */
 .modal {
-  max-height: 100%; overflow: auto; background: var(--surface);
+  max-height: 100%; overflow: auto;
+  background:
+    linear-gradient(rgba(255, 255, 255, var(--modal-wash)), rgba(255, 255, 255, var(--modal-wash))),
+    var(--surface) url('./assets/tracker-background.jpg') center / cover no-repeat fixed;
   border-radius: var(--radius-card); padding: var(--space-24);
   display: flex; flex-direction: column; gap: 15px;
   box-shadow: 0 18px 44px rgba(42, 26, 34, .24); animation: pop 160ms ease-out;
