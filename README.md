@@ -26,6 +26,7 @@ Every command below is backed by `package.json` in this directory.
 | `npm run build` | Production bundle into `dist/`. |
 | `npm run preview` | Serves the built bundle. |
 | `npm test` | `node --test src/logic.test.js src/rows.test.js` — 22 assertions over the recurrence, period and row-mapping rules. Runs offline. No test framework. |
+| `npm run e2e` | Playwright specs in a real browser. Needs `E2E_EMAIL` and `E2E_PASSWORD`; set `E2E_BASE_URL` to run them against a deployment instead of a local dev server. |
 | `npm run smoke` | End-to-end check against the live Supabase project. Needs the network and `SMOKE_EMAIL` / `SMOKE_PASSWORD` for one of the two issued accounts. It writes to the shared ledger, so run it before real data goes in. |
 
 ## Configuration
@@ -40,6 +41,18 @@ Copy `.env.example` to `.env.local` and fill in both values:
 Both ship inside the browser bundle by design. Row access is enforced by row-level security
 policies in the database, not by keeping the key secret. **Never put the `service_role` or any
 secret key in this file** — Vite sends every `VITE_`-prefixed variable to the client.
+
+## Deployment
+
+Pushed to `Leuename/tracker` (private) and deployed by Vercel to
+**https://tracker-six-flax.vercel.app** on every push to `main`.
+
+`.env.production` is committed on purpose — both values are public by design and ship in the
+bundle regardless. A `service_role` or any other secret key must never join them.
+
+**There is no gate between a push and production.** No CI, no staging branch. `npm test`,
+`npm run e2e`, and `npm run build` are the checks, and they have to pass *before* you push,
+because nothing runs them afterwards.
 
 ## Persistence
 
@@ -98,6 +111,7 @@ Five screens behind a fixed left rail, all sharing one in-memory store.
 | `src/rows.test.js` | Round-trip assertions over that translation — the check that catches a lost check number or a blanked due date before a reload does. |
 | `src/db.js` | Every query, and the first-run seed. |
 | `src/smoke.mjs` | The live end-to-end check behind `npm run smoke`. |
+| `e2e/app.spec.js` | Playwright specs. Read-only by design: there is one shared ledger and no test database, so a writing spec would edit the rows both users see. |
 | `src/Auth.jsx` | The sign-in gate. Nothing below it renders without a session. Sign-in only — accounts are issued from the Supabase dashboard. |
 | `src/store.jsx` | A `useReducer` accepting an object or updater patch — the prototype's `this.setState`, unchanged in shape — plus hydration and the debounced config save. |
 | `src/actions.js` | Every mutation, in one hook. Screens read state and call these; nothing else writes. |
