@@ -22,6 +22,7 @@
   --accent-wash: #F7E9F0;
 
   --page: #FDF7FA;
+  --page-wash: 0.70;
   --surface: #FFFFFF;
   --sunken: #FCF5F8;
 
@@ -58,7 +59,16 @@ input, select, button { font-family: inherit; }
 @keyframes slidein { from { transform: translateX(22px); opacity: .4; } to { transform: none; opacity: 1; } }
 
 /* ---------- shell ---------- */
-.app { display: flex; height: 100vh; overflow: hidden; background: var(--page); position: relative; }
+/* Photo behind the workspace. It sits only inside the signed-in app — the
+   sign-in screen is publicly reachable, so it keeps the plain canvas.
+   --page-wash is the knob: raise it toward 1 if the sheets get hard to read on
+   a bright screen, drop it toward 0.7 to let more of the photo through. */
+.app {
+  display: flex; height: 100vh; overflow: hidden; position: relative;
+  background:
+    linear-gradient(rgba(253, 247, 250, var(--page-wash)), rgba(253, 247, 250, var(--page-wash))),
+    var(--page) url('./assets/tracker-background.jpg') center / cover no-repeat fixed;
+}
 .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 .screen { flex: 1; display: flex; flex-direction: column; min-height: 0; }
 .spacer { flex: 1; }
