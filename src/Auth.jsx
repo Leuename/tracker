@@ -27,8 +27,15 @@ export function AuthGate({ children }) {
   return <div key={session.user.id}>{children}</div>
 }
 
-export function Splash({ children }) {
-  return <div className="auth"><div className="card auth-card"><div className="hint">{children}</div></div></div>
+export function Splash({ children, onRetry }) {
+  return (
+    <div className="auth">
+      <div className="card auth-card">
+        <div className="hint">{children}</div>
+        {onRetry ? <button type="button" className="btn primary" onClick={onRetry}>Try again</button> : null}
+      </div>
+    </div>
+  )
 }
 
 function SignIn() {

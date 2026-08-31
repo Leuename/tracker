@@ -73,3 +73,31 @@ test('the session survives a reload, and signing out ends it', async ({ page }) 
   await page.reload()
   await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible()
 })
+
+test('an expired token recovers by refreshing, without the user noticing', async ({ page }) => {
+  // The failure a tab left open past the access token's hour actually hits:
+  //   GET /rest/v1/recurring -> 401 {"code":"PGRST303","message":"JWT expired"}
+  // Because `anon` holds no privilege, that is a hard 401 rather than an empty
+  // result, so the app has to refresh the token and retry or it strands.
+  //
+  // The gate is the refresh itself, not a request count: React StrictMode
+  // double-invokes effects in dev, so "fail the first request per table" would
+  // be quietly rescued by the second mount and prove nothing.
+  let refreshed = false
+  await page.route('**/auth/v1/token**', async (route) => {
+    if (route.request().url().includes('refresh_token')) refreshed = true
+    await route.continue()
+  })
+  await page.route('**/rest/v1/**', async (route) => {
+    if (refreshed) { await route.continue(); return }
+    await route.fulfill({
+      status: 401,
+      contentType: 'application/json',
+      body: JSON.stringify({ code: 'PGRST303', details: null, hint: null, message: 'JWT expired' }),
+    })
+  })
+
+  await signIn(page) // asserts the Dashboard appears anyway
+  expect(refreshed, 'the app should have refreshed its token').toBe(true)
+  await expect(page.getByText(/Couldn.t load the data/)).toBeHidden()
+})

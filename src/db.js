@@ -1,5 +1,6 @@
 import { supabase } from './supabase.js'
 import { initialState } from './data.js'
+import { isAuthError, sessionExpired } from './errors.js'
 import {
   configOf, fromReceipt, fromRecurring, fromTxn, toReceipt, toRecurring, toTxn,
 } from './rows.js'
@@ -13,6 +14,27 @@ import {
 const ok = ({ data, error }) => {
   if (error) throw error
   return data
+}
+
+/**
+ * Every call goes through this. An hour-old tab holds a dead access token, and
+ * its first request comes back 401 rather than empty, because `anon` has no
+ * privilege here. One refresh fixes that, so retry once rather than surfacing
+ * a failure the user can do nothing about.
+ *
+ * If the refresh itself fails the session is genuinely gone — the refresh
+ * token was revoked, or expired — and the caller is told to send the user back
+ * to the sign-in form.
+ */
+const retryOnce = (fn) => async (...args) => {
+  try {
+    return await fn(...args)
+  } catch (e) {
+    if (!isAuthError(e)) throw e
+    const { data, error } = await supabase.auth.refreshSession()
+    if (error || !data || !data.session) throw sessionExpired()
+    return fn(...args)
+  }
 }
 
 /**
@@ -36,7 +58,7 @@ async function seed() {
 }
 
 /** Read the shared dataset, seeding it on the workspace's first run. */
-export async function load() {
+async function read() {
   const [txns, receipts, recurring, config] = await Promise.all([
     supabase.from('txns').select('*').order('id', { ascending: false }).then(ok),
     supabase.from('receipts').select('*').order('id').then(ok),
@@ -62,7 +84,9 @@ export async function load() {
   }
 }
 
-export const db = {
+export const load = retryOnce(read)
+
+const queries = {
   insertTxn: (t) => supabase.from('txns').insert(toTxn(t)).then(ok),
   insertTxns: (rows) => supabase.from('txns').insert(rows.map(toTxn)).then(ok),
   updateTxn: (t) => supabase.from('txns').update(toTxn(t)).eq('id', t.id).then(ok),
@@ -82,3 +106,9 @@ export const db = {
       .upsert({ id: true, data: configOf(state), updated_at: new Date().toISOString() })
       .then(ok),
 }
+
+// Writes need the same protection as the initial read: a tab left open past
+// the token's hour would otherwise fail every save until it was reloaded.
+export const db = Object.fromEntries(
+  Object.entries(queries).map(([name, fn]) => [name, retryOnce(fn)]),
+)

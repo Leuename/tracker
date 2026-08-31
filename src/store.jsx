@@ -2,6 +2,7 @@ import { createContext, useContext, useReducer, useRef, useState, useCallback, u
 import { initialState } from './data.js'
 import { db, load } from './db.js'
 import { CONFIG_KEYS } from './rows.js'
+import { supabase } from './supabase.js'
 import { Splash } from './Auth.jsx'
 
 // One reducer standing in for the prototype's this.setState: accepts a patch
@@ -40,14 +41,24 @@ export function StoreProvider({ children }) {
 
   useEffect(() => () => { if (timer.current) clearTimeout(timer.current) }, [])
 
+  // `attempt` exists so the splash's Retry button can re-run this effect.
+  const [attempt, setAttempt] = useState(0)
   useEffect(() => {
     let cancelled = false
+    setLoadError('')
     load().then(
       (data) => { if (!cancelled) { set(data); setReady(true) } },
-      (e) => { if (!cancelled) setLoadError(e.message || String(e)) },
+      (e) => {
+        if (cancelled) return
+        // The session is gone for good, so drop it: the gate then shows the
+        // sign-in form, which is the only thing that can help. Leaving a dead
+        // session in place would strand the user on an error screen.
+        if (e.sessionExpired) { supabase.auth.signOut(); return }
+        setLoadError(e.message || String(e))
+      },
     )
     return () => { cancelled = true }
-  }, [])
+  }, [attempt])
 
   // Config is a single shared row of lists and toggles, so it saves by
   // comparison rather than through each of the eight actions that touch it.
@@ -66,7 +77,11 @@ export function StoreProvider({ children }) {
   }, [ready, state, save])
 
   if (loadError) {
-    return <Splash>Couldn&rsquo;t load the data — {loadError}. Reload to try again.</Splash>
+    return (
+      <Splash onRetry={() => setAttempt((n) => n + 1)}>
+        Couldn&rsquo;t load the data — {loadError}
+      </Splash>
+    )
   }
   if (!ready) return <Splash>Loading the payables…</Splash>
 
