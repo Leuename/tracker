@@ -64,7 +64,7 @@ Nothing below is guessable from the repository. Losing this table is the expensi
 | Supabase API URL | `https://jusifpditdigqdjiwdaj.supabase.co` | Also in `apps/web/.env.production` |
 | Vercel project | `tracker`, id `prj_7Nn67JEsbpVL98GZssRteALD7i7L` | Team `team_b28zdgmC8juoUYma2pUpdZPA`, hobby plan |
 | Production URL | `https://tracker-six-flax.vercel.app` | Redeploys on every push to `main` |
-| GitHub repo | `Leuename/tracker`, **private** | Contains `apps/web` **only** |
+| GitHub repo | `Leuename/tracker`, **private** | Whole project since 2026-09-01. **Vercel Root Directory must be `apps/web`** |
 | Storage bucket | `receipts` — private, 10 MB, images + PDF | Created in migration `receipt_files` |
 
 ### Accounts
@@ -142,8 +142,9 @@ Tests and probes:
 
 ## Knowledge graph — how the notes relate
 
-The vault is flat Title Case at the root; this is the only note in a subfolder, placed there by
-the `/handoff` command. It links upward so it is not an orphan.
+Since 2026-09-01 the notes live in `docs/` and handoffs in `handoff/`, both versioned. Only
+`AGENTS.md`, `CLAUDE.md` and `CLAUDE.local.md` remain at the root, where tooling looks for them.
+Obsidian resolves links vault-wide, so the folder move changed no link target names.
 
 ```
 [AI Agent Context](../docs/AI%20Agent%20Context.md)  ← navigation hub, entry point
@@ -192,7 +193,7 @@ Consolidated. Nothing here is a defect; every check is green. These are scope an
 | 5 | **Receipt deletion does not exist** | Transactions can be deleted; receipts cannot, anywhere in the UI. A mistyped receipt is permanent | Low until someone mistypes |
 | 6 | **Roles, with three accounts** | You chose "same as admin" when it was two people. All three can delete any row | Grows with headcount |
 | 7 | **Company codes and categories** | The 21 codes and 13 categories came from the prototype, not from you. They feed every dropdown | Must be right *before* real data |
-| 8 | **Notes are not backed up** | This vault's notes live outside the git repo, on this Mac only. The `tracker` repo holds `apps/web` alone | Total loss if the disk goes |
+| 8 | ~~Notes are not backed up~~ — **done 2026-09-01** | The repository was re-rooted at the project root; `docs/` and `handoff/` are versioned and pushed | Resolved |
 
 ---
 
@@ -302,15 +303,15 @@ the new session does not have to be told the history.
 ### Straight continuation
 
 ```
-Read handoff/Session Continuation Package 2026-09-01.md in /Users/itadmin/Desktop/puge,
-then Decisions.md and Handoff.md. Confirm the current state back to me in a few lines —
+Read "handoff/2026-09-01 Session Continuation Package.md" in /Users/itadmin/Desktop/puge,
+then docs/Decisions.md and docs/Handoff.md. Confirm the current state back to me in a few lines —
 including anything you find stale — before doing any work. Then wait.
 ```
 
 ### Work the open items
 
 ```
-Read handoff/Session Continuation Package 2026-09-01.md in /Users/itadmin/Desktop/puge.
+Read "handoff/2026-09-01 Session Continuation Package.md" in /Users/itadmin/Desktop/puge.
 Work its "Open items awaiting your decision" list. Ask me the ones that need a decision,
 in one batch, and do not start building until I answer. Backups (item 2) first.
 ```
@@ -318,8 +319,8 @@ in one batch, and do not start building until I answer. Backups (item 2) first.
 ### Pick up a specific piece of work
 
 ```
-Read handoff/Session Continuation Package 2026-09-01.md in /Users/itadmin/Desktop/puge
-for context, then <TASK>. Respect Decisions.md — D8 (one shared ledger, no roles) and
+Read "handoff/2026-09-01 Session Continuation Package.md" in /Users/itadmin/Desktop/puge
+for context, then <TASK>. Respect docs/Decisions.md — D8 (one shared ledger, no roles) and
 D10 (a control either works or is removed) constrain most changes. Run npm test,
 npm run e2e and npm run security in apps/web before telling me it is done.
 ```
@@ -327,7 +328,7 @@ npm run e2e and npm run security in apps/web before telling me it is done.
 ### Something is broken in production
 
 ```
-Read handoff/Session Continuation Package 2026-09-01.md in /Users/itadmin/Desktop/puge,
+Read "handoff/2026-09-01 Session Continuation Package.md" in /Users/itadmin/Desktop/puge,
 especially "Traps for the next agent". <SYMPTOM>. Reproduce it before proposing a fix,
 and tell me the root cause, not the symptom.
 ```
@@ -335,7 +336,7 @@ and tell me the root cause, not the symptom.
 ### After a long gap
 
 ```
-Read handoff/Session Continuation Package 2026-09-01.md in /Users/itadmin/Desktop/puge.
+Read "handoff/2026-09-01 Session Continuation Package.md" in /Users/itadmin/Desktop/puge.
 Then verify the state still matches: run npm test, npm run e2e and npm run security in
 apps/web, and check the Supabase project is not paused. Report what drifted.
 ```
