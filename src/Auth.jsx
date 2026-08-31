@@ -5,10 +5,12 @@ import { supabase } from './supabase.js'
  * Sign-in gate. Nothing below it renders without a session, so every query can
  * assume a signed-in role.
  *
- * There is no sign-up form. The two accounts — the admin and the executive —
- * are created in the Supabase dashboard, and self-serve registration is off in
- * the project's auth settings. Both halves matter: without the server setting,
- * removing this form only hides the door.
+ * There is no sign-up form. Accounts are created in the Supabase dashboard and
+ * self-serve registration is off in the project's auth settings. Both halves
+ * matter: without the server setting, removing this form only hides the door.
+ *
+ * Every account that exists has identical, full access to the ledger — there
+ * is no role column. Creating an account IS the access-control decision.
  */
 export function AuthGate({ children }) {
   const [session, setSession] = useState(undefined) // undefined = still checking
@@ -65,7 +67,7 @@ function SignIn() {
           <div className="eyebrow">Zone ERP</div>
           <h1 className="card-title" style={{ marginTop: 4 }}>Sign in</h1>
           <div className="hint" style={{ marginTop: 6 }}>
-            Payables, receipts and settings are shared by the admin and the executive.
+            Payables, receipts and settings are shared by everyone with an account.
           </div>
         </div>
 
