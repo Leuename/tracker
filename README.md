@@ -81,6 +81,12 @@ Writes are optimistic. A screen updates from the reducer immediately and the mat
 sent afterwards; a failure raises a toast rather than rolling the screen back. Masterlist edits
 and config changes are debounced, since both fire on every keystroke.
 
+**Expired sessions recover on their own.** Access tokens last an hour, and a tab left open past
+that gets `401 PGRST303 JWT expired` — a hard failure rather than an empty result, because `anon`
+holds no privilege here. Every query in `db.js` goes through `retryOnce`, which refreshes the
+token once and repeats the request. If the refresh fails the session is really gone, so the app
+signs out and shows the sign-in form instead of an error the user cannot act on.
+
 **The first sign-in ever seeds the shared ledger** with the prototype's 32 demo rows, so the app
 does not open blank. It runs once for the workspace, not once per account. Drop the `seed()` call
 in `src/db.js` to start empty — worth doing before real payables go in, since once invented rows
@@ -107,6 +113,7 @@ Five screens behind a fixed left rail, all sharing one in-memory store.
 | `src/logic.js` | Pure functions — recurrence expansion, period labels, currency and date formatting, row filtering. No React import, so `npm test` can call them directly. |
 | `src/logic.test.js` | Covers all eight recurrence frequencies, the duplicate guard, period rendering and parsing, and the derived overdue status. |
 | `src/supabase.js` | The client. Throws at boot if either environment variable is missing, rather than letting every query fail as a confusing 401. |
+| `src/errors.js` | Tells a recoverable expired session apart from a real failure. Imports nothing, so it tests offline. |
 | `src/rows.js` | Translation between the app's shapes (`desc`, `payType`, `dueDate`, `''` for no date) and the database's (`description`, `pay_type`, `due_date`, `NULL`). Imports nothing, so it tests offline. |
 | `src/rows.test.js` | Round-trip assertions over that translation — the check that catches a lost check number or a blanked due date before a reload does. |
 | `src/db.js` | Every query, and the first-run seed. |
