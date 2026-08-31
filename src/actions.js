@@ -33,8 +33,16 @@ export function useActions() {
 
   const go = (screen) => () => set({ screen, settingsMenuOpen: false, filtersOpen: false })
 
+  /**
+   * Choosing a tab closes the flyout.
+   *
+   * It used to stay open, and its click-catching scrim covers everything right
+   * of the rail — so the settings screen rendered underneath but every switch
+   * and dropdown on it was unclickable until the user happened to click
+   * somewhere blank first. Reopen the menu from the rail to switch tabs.
+   */
   const goSettings = (tab) => () =>
-    set({ screen: 'settings', settingsTab: tab, settingsMenuOpen: true, filtersOpen: false })
+    set({ screen: 'settings', settingsTab: tab, settingsMenuOpen: false, filtersOpen: false })
 
   const setS = (k, v) => set((s) => ({ settings: { ...s.settings, [k]: v } }))
 
@@ -50,11 +58,13 @@ export function useActions() {
   }
 
   // ---- add transaction -------------------------------------------------
-  const openAdd = () => set({ addOpen: true, form: blankForm(), formError: '' })
-  const closeAdd = () => set({ addOpen: false, formError: '' })
+  const openAdd = () => set({ addOpen: true, form: blankForm(), formError: '', formWarning: '' })
+  const closeAdd = () => set({ addOpen: false, formError: '', formWarning: '' })
   const setF = (k) => (e) => {
     const v = e.target.value
-    set((s) => ({ form: { ...(s.form || blankForm()), [k]: v }, formError: '' }))
+    // Editing any field clears a standing duplicate warning: the row the user
+    // is describing is no longer the one that was flagged.
+    set((s) => ({ form: { ...(s.form || blankForm()), [k]: v }, formError: '', formWarning: '' }))
   }
   const pickFormStatus = (k) => () => set((s) => ({ form: { ...(s.form || blankForm()), status: k } }))
 
@@ -65,6 +75,21 @@ export function useActions() {
       set({ formError: 'Company, category, description and amount are required.' })
       return
     }
+
+    // "Warn on duplicates" flags a row matching an existing company, category
+    // and period. It warns once and then gets out of the way — a company can
+    // legitimately owe the same category twice in a period, and a warning that
+    // cannot be dismissed would just be a wall.
+    if (state.settings.warnDuplicate && !state.formWarning) {
+      const clash = state.txns.find((t) => t.co === f.co && t.cat === f.cat && t.period === f.period)
+      if (clash) {
+        set({
+          formWarning: f.co + ' already has a ' + f.cat + ' row for ' + f.period +
+            ' (' + clash.desc + '). Save again to add it anyway.',
+        })
+        return
+      }
+    }
     const row = {
       id: Date.now(), co: f.co, cat: f.cat, desc: f.desc, period: f.period, due: f.due,
       amount: amt, status: f.status, done: f.status === 'completed' ? TODAY : '',
@@ -74,7 +99,7 @@ export function useActions() {
     set((s) => ({
       txns: [row, ...s.txns],
       form: keepOpen ? { ...blankForm(), co: f.co, cat: f.cat, period: f.period } : null,
-      addOpen: !!keepOpen, formError: '', screen: 'tracker',
+      addOpen: !!keepOpen, formError: '', formWarning: '', screen: 'tracker',
     }))
     save(db.insertTxn(row), 'the new transaction')
     flash(f.co + ' · ' + f.desc + ' added to the Tracker')
@@ -223,16 +248,55 @@ export function useActions() {
   }
 
   const openLiquidate = (r) => () =>
-    set({ liqOpen: true, liqId: r.id, liqDate: TODAY, liqAmount: String(r.amount), liqErr: false })
+    set({ liqOpen: true, liqId: r.id, liqDate: TODAY, liqAmount: String(r.amount), liqErr: false, liqFile: null })
 
-  const saveLiq = () => {
+  const pickLiqFile = (e) => set({ liqFile: (e.target.files && e.target.files[0]) || null, liqErr: false })
+
+  /**
+   * Unlike every other write here, this one is awaited. The document has to
+   * reach storage before the row can record its key, and a liquidation that
+   * claims to have a receipt attached when the upload failed would be worse
+   * than a slow dialog.
+   */
+  const saveLiq = async () => {
     const amt = amountOf(state.liqAmount)
     if (!amt || !state.liqDate) { set({ liqErr: true }); return }
+    if (state.settings.ackRequirePhoto && !state.liqFile) {
+      set({ liqErr: 'A receipt file is required. Settings · AckRec can turn that off.' })
+      return
+    }
     const id = state.liqId
-    const next = { ...state.receipts.find((r) => r.id === id), status: 'liquidated', date: state.liqDate, actual: amt }
-    set((s) => ({ receipts: s.receipts.map((r) => r.id === id ? next : r), liqOpen: false, liqErr: false }))
+    const current = state.receipts.find((r) => r.id === id)
+
+    let filePath = current.filePath || ''
+    if (state.liqFile) {
+      set({ liqBusy: true })
+      try {
+        filePath = await db.uploadReceiptFile(id, state.liqFile)
+      } catch (e) {
+        set({ liqBusy: false, liqErr: "Couldn't upload the file — " + (e.message || 'unknown error') })
+        return
+      }
+      set({ liqBusy: false })
+    }
+
+    const next = { ...current, status: 'liquidated', date: state.liqDate, actual: amt, filePath }
+    set((s) => ({
+      receipts: s.receipts.map((r) => r.id === id ? next : r),
+      liqOpen: false, liqErr: false, liqFile: null,
+    }))
     save(db.updateReceipt(next), 'the liquidation')
     flash('Receipt liquidated')
+  }
+
+  /** Open a stored document through a short-lived signed link. */
+  const openReceiptFile = (r) => async () => {
+    try {
+      const url = await db.signedReceiptUrl(r.filePath)
+      window.open(url, '_blank', 'noopener,noreferrer')
+    } catch (e) {
+      flash("Couldn't open the file — " + (e.message || 'unknown error'))
+    }
   }
 
   // ---- masterlist ------------------------------------------------------
@@ -343,7 +407,7 @@ export function useActions() {
     openRow, setE, setEditStatus, saveEdit, deleteEdit,
     openPay, confirmPay, cancelPay,
     openPeriod, applyPeriod,
-    setReceiptStatus, openLiquidate, saveLiq,
+    setReceiptStatus, openLiquidate, saveLiq, pickLiqFile, openReceiptFile,
     openReceipt, closeReceipt, setRcp, saveReceipt,
     updRec, removeRec, openRecurring, setR, saveRecurring,
     generate, undoGenerate, generatedFor,

@@ -193,6 +193,37 @@ export const visibleRows = (st, today = TODAY) => {
   })
 }
 
+/** How many days ahead the Upcoming deadlines list reaches. */
+export const windowDays = (label) => {
+  const m = /(\d+)/.exec(String(label || ''))
+  return m ? Number(m[1]) : 30
+}
+
+/**
+ * '2026-08-30' plus n days, as a date string.
+ *
+ * Built in UTC on purpose. Parsing as local time and formatting with
+ * toISOString() shifts the result by a day everywhere east of Greenwich —
+ * here, in UTC+8, it returned the 5th for the 6th.
+ */
+export const addDays = (d, n) => {
+  const [y, m, day] = d.split('-').map(Number)
+  return new Date(Date.UTC(y, m - 1, day + n)).toISOString().slice(0, 10)
+}
+
+/**
+ * What the app opens on, from the saved settings. Without this the Dashboard
+ * scope and Tracker grouping controls were stored and then ignored, so the
+ * screens always opened the same way whatever the settings said.
+ */
+export const openingView = (settings = {}) => {
+  const scope = String(settings.dashDefaultScope || 'All companies')
+  return {
+    scope: scope === 'All companies' ? 'All companies' : scope.replace(/ only$/, ''),
+    groupBy: String(settings.trkGroupDefault || 'Company').toLowerCase() === 'category' ? 'category' : 'company',
+  }
+}
+
 /** '2026-08-30' -> '30 Aug 2026'. Used where the prototype spelled the date out in prose. */
 export const longDate = (d) => {
   if (!d) return '—'

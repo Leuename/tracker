@@ -1,6 +1,6 @@
 import { useActions } from '../actions.js'
 import { MON, TODAY } from '../data.js'
-import { eff, fmt, longDate } from '../logic.js'
+import { addDays, eff, fmt, longDate, windowDays } from '../logic.js'
 import { Check, Select } from '../ui.jsx'
 import { IconChevronRight } from '../icons.jsx'
 
@@ -20,8 +20,11 @@ export default function Dashboard() {
   const scoped = scope === 'All companies' ? state.txns : state.txns.filter((t) => t.co === scope)
   const of = (k) => scoped.filter((t) => eff(t) === k)
 
+  // The window setting used to relabel this list without filtering it, so
+  // "Next 7 days" still showed something due in three months.
+  const horizon = addDays(TODAY, windowDays(state.settings.dashWindow))
   const deadlines = scoped
-    .filter((t) => t.status !== 'completed')
+    .filter((t) => t.status !== 'completed' && t.due && t.due <= horizon)
     .sort((a, b) => (a.due < b.due ? -1 : 1))
     .slice(0, 6)
 
@@ -31,7 +34,8 @@ export default function Dashboard() {
         <h1>Dashboard</h1>
         <div className="sub">as of {longDate(TODAY)}</div>
         <div className="spacer" />
-        <Select className="field compact" value={scope} onChange={(e) => set({ scope: e.target.value })}
+        <Select className="field compact" value={scope} label="Company scope"
+                onChange={(e) => set({ scope: e.target.value })}
                 options={['All companies', ...state.companies]} />
       </header>
 

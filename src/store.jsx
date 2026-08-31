@@ -2,6 +2,7 @@ import { createContext, useContext, useReducer, useRef, useState, useCallback, u
 import { initialState } from './data.js'
 import { db, load } from './db.js'
 import { CONFIG_KEYS } from './rows.js'
+import { openingView } from './logic.js'
 import { supabase } from './supabase.js'
 import { Splash } from './Auth.jsx'
 
@@ -47,7 +48,13 @@ export function StoreProvider({ children }) {
     let cancelled = false
     setLoadError('')
     load().then(
-      (data) => { if (!cancelled) { set(data); setReady(true) } },
+      (data) => {
+        if (cancelled) return
+        // Apply the saved opening view here rather than in the reducer's
+        // initial state, which is built before any settings have been read.
+        set({ ...data, ...openingView(data.settings) })
+        setReady(true)
+      },
       (e) => {
         if (cancelled) return
         // The session is gone for good, so drop it: the gate then shows the

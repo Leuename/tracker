@@ -26,7 +26,8 @@ Every command below is backed by `package.json` in this directory.
 | `npm run build` | Production bundle into `dist/`. |
 | `npm run preview` | Serves the built bundle. |
 | `npm test` | `node --test src/logic.test.js src/rows.test.js` — 22 assertions over the recurrence, period and row-mapping rules. Runs offline. No test framework. |
-| `npm run e2e` | Playwright specs in a real browser. Needs `E2E_EMAIL` and `E2E_PASSWORD`; set `E2E_BASE_URL` to run them against a deployment instead of a local dev server. |
+| `npm run e2e` | 24 Playwright specs. Needs `E2E_EMAIL` and `E2E_PASSWORD`; `E2E_BASE_URL` points them at a deployment. |
+| `npm run security` | 33-check security probe against Supabase and the deployment. |
 | `npm run smoke` | End-to-end check against the live Supabase project. Needs the network and `SMOKE_EMAIL` / `SMOKE_PASSWORD` for one of the two issued accounts. It writes to the shared ledger, so run it before real data goes in. |
 
 ## Configuration
@@ -81,6 +82,17 @@ Writes are optimistic. A screen updates from the reducer immediately and the mat
 sent afterwards; a failure raises a toast rather than rolling the screen back. Masterlist edits
 and config changes are debounced, since both fire on every keystroke.
 
+**Server-managed columns are enforced by grant, not convention.** `created_at`,
+`app_config.updated_at` and `id` are not writable by a client — a probe proved a row could
+otherwise be back-dated to 1999. One consequence to remember: **an update must not send the
+primary key**, or the write is refused. `forUpdate()` in `src/rows.js` strips it, and
+`rows.test.js` pins that.
+
+**Receipt documents go to a private bucket.** Liquidation uploads land in `receipts` (10 MB,
+images and PDF). Rows store the object key, never a URL; links are signed on demand and expire in
+an hour. Turning on *Require a receipt file to liquidate* genuinely blocks a liquidation without
+one.
+
 **Expired sessions recover on their own.** Access tokens last an hour, and a tab left open past
 that gets `401 PGRST303 JWT expired` — a hard failure rather than an empty result, because `anon`
 holds no privilege here. Every query in `db.js` goes through `retryOnce`, which refreshes the
@@ -118,7 +130,10 @@ Five screens behind a fixed left rail, all sharing one in-memory store.
 | `src/rows.test.js` | Round-trip assertions over that translation — the check that catches a lost check number or a blanked due date before a reload does. |
 | `src/db.js` | Every query, and the first-run seed. |
 | `src/smoke.mjs` | The live end-to-end check behind `npm run smoke`. |
-| `e2e/app.spec.js` | Playwright specs. Read-only by design: there is one shared ledger and no test database, so a writing spec would edit the rows both users see. |
+| `e2e/app.spec.js` | Session and gate specs. Read-only. |
+| `e2e/functional.spec.js` | Every write path, driven through the UI and then verified in Postgres. These do write, so they tag every row and sweep all `E2E-` tags before and after — a failed assertion must not leave residue in a live ledger. |
+| `e2e/db.js` | Test-side database access and the cleanup sweep. |
+| `security/probe.mjs` | The security probe. |
 | `src/Auth.jsx` | The sign-in gate. Nothing below it renders without a session. Sign-in only — accounts are issued from the Supabase dashboard. |
 | `src/store.jsx` | A `useReducer` accepting an object or updater patch — the prototype's `this.setState`, unchanged in shape — plus hydration and the debounced config save. |
 | `src/actions.js` | Every mutation, in one hook. Screens read state and call these; nothing else writes. |
@@ -159,9 +174,11 @@ the prototype's choice; it is preserved rather than corrected.
   row at once, one silently overwrites the other. Neither screen refreshes when the other writes;
   there is no conflict detection and no realtime subscription. A reload is the only way to see
   someone else's changes.
-- **`TODAY` is still frozen** at `2026-08-30` in `src/data.js`, so completion dates written to
-  the database carry that date rather than the real one. Persistence did not change this; it is
-  now the more visible of the two.
+- **No audit trail.** Three accounts share one ledger with equal rights, and nothing records who
+  changed what. Rows carry `created_at` but no `updated_by`.
+- **Two settings were removed rather than implemented**: generating recurring payables on the 1st
+  of the month, and notifying a holder after 14 days. Both need work to happen while nobody has
+  the app open, and there is no scheduler. They belong back the day one exists.
 - **No deployment.** The app runs from `npm run dev` or a locally served `dist/`. Nothing
   publishes it. See [Repository Evidence](../../Repository%20Evidence.md).
 - **Two prototype affordances are still inert**, exactly as drawn: the "+ Add receipt" button

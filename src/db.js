@@ -86,6 +86,30 @@ async function read() {
 
 export const load = retryOnce(read)
 
+const BUCKET = 'receipts'
+
+/**
+ * Store a liquidation document and return its object key.
+ *
+ * The bucket is private, so nothing here produces a public URL. The key is
+ * what goes in the row; a viewable link is signed on demand and expires.
+ */
+export const uploadReceiptFile = retryOnce(async (receiptId, file) => {
+  const ext = (file.name.split('.').pop() || 'bin').toLowerCase().replace(/[^a-z0-9]/g, '')
+  const path = receiptId + '/' + Date.now() + '.' + ext
+  const { error } = await supabase.storage.from(BUCKET)
+    .upload(path, file, { contentType: file.type || 'application/octet-stream', upsert: false })
+  if (error) throw error
+  return path
+})
+
+/** A link that works for an hour, for opening a stored document. */
+export const signedReceiptUrl = retryOnce(async (path) => {
+  const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(path, 3600)
+  if (error) throw error
+  return data.signedUrl
+})
+
 const queries = {
   insertTxn: (t) => supabase.from('txns').insert(toTxn(t)).then(ok),
   insertTxns: (rows) => supabase.from('txns').insert(rows.map(toTxn)).then(ok),
@@ -118,6 +142,9 @@ const queries = {
 
 // Writes need the same protection as the initial read: a tab left open past
 // the token's hour would otherwise fail every save until it was reloaded.
-export const db = Object.fromEntries(
-  Object.entries(queries).map(([name, fn]) => [name, retryOnce(fn)]),
-)
+export const db = {
+  ...Object.fromEntries(Object.entries(queries).map(([name, fn]) => [name, retryOnce(fn)])),
+  // Already wrapped where they are defined, since they are not plain queries.
+  uploadReceiptFile,
+  signedReceiptUrl,
+}

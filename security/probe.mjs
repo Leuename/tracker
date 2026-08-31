@@ -137,7 +137,44 @@ const c = await (async () => signedIn)()
   check('app_config.updated_at cannot be set by the client', !!error, error ? error.code : 'UPDATE SUCCEEDED')
 }
 
-console.log('\n== 6. Secrets in the shipped bundle ==')
+console.log('\n== 6. Receipt file storage ==')
+{
+  const anon = createClient(URL_, KEY, { auth: { persistSession: false } })
+  const { data, error } = await anon.storage.from('receipts').list('')
+  check('a signed-out client cannot list receipt files', !!error || (data || []).length === 0,
+    error ? error.message : 'listed ' + (data || []).length + ' entries')
+}
+{
+  // Upload a throwaway object as a signed-in user, then try to read it without
+  // a signature. A public bucket would serve it; this one must not.
+  const path = 'sec-probe/' + Date.now() + '.txt'
+  const { error: upErr } = await c.storage.from('receipts')
+    .upload(path, new Blob(['probe'], { type: 'application/pdf' }), { contentType: 'application/pdf' })
+  if (upErr) {
+    check('storage probe upload', false, upErr.message)
+  } else {
+    const pub = c.storage.from('receipts').getPublicUrl(path).data.publicUrl
+    const open = await fetch(pub)
+    check('files are not served without a signature', open.status >= 400, 'HTTP ' + open.status)
+
+    const { data: signed } = await c.storage.from('receipts').createSignedUrl(path, 60)
+    const ok = await fetch(signed.signedUrl)
+    check('a signed link does work', ok.status === 200, 'HTTP ' + ok.status)
+
+    const tampered = signed.signedUrl.replace(/token=.*/, 'token=' + 'a'.repeat(40))
+    const bad = await fetch(tampered)
+    check('a tampered signature is refused', bad.status >= 400, 'HTTP ' + bad.status)
+
+    await c.storage.from('receipts').remove([path])
+  }
+}
+{
+  const { data } = await c.storage.from('receipts').list('')
+  check('the probe left nothing behind', !(data || []).some((f) => f.name === 'sec-probe'),
+    'entries: ' + (data || []).map((f) => f.name).join(',') || 'none')
+}
+
+console.log('\n== 7. Secrets in the shipped bundle ==')
 try {
   const dir = 'dist/assets'
   const files = readdirSync(dir).filter((f) => f.endsWith('.js') || f.endsWith('.css'))
@@ -156,7 +193,7 @@ try {
   check('bundle scan', false, 'could not read dist/assets — run npm run build first')
 }
 
-console.log('\n== 7. Sign-up and account enumeration ==')
+console.log('\n== 8. Sign-up and account enumeration ==')
 {
   const r = await fetch(URL_ + '/auth/v1/signup', {
     method: 'POST',
@@ -167,7 +204,7 @@ console.log('\n== 7. Sign-up and account enumeration ==')
   check('self-serve sign-up is refused', r.status >= 400, 'HTTP ' + r.status + ' ' + body.slice(0, 60))
 }
 
-console.log('\n== 8. Deployment response headers ==')
+console.log('\n== 9. Deployment response headers ==')
 {
   const r = await fetch(ORIGIN, { redirect: 'follow' })
   const h = (n) => r.headers.get(n)

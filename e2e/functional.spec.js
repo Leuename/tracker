@@ -23,6 +23,24 @@ const go = (page, name) =>
 const peso = (s) => Number(String(s).replace(/[^0-9.]/g, ''))
 
 /**
+ * Save an add form, stepping past the duplicate warning if it appears.
+ *
+ * "Warn on duplicates" is on by default and fires when a company already has a
+ * row in that category and period, which is easy to hit on a shared ledger.
+ * It warns once and then accepts, so a second click is the intended path.
+ */
+async function saveAddForm(page) {
+  const modal = page.locator('.modal')
+  await modal.getByRole('button', { name: 'Save', exact: true }).click()
+  if (await modal.isVisible().catch(() => false)) {
+    if (await modal.getByRole('alert').isVisible().catch(() => false)) {
+      await modal.getByRole('button', { name: 'Save', exact: true }).click()
+    }
+  }
+  await expect(modal).toBeHidden()
+}
+
+/**
  * Fail loudly on any console error or failed request — a silent one is still a
  * defect. Two exclusions, both about the dev server rather than the app:
  *
@@ -51,6 +69,9 @@ function watch(page) {
   return problems
 }
 
+// Runs whatever happened above: a failed assertion must not leave rows or
+// files in a ledger three people read.
+test.beforeAll(async () => { await D.cleanup() })
 test.afterAll(async () => { await D.cleanup() })
 
 test('adding a transaction stores every field it collected', async ({ page }) => {
@@ -65,8 +86,7 @@ test('adding a transaction stores every field it collected', async ({ page }) =>
   await page.locator('.modal').getByPlaceholder('What is being paid for').fill(desc)
   await page.locator('.modal').getByPlaceholder('0.00').fill('12345.67')
   await page.locator('.modal').getByLabel('Notes', { exact: false }).fill('note from the add form')
-  await page.getByRole('button', { name: 'Save', exact: true }).click()
-  await expect(page.locator('.modal')).toBeHidden()
+  await saveAddForm(page)
 
   const [row] = await D.txnsTagged()
   expect(row, 'the new transaction must reach Postgres').toBeTruthy()
@@ -380,5 +400,203 @@ test('settings, company and category lists persist to the shared config row', as
     await expect(page.getByText(code), 'the new code must survive a reload').toBeVisible()
   } finally {
     await D.restoreConfig(before)
+  }
+})
+
+test('a scripting payload in a description is stored and shown as text', async ({ page }) => {
+  // Anything one of the three accounts types is read by the other two, so a
+  // stored payload is the realistic injection route here.
+  const problems = watch(page)
+  let executed = false
+  await page.exposeFunction('__xssFired', () => { executed = true })
+  const payload = `${D.MARK} <img src=x onerror=window.__xssFired()><script>window.__xssFired()</script>`
+
+  await signIn(page)
+  await go(page, 'Tracker')
+  await page.getByRole('button', { name: '+ Add transaction' }).click()
+  const modal = page.locator('.modal')
+  await modal.getByLabel('Company').selectOption('GTOI')
+  await modal.getByLabel('Expense category').selectOption('Other')
+  await modal.getByPlaceholder('What is being paid for').fill(payload)
+  await modal.getByPlaceholder('0.00').fill('1')
+  await saveAddForm(page)
+
+  // Stored verbatim: escaping belongs at render time, not on the way in.
+  await expect.poll(async () => (await D.txnsTagged()).length, { timeout: 10_000 }).toBe(1)
+  const [row] = await D.txnsTagged()
+  expect(row.description).toBe(payload)
+
+  // Rendered as text on a fresh load, and no injected node in the document.
+  await page.reload()
+  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible({ timeout: 25_000 })
+  await go(page, 'Tracker')
+  await expect(page.getByText(payload)).toBeVisible()
+  expect(await page.locator('img[src="x"]').count(), 'the payload must not become an element').toBe(0)
+  expect(await page.locator('.sheet-row script').count()).toBe(0)
+  expect(executed, 'nothing from the payload may execute').toBe(false)
+  expect(problems).toEqual([])
+
+  // Clean up here, not in afterAll: later specs count rows by tag.
+  const c = await D.db()
+  await c.from('txns').delete().eq('id', row.id)
+})
+
+test('a liquidation document is uploaded, recorded and reachable', async ({ page }) => {
+  await signIn(page)
+  const c = await D.db()
+  const { data: open } = await c.from('receipts').select('*').neq('status', 'liquidated').limit(1)
+  const before = open[0]
+  test.skip(!before, 'needs one unliquidated receipt')
+
+  try {
+    await go(page, 'AckRec')
+    await page.locator('.sheet-row', { hasText: before.name }).getByRole('button', { name: 'Liquidate' }).click()
+    const modal = page.locator('.modal')
+
+    await modal.getByLabel('Receipt file', { exact: false }).setInputFiles({
+      name: 'receipt.pdf',
+      mimeType: 'application/pdf',
+      buffer: Buffer.from('%PDF-1.4 e2e liquidation document'),
+    })
+    await modal.getByLabel('Actual amount', { exact: false }).fill('2500')
+    await modal.getByRole('button', { name: /Save|Uploading/ }).click()
+    await expect(modal).toBeHidden({ timeout: 20_000 })
+
+    await expect.poll(async () => (await D.receiptById(before.id)).file_path, { timeout: 20_000 })
+      .toBeTruthy()
+    const after = await D.receiptById(before.id)
+    expect(after.status).toBe('liquidated')
+    expect(after.file_path.startsWith(before.id + '/'), 'the key is scoped to its receipt').toBe(true)
+
+    // The bucket is private: the object must not be readable without a signature.
+    const publicUrl = c.storage.from('receipts').getPublicUrl(after.file_path).data.publicUrl
+    const anon = await fetch(publicUrl)
+    expect(anon.status, 'the bucket must not serve files publicly').toBeGreaterThanOrEqual(400)
+
+    // ...but a signed link works, and returns what was uploaded.
+    const { data: signed } = await c.storage.from('receipts').createSignedUrl(after.file_path, 60)
+    const got = await fetch(signed.signedUrl)
+    expect(got.status).toBe(200)
+    expect(await got.text()).toContain('e2e liquidation document')
+
+    await page.reload()
+    await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible({ timeout: 25_000 })
+    await go(page, 'AckRec')
+    await expect(page.locator('.sheet-row', { hasText: before.name }).getByRole('button', { name: 'File' }))
+      .toBeVisible()
+
+    await c.storage.from('receipts').remove([after.file_path])
+  } finally {
+    await c.from('receipts').update({
+      status: before.status, date: before.date, actual: before.actual, file_path: before.file_path,
+    }).eq('id', before.id)
+  }
+})
+
+test('requiring a receipt file actually blocks the liquidation', async ({ page }) => {
+  await signIn(page)
+  const c = await D.db()
+  const beforeConfig = await D.config()
+  const { data: open } = await c.from('receipts').select('*').neq('status', 'liquidated').limit(1)
+  const receipt = open[0]
+  test.skip(!receipt, 'needs one unliquidated receipt')
+
+  try {
+    // Turn the setting on through the UI it belongs to.
+    await page.getByRole('navigation', { name: 'Sections' }).getByRole('button', { name: /^Settings/ }).click()
+    await page.getByRole('button', { name: 'AckRec settings' }).click()
+    const sw = page.getByRole('switch', { name: /Require a receipt file/ })
+    if ((await sw.getAttribute('aria-checked')) !== 'true') await sw.click()
+    await expect.poll(async () => (await D.config()).settings.ackRequirePhoto, { timeout: 10_000 }).toBe(true)
+
+    await go(page, 'AckRec')
+    await page.locator('.sheet-row', { hasText: receipt.name }).getByRole('button', { name: 'Liquidate' }).click()
+    const modal = page.locator('.modal')
+    await modal.getByLabel('Actual amount', { exact: false }).fill('1500')
+    await modal.getByRole('button', { name: 'Save' }).click()
+
+    // The setting says liquidation cannot be saved without a file. It must hold.
+    await expect(modal, 'the dialog must stay open').toBeVisible()
+    await expect(modal.getByRole('alert')).toContainText(/receipt file is required/i)
+    expect((await D.receiptById(receipt.id)).status, 'nothing may be written').toBe(receipt.status)
+  } finally {
+    await D.restoreConfig(beforeConfig)
+  }
+})
+
+test('the duplicate warning fires once and then lets the row through', async ({ page }) => {
+  await signIn(page)
+  const c = await D.db()
+  const beforeConfig = await D.config()
+
+  // The add form defaults to the current month, so the clash has to be in that
+  // period or the warning has nothing to match. Build the label the same way
+  // the app does rather than hardcoding a month that goes stale.
+  const now = new Date()
+  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+  const period = MONTHS[now.getMonth()] + ' ' + now.getFullYear()
+  const clashId = Date.now()
+  // A tag private to this spec, so no leftover from another one is counted.
+  const TAG = D.MARK + '-dup'
+  const mine = async () => (await D.txnsTagged(TAG)).length
+
+  try {
+    await c.from('app_config')
+      .update({ data: { ...beforeConfig, settings: { ...beforeConfig.settings, warnDuplicate: true } } })
+      .eq('id', true)
+    await c.from('txns').insert({
+      id: clashId, co: 'GTOI', cat: 'Legal Services',
+      description: TAG + ' the original', period, amount: 100, status: 'pending',
+    })
+
+    await page.reload()
+    await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible({ timeout: 25_000 })
+    await go(page, 'Tracker')
+    await page.getByRole('button', { name: '+ Add transaction' }).click()
+    const modal = page.locator('.modal')
+    await modal.getByLabel('Company').selectOption('GTOI')
+    await modal.getByLabel('Expense category').selectOption('Legal Services')
+    await modal.getByPlaceholder('What is being paid for').fill(TAG + ' the duplicate')
+    await modal.getByPlaceholder('0.00').fill('10')
+
+    await modal.getByRole('button', { name: 'Save', exact: true }).click()
+    await expect(modal, 'the first save must be held back by the warning').toBeVisible()
+    await expect(modal.getByRole('alert')).toContainText(/already has/i)
+    expect(await mine(), 'nothing may be written while warning').toBe(1) // only the clash
+
+    // Saving again accepts it: a company can legitimately owe twice in a period.
+    await modal.getByRole('button', { name: 'Save', exact: true }).click()
+    await expect(modal).toBeHidden()
+    await expect.poll(mine, { timeout: 10_000 }).toBe(2)
+  } finally {
+    await D.cleanup(TAG)
+    await D.restoreConfig(beforeConfig)
+  }
+})
+
+test('the deadline window setting actually narrows the list', async ({ page }) => {
+  await signIn(page)
+  const beforeConfig = await D.config()
+
+  try {
+    const rows = () => page.locator('.deadline')
+    await page.getByRole('navigation', { name: 'Sections' }).getByRole('button', { name: /^Settings/ }).click()
+    await page.getByRole('button', { name: 'Dashboard settings' }).click()
+    await page.getByLabel('Deadline window').selectOption('Next 90 days')
+    await expect.poll(async () => (await D.config()).settings.dashWindow, { timeout: 10_000 }).toBe('Next 90 days')
+
+    await go(page, 'Dashboard')
+    const wide = await rows().count()
+
+    await page.getByRole('navigation', { name: 'Sections' }).getByRole('button', { name: /^Settings/ }).click()
+    await page.getByRole('button', { name: 'Dashboard settings' }).click()
+    await page.getByLabel('Deadline window').selectOption('Next 7 days')
+    await go(page, 'Dashboard')
+    const narrow = await rows().count()
+
+    expect(narrow, 'a 7-day window cannot show more than a 90-day one').toBeLessThanOrEqual(wide)
+    await expect(page.getByText('next 7 days')).toBeVisible()
+  } finally {
+    await D.restoreConfig(beforeConfig)
   }
 })

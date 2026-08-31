@@ -41,16 +41,33 @@ test('seed transactions round-trip even without the optional fields', () => {
 })
 
 test('an unliquidated receipt keeps actual as null, not zero or empty', () => {
-  const r = { id: 3, co: 'VAR', name: 'Jack Rivera', desc: 'Permit filing fees', amount: 40000, status: 'released', date: '', actual: null }
+  const r = { id: 3, co: 'VAR', name: 'Jack Rivera', desc: 'Permit filing fees', amount: 40000, status: 'released', date: '', actual: null, filePath: '' }
   const row = toReceipt(r)
   assert.equal(row.date, null)
   assert.equal(row.actual, null)
+  // No document attached must reach the column as NULL, not an empty string:
+  // '' would look like a stored object key and produce a broken signed URL.
+  assert.equal(row.file_path, null)
   assert.deepEqual(fromReceipt(row), r)
 })
 
-test('a liquidated receipt round-trips its actual amount', () => {
-  const r = { id: 2, co: 'ZON', name: 'Maria Lansang', desc: 'Client meeting expenses', amount: 12000, status: 'liquidated', date: '2026-08-18', actual: 13850 }
-  assert.deepEqual(fromReceipt(toReceipt(r)), r)
+test('a liquidated receipt round-trips its actual amount and its document', () => {
+  const r = {
+    id: 2, co: 'ZON', name: 'Maria Lansang', desc: 'Client meeting expenses',
+    amount: 12000, status: 'liquidated', date: '2026-08-18', actual: 13850,
+    filePath: '2/1788190000000.pdf',
+  }
+  const row = toReceipt(r)
+  assert.equal(row.file_path, '2/1788190000000.pdf')
+  assert.deepEqual(fromReceipt(row), r)
+})
+
+test('a seed receipt with no file field still round-trips', () => {
+  // data.js predates file storage and gives no filePath at all; undefined must
+  // become NULL going out and '' coming back, never the string "undefined".
+  const back = fromReceipt(toReceipt(initialState.receipts[2]))
+  assert.equal(back.filePath, '')
+  assert.equal(toReceipt(initialState.receipts[2]).file_path, null)
 })
 
 test('numeric columns arriving as strings still come back as numbers', () => {

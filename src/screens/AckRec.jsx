@@ -12,7 +12,7 @@ const STATUSES = [
 ]
 
 export default function AckRec() {
-  const { state, setReceiptStatus, openLiquidate, openReceipt } = useActions()
+  const { state, setReceiptStatus, openLiquidate, openReceipt, openReceiptFile } = useActions()
 
   const open = state.receipts.filter((r) => r.status !== 'liquidated')
   const liquidated = state.receipts.filter((r) => r.status === 'liquidated')
@@ -77,7 +77,11 @@ export default function AckRec() {
                 <div className="right bold" style={{ color: diff == null ? 'var(--faint)' : (diff >= 0 ? '#5C8F72' : 'var(--danger)') }}>
                   {diff == null ? '—' : (diff === 0 ? 'exact' : fmt(Math.abs(diff)) + (diff > 0 ? ' back' : ' over'))}
                 </div>
-                <div className="right">
+                <div className="right" style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                  {r.filePath ? (
+                    <button type="button" className="link" onClick={openReceiptFile(r)}
+                            title="Open the stored receipt">File</button>
+                  ) : null}
                   {r.status !== 'liquidated' ? (
                     <button type="button" className="btn sm" onClick={openLiquidate(r)}>Liquidate</button>
                   ) : null}

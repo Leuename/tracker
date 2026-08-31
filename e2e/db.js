@@ -81,9 +81,39 @@ export async function restoreConfig(before) {
   if (error) throw error
 }
 
-/** Remove everything this run tagged. Safe to call twice. */
+/**
+ * Remove everything any run tagged, plus files no receipt references.
+ *
+ * Sweeps every `E2E-` tag, not only this run's: an interrupted run leaves rows
+ * behind, and the next run should clear them rather than let them accumulate
+ * in a ledger people actually read. Nothing without the tag is ever touched.
+ */
 export async function cleanup(needle = MARK) {
   const c = await db()
-  await c.from('txns').delete().like('description', '%' + needle + '%')
-  await c.from('recurring').delete().like('description', '%' + needle + '%')
+  for (const tag of [needle, 'E2E-']) {
+    await c.from('txns').delete().like('description', '%' + tag + '%')
+    await c.from('recurring').delete().like('description', '%' + tag + '%')
+    await c.from('receipts').delete().like('name', '%' + tag + '%')
+    await c.from('receipts').delete().like('description', '%' + tag + '%')
+  }
+  await cleanupOrphanFiles()
+}
+
+/** Delete stored files that no receipt row points at any more. */
+export async function cleanupOrphanFiles() {
+  const c = await db()
+  const { data: rows } = await c.from('receipts').select('file_path')
+  const kept = new Set((rows || []).map((r) => r.file_path).filter(Boolean))
+
+  const { data: folders } = await c.storage.from('receipts').list('', { limit: 1000 })
+  const orphans = []
+  for (const folder of folders || []) {
+    const { data: files } = await c.storage.from('receipts').list(folder.name, { limit: 1000 })
+    for (const f of files || []) {
+      const key = folder.name + '/' + f.name
+      if (!kept.has(key)) orphans.push(key)
+    }
+  }
+  if (orphans.length) await c.storage.from('receipts').remove(orphans)
+  return orphans
 }

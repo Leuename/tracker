@@ -73,6 +73,9 @@ export default function AddTransaction() {
         {state.formError ? (
           <span style={{ fontSize: 12.5, color: 'var(--danger)', fontWeight: 600 }}>{state.formError}</span>
         ) : null}
+        {!state.formError && state.formWarning ? (
+          <span role="alert" style={{ fontSize: 12.5, color: '#BE8A38', fontWeight: 600 }}>{state.formWarning}</span>
+        ) : null}
         <div className="spacer" />
         <button type="button" className="btn quiet" onClick={closeAdd}>Cancel</button>
         <button type="button" className="btn quiet" onClick={commit(true)}>Save &amp; add another</button>

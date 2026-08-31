@@ -1,9 +1,31 @@
 // Constants and seed rows, transcribed verbatim from
 // company_tracker/ERP Prototype.dc.html (<script type="text/x-dc">).
-// The prototype freezes "now" so its overdue/completed sample reads the same on
-// every run. Keep it a knob: swap for new Date().toISOString().slice(0,10) once
-// this is backed by real records rather than the demo seed.
-export const TODAY = '2026-08-30'
+
+/**
+ * Today's date, as the app sees it.
+ *
+ * The prototype froze this at 2026-08-30 so its demo screenshots always read
+ * the same. That was fine for a demo and wrong the moment real payables went
+ * in: "overdue" would be judged against a fixed day forever, and a row marked
+ * paid would be stamped with a date months in the past.
+ *
+ * Built from local date parts rather than toISOString(), which is UTC and
+ * therefore returns yesterday for an evening in UTC+8.
+ */
+const localToday = () => {
+  const d = new Date()
+  return [
+    d.getFullYear(),
+    String(d.getMonth() + 1).padStart(2, '0'),
+    String(d.getDate()).padStart(2, '0'),
+  ].join('-')
+}
+
+export const TODAY = localToday()
+
+
+/** The date the seed rows were written around, so the demo still reads sensibly. */
+export const SEED_TODAY = '2026-08-30'
 
 export const CO = ['GTOI', 'VAR', 'VER', 'ANG', 'DNN', 'ZON', 'WDO', 'BSC', 'HAL', 'VNQ', 'OPT', 'FEPA', 'SHK', 'TOR', 'ZSM', 'GZZ', 'MIC', 'CUPA', 'BAR', 'MCR', 'ZPH']
 
@@ -20,11 +42,20 @@ export const TAG = {
 
 export const MON = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
 
+/** 'Sep 2026' for a 'YYYY-MM' key. Inlined rather than imported from logic.js,
+ *  which imports this file — the cycle is not worth one label. */
+const monthOf = (key) => {
+  const mon = MON[Number(key.slice(5, 7)) - 1]
+  return mon.charAt(0) + mon.slice(1).toLowerCase() + ' ' + key.slice(0, 4)
+}
+
 export const FREQ = ['Once', 'Daily', 'Weekly', 'Bi-weekly', 'Bi-monthly', 'Monthly', 'Quarterly', 'Yearly']
 
 // A Daily rule would otherwise write a row for every day of the month.
 export const MAX_OCC = 6
 
+// Unused by the app today; kept because the export is part of the transcribed
+// prototype surface. Not date-derived, so do not wire it to a picker as-is.
 export const PERIOD_PRESETS = ['Aug 2026', 'Sep 2026', 'Jul 2026', 'Jul–Sep 2026', 'Oct–Dec 2026']
 
 export const SETTINGS_TABS = [
@@ -75,7 +106,13 @@ const recurring = [
   { id: 6, co: 'BSC', cat: 'Rental Expense', freq: 'Monthly', desc: 'Head office lease', dueDate: '2026-09-01', amount: 62000 },
 ]
 
-export const blankForm = () => ({ co: '', cat: '', desc: '', period: 'Aug 2026', due: TODAY, amount: '', status: 'pending', notes: '' })
+// The period defaults to the month being worked in. It was pinned to
+// 'Aug 2026' while TODAY was frozen, which would have quietly filed every new
+// payable under August forever.
+export const blankForm = () => ({
+  co: '', cat: '', desc: '', period: monthOf(TODAY.slice(0, 7)),
+  due: TODAY, amount: '', status: 'pending', notes: '',
+})
 
 export const initialState = {
   screen: 'dashboard',
@@ -100,8 +137,10 @@ export const initialState = {
   settingsMenuOpen: false,
   settingsTab: 'masterlist',
   settings: {
-    autoGen: true, warnDuplicate: true, mlDefaultFreq: 'Monthly',
-    ackRequirePhoto: true, ackAutoNotify: false, ackDefaultStatus: 'Pending',
+    // ackRequirePhoto defaults off: turning it on is a policy decision, and it
+    // now genuinely blocks liquidation without a file.
+    warnDuplicate: true, mlDefaultFreq: 'Monthly',
+    ackRequirePhoto: false, ackDefaultStatus: 'Pending',
     trkShowGrandTotal: true, trkGroupDefault: 'Company', trkOverdueRed: true,
     dashDefaultScope: 'All companies', dashWindow: 'Next 30 days', dashShowNotes: true,
   },
@@ -111,12 +150,13 @@ export const initialState = {
   periodOpen: null,
   periodRange: false,
   periodFrom: TODAY.slice(0, 7),
-  periodTo: '2026-09',
+  periodTo: TODAY.slice(0, 7),   // the picker's range starts closed, on this month
   periodFromDay: '',
   periodToDay: '',
   addOpen: false,
   form: null,
   formError: '',
+  formWarning: '',
   editOpen: false,
   editId: null,
   edit: null,
@@ -133,6 +173,8 @@ export const initialState = {
   liqDate: TODAY,
   liqAmount: '',
   liqErr: false,
+  liqFile: null,       // the File chosen in the dialog, before it is uploaded
+  liqBusy: false,
   rcpOpen: false,
   rcp: { co: '', name: '', desc: '', amount: '', status: 'pending' },
   rcpError: '',

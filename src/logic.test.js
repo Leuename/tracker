@@ -3,8 +3,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { initialState, MAX_OCC, TODAY } from './data.js'
 import {
-  occurrences, ruleLabel, periodLabel, parsePeriod, eff,
-  buildGeneratedRows, monthKeys, dstr, visibleRows,
+  addDays, buildGeneratedRows, dstr, eff, monthKeys, occurrences, openingView, parsePeriod, periodLabel, ruleLabel, visibleRows, windowDays,
 } from './logic.js'
 
 const rent = { co: 'GTOI', cat: 'Rental Expense', freq: 'Monthly', desc: 'Warehouse B monthly rent', dueDate: '2026-08-24', amount: 45000 }
@@ -100,11 +99,22 @@ test('buildGeneratedRows tags each occurrence when a rule fires more than once',
   assert.notEqual(rows[0].id, rows[1].id)
 })
 
-test('monthKeys offers 13 months starting at today', () => {
+test('monthKeys offers 13 months from a given month, rolling the year over', () => {
+  // Pinned to an explicit date: TODAY is the real date now, so an assertion
+  // against a hardcoded end month would start failing on its own next month.
+  const keys = monthKeys('2026-08-30')
+  assert.equal(keys.length, 13)
+  assert.equal(keys[0], '2026-08')
+  assert.equal(keys[4], '2026-12')
+  assert.equal(keys[5], '2027-01', 'the year must roll over')
+  assert.equal(keys[12], '2027-08')
+})
+
+test('monthKeys defaults to the current month', () => {
   const keys = monthKeys()
   assert.equal(keys.length, 13)
   assert.equal(keys[0], TODAY.slice(0, 7))
-  assert.equal(keys[12], '2027-08')
+  assert.match(keys[12], /^\d{4}-(0[1-9]|1[0-2])$/)
 })
 
 test('visibleRows applies company, status and search together', () => {
@@ -120,4 +130,38 @@ test('visibleRows applies company, status and search together', () => {
   // No status ticked means "do not filter by status", matching the prototype.
   const none = visibleRows({ ...base, statuses: { pending: false, overdue: false, completed: false, hold: false } })
   assert.equal(none.length, initialState.txns.length)
+})
+
+test('the deadline window is read from the setting, not assumed', () => {
+  assert.equal(windowDays('Next 7 days'), 7)
+  assert.equal(windowDays('Next 30 days'), 30)
+  assert.equal(windowDays('Next 90 days'), 90)
+  // A value the settings screen never offers must not collapse the list to zero.
+  assert.equal(windowDays(undefined), 30)
+  assert.equal(windowDays('whenever'), 30)
+})
+
+test('addDays crosses a month boundary correctly', () => {
+  assert.equal(addDays('2026-08-30', 7), '2026-09-06')
+  assert.equal(addDays('2026-12-31', 1), '2027-01-01')
+  assert.equal(addDays('2026-08-30', 0), '2026-08-30')
+})
+
+test('the opening view comes from the saved settings', () => {
+  assert.deepEqual(openingView({ dashDefaultScope: 'All companies', trkGroupDefault: 'Company' }),
+    { scope: 'All companies', groupBy: 'company' })
+  // "GTOI only" is the label; the scope compares against the bare company code.
+  assert.deepEqual(openingView({ dashDefaultScope: 'GTOI only', trkGroupDefault: 'Category' }),
+    { scope: 'GTOI', groupBy: 'category' })
+  // Missing settings must still yield a usable view rather than undefined.
+  assert.deepEqual(openingView({}), { scope: 'All companies', groupBy: 'company' })
+  assert.deepEqual(openingView(), { scope: 'All companies', groupBy: 'company' })
+})
+
+test('addDays does not drift with the machine timezone', () => {
+  // Parsing local and formatting UTC loses a day east of Greenwich. Assert the
+  // arithmetic directly rather than trusting the runner's zone.
+  assert.equal(addDays('2026-01-01', 0), '2026-01-01')
+  assert.equal(addDays('2026-03-01', -1), '2026-02-28')
+  assert.equal(addDays('2028-03-01', -1), '2028-02-29') // leap year
 })

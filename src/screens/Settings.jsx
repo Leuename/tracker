@@ -6,14 +6,18 @@ const toggle = (k, name, hint) => ({ k, name, hint, kind: 'toggle' })
 const select = (k, name, hint, options) => ({ k, name, hint, kind: 'select', options })
 
 const ROWS = {
+  // Every control here changes something. Two were removed rather than left
+  // switchable: "Generate recurring payables automatically" on the 1st of the
+  // month, and "Notify the holder when a receipt ages" after 14 days. Both
+  // describe work that has to happen while nobody has the app open, and there
+  // is no scheduler or mail sender to do it. They were stored, toggled, and
+  // silently ignored. They belong back here the day a scheduled backend exists.
   masterlist: [
-    toggle('autoGen', 'Generate recurring payables automatically', 'On the 1st of each month, add every recurring payable to the Tracker as pending.'),
     toggle('warnDuplicate', 'Warn on duplicates', 'Flag a new transaction that matches an existing company, category and period.'),
     select('mlDefaultFreq', 'Default frequency for a new payable', 'Pre-selected in the Add payable form.', FREQ),
   ],
   ackrec: [
     toggle('ackRequirePhoto', 'Require a receipt file to liquidate', 'Liquidation cannot be saved without a photo or PDF attached.'),
-    toggle('ackAutoNotify', 'Notify the holder when a receipt ages', 'A reminder goes out if cash stays unliquidated past 14 days.'),
     select('ackDefaultStatus', 'Status for a new receipt', 'What the status dropdown starts on.', ['Pending', 'Released', 'On hold']),
   ],
   tracker: [
@@ -85,7 +89,7 @@ export default function Settings() {
               {r.kind === 'toggle' ? (
                 <Switch on={state.settings[r.k]} label={r.name} onClick={() => setS(r.k, !state.settings[r.k])} />
               ) : (
-                <Select value={state.settings[r.k]} options={r.options}
+                <Select value={state.settings[r.k]} options={r.options} label={r.name}
                         onChange={(e) => setS(r.k, e.target.value)} />
               )}
             </div>

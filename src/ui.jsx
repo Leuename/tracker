@@ -60,9 +60,10 @@ export function Field({ label, hint, children }) {
   )
 }
 
-export function Select({ id, value, onChange, options, placeholder, invalid, className = 'field' }) {
+export function Select({ id, label, value, onChange, options, placeholder, invalid, className = 'field' }) {
   return (
-    <select id={id} className={className + (invalid ? ' invalid' : '')} value={value} onChange={onChange}>
+    <select id={id} aria-label={label} className={className + (invalid ? ' invalid' : '')}
+            value={value} onChange={onChange}>
       {placeholder ? <option value="">{placeholder}</option> : null}
       {options.map((o) => <option key={o} value={o}>{o}</option>)}
     </select>

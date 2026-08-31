@@ -33,13 +33,13 @@ export default function Filters() {
         <div>
           <div className="eyebrow" style={{ marginBottom: 7 }}>Company</div>
           <Select className="field compact" value={state.coFilter} onChange={field('coFilter')}
-                  options={['All companies', ...state.companies]} />
+                  label="Company" options={['All companies', ...state.companies]} />
         </div>
 
         <div>
           <div className="eyebrow" style={{ marginBottom: 7 }}>Expense category</div>
           <Select className="field compact" value={state.catFilter} onChange={field('catFilter')}
-                  options={['All categories', ...state.categories]} />
+                  label="Expense category" options={['All categories', ...state.categories]} />
         </div>
 
         <div>

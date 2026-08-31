@@ -31,11 +31,15 @@ export const fromTxn = (r) => ({
 export const toReceipt = (r) => ({
   id: r.id, co: r.co, name: r.name, description: r.desc,
   amount: r.amount, status: r.status, date: nz(r.date), actual: r.actual,
+  // The object key in the private `receipts` bucket, or null when none was
+  // attached. Never a URL: those are signed on demand and expire.
+  file_path: nz(r.filePath),
 })
 
 export const fromReceipt = (r) => ({
   id: Number(r.id), co: r.co, name: r.name, desc: r.description,
   amount: Number(r.amount), status: r.status, date: ns(r.date), actual: num(r.actual),
+  filePath: ns(r.file_path),
 })
 
 export const toRecurring = (p) => ({

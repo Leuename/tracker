@@ -3,8 +3,9 @@ import { amountOf, fmt } from '../logic.js'
 import { Field, Modal } from '../ui.jsx'
 
 export default function Liquidate() {
-  const { state, set, saveLiq } = useActions()
-  const close = () => set({ liqOpen: false })
+  const { state, set, saveLiq, pickLiqFile } = useActions()
+  const close = () => set({ liqOpen: false, liqFile: null, liqErr: false })
+  const required = state.settings.ackRequirePhoto
 
   const rec = state.receipts.find((r) => r.id === state.liqId)
   const amt = amountOf(state.liqAmount)
@@ -28,8 +29,20 @@ export default function Liquidate() {
         </Field>
       </div>
 
-      {/* Upload is a placeholder here — the prototype draws the drop zone but stores no file. */}
-      <div className="dashed" style={{ padding: 14 }}>Drop the receipt photo or PDF here</div>
+      {/* A real upload: the file goes to a private bucket and the row records
+          its key. The prototype drew this zone but stored nothing. */}
+      <div>
+        <label className="label" htmlFor="liq-file">
+          Receipt file {required ? <span className="required">required</span> : <span className="optional">optional</span>}
+        </label>
+        <input id="liq-file" type="file" className="field" onChange={pickLiqFile}
+               accept="image/jpeg,image/png,image/webp,image/heic,application/pdf" />
+        <div className="hint" style={{ marginTop: 5 }}>
+          {state.liqFile
+            ? state.liqFile.name + ' · ' + Math.ceil(state.liqFile.size / 1024) + ' KB'
+            : 'JPEG, PNG, WebP, HEIC or PDF, up to 10 MB.'}
+        </div>
+      </div>
 
       <div style={{ background: 'var(--sunken)', borderRadius: 'var(--radius-md)', padding: 12, fontSize: 13, display: 'flex', alignItems: 'center' }}>
         <span className="dim">Difference</span>
@@ -40,9 +53,14 @@ export default function Liquidate() {
       </div>
 
       <div className="modal-actions">
+        {typeof state.liqErr === 'string' && state.liqErr ? (
+          <span role="alert" style={{ fontSize: 12.5, color: 'var(--danger)', fontWeight: 600 }}>{state.liqErr}</span>
+        ) : null}
         <div className="spacer" />
-        <button type="button" className="btn quiet" onClick={close}>Cancel</button>
-        <button type="button" className="btn primary" onClick={saveLiq}>Save</button>
+        <button type="button" className="btn quiet" onClick={close} disabled={state.liqBusy}>Cancel</button>
+        <button type="button" className="btn primary" onClick={saveLiq} disabled={state.liqBusy}>
+          {state.liqBusy ? 'Uploading…' : 'Save'}
+        </button>
       </div>
     </Modal>
   )
