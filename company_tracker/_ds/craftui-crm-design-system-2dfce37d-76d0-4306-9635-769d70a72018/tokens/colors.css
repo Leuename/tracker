@@ -1,0 +1,66 @@
+/* Zone CRM palette.
+   Base values are transcribed from apps/web/app/globals.css on Leuename/Zone-CRM@phase-1
+   (#163d32 sidebar, #24443b action, #f3f5f2 canvas, #17201c ink, #dde4e0 borders).
+   The status/accent hues are not defined in that file — they are derived in oklch to sit
+   harmoniously with the deep green rather than borrowed from another palette. */
+:root{
+  /* Primary */
+  --primary:#24443B;          /* action green — buttons, active states */
+  --primary-dark:#163D32;     /* deep green — sidebar, pressed */
+  --primary-grey:#718079;
+  --dark:#17201C;
+
+  /* Secondary — derived to harmonise with the green */
+  --secondary-violet:#6B6FA8;
+  --secondary-cyan:#4E9AA6;
+  --secondary-grey:#718079;
+  --secondary-red:#C4564E;
+  --secondary-green:#3E8E6B;
+  --secondary-yellow:#C8922F;
+  --secondary-magenta:#8E5E93;
+  --secondary-indigo:#41527E;
+
+  /* Backgrounds & outlines */
+  --bg-app:#F3F5F2;
+  --bg-surface:#FFFFFF;
+  --outline-resting:#DDE4E0;
+  --outline:#E2E6E3;
+  --outline-white:#FFFFFF;
+  --outline-hairline:#E5EBE7;
+  --outline-strong:#D8DFDB;
+  --neutral-300:#D8DFDB;
+  --neutral-500:#6B7973;
+  --slate-700:#44524C;
+  --slate-800:#2A3A33;
+
+  /* Overlays — darken by layering the ink colour, never by hue shift */
+  --overlay-hover:rgba(23,32,28,0.35);
+  --overlay-press:rgba(23,32,28,0.10);
+  --primary-tint-10:rgba(36,68,59,0.10);
+
+  /* Semantic aliases */
+  --text-primary:var(--dark);
+  --text-secondary:var(--primary-grey);
+  --text-muted:var(--neutral-500);
+  --text-inverse:#FFFFFF;
+  --text-link:var(--primary);
+  --surface-card:var(--bg-surface);
+  --surface-page:var(--bg-app);
+  --surface-sunken:#F7F8F6;
+  --border-card:var(--outline-resting);
+  --status-success:var(--secondary-green);
+  --status-warning:var(--secondary-yellow);
+  --status-danger:var(--secondary-red);
+  --status-info:var(--secondary-cyan);
+  --focus-ring:var(--primary);
+
+  /* Pipeline stage colours — pipeline_stages seed keywords mapped to this palette */
+  --stage-slate:var(--primary-grey);
+  --stage-cyan:var(--secondary-cyan);
+  --stage-orange:#B8703A;
+  --stage-yellow:var(--secondary-yellow);
+  --stage-purple:var(--secondary-magenta);
+  --stage-blue:var(--secondary-indigo);
+  --stage-green:var(--secondary-green);
+  --stage-red:var(--secondary-red);
+}

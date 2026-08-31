@@ -1,6 +1,23 @@
-node_modules
-dist
-.env.local
+node_modules/
+dist/
+.DS_Store
+
+# This project doubles as an Obsidian vault. `.obsidian/` is 16 MB of plugin
+# bundles plus a workspace file that churns on every pane change — editor
+# state, not project knowledge. The notes themselves live in docs/ and handoff/.
+.obsidian/
+
+# Machine-local adapter; its own header says it is not checked in.
+CLAUDE.local.md
+
+# Local tool state, not shared configuration.
+.claude/settings.local.json
+
+# Test output.
+test-results/
+playwright-report/
+
+# Secrets. apps/web/.env.production is committed deliberately — it holds only
+# values that ship in the browser bundle anyway. Nothing secret may join them.
 .env
-test-results
-playwright-report
+.env.local

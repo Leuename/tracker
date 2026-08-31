@@ -1,0 +1,1500 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap">
+
+<link rel="stylesheet" href="_ds/craftui-crm-design-system-2dfce37d-76d0-4306-9635-769d70a72018/tokens/typography.css">
+<link rel="stylesheet" href="_ds/craftui-crm-design-system-2dfce37d-76d0-4306-9635-769d70a72018/tokens/spacing.css">
+<style>
+body{margin:0;background:#FDF7FA;font-family:Inter,system-ui,sans-serif;color:#2A1A22;-webkit-font-smoothing:antialiased}
+a{color:#A8577B}a:hover{color:#7E3F5C}
+input{font-family:inherit}
+*{box-sizing:border-box}
+::-webkit-scrollbar{width:9px;height:9px}::-webkit-scrollbar-thumb{background:#EFDCE4;border-radius:9px}
+@keyframes pop{from{opacity:0;transform:translateY(8px) scale(.985)}to{opacity:1;transform:none}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes slidein{from{transform:translateX(22px);opacity:.4}to{transform:none;opacity:1}}
+</style>
+</helmet>
+
+<div style="display:flex;height:100vh;overflow:hidden;background:#FDF7FA;font-family:Inter,system-ui,sans-serif;color:#2A1A22;position:relative">
+
+  <div style="width:84px;flex:none;background:#7E3F5C;display:flex;flex-direction:column;align-items:center;padding:21px 0;gap:7px">
+    <div style="width:38px;height:38px;border-radius:11px;background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:15px;margin-bottom:14px">Z</div>
+    <div onClick="{{ goDash }}" title="Dashboard" style="width:64px;padding:9px 0;border-radius:11px;display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;background:{{ dashBg }};color:{{ dashFg }};transition:background 120ms linear" style-hover="background:rgba(255,255,255,.12)">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><rect x="3" y="3" width="7.5" height="7.5" rx="1.5"></rect><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.5"></rect><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.5"></rect><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.5"></rect></svg>
+      <span style="font-size:9.5px;font-weight:600;letter-spacing:.02em">Dashboard</span>
+    </div>
+    <div onClick="{{ goTrackerNav }}" title="Tracker" style="width:64px;padding:9px 0;border-radius:11px;display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;background:{{ trkBg }};color:{{ trkFg }};transition:background 120ms linear" style-hover="background:rgba(255,255,255,.12)">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 6h16"></path><path d="M4 12h11"></path><path d="M4 18h7"></path></svg>
+      <span style="font-size:9.5px;font-weight:600;letter-spacing:.02em">Tracker</span>
+    </div>
+    <div onClick="{{ goAck }}" title="AckRec" style="width:64px;padding:9px 0;border-radius:11px;display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;background:{{ ackBg }};color:{{ ackFg }};transition:background 120ms linear" style-hover="background:rgba(255,255,255,.12)">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14v18l-3.5-2-3.5 2-3.5-2L5 21z"></path><path d="M9 8h6"></path><path d="M9 12h6"></path></svg>
+      <span style="font-size:9.5px;font-weight:600;letter-spacing:.02em">AckRec</span>
+    </div>
+    <div onClick="{{ goMaster }}" title="Masterlist" style="width:64px;padding:9px 0;border-radius:11px;display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;background:{{ mstBg }};color:{{ mstFg }};transition:background 120ms linear" style-hover="background:rgba(255,255,255,.12)">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5z"></path><path d="M3 13l9 5 9-5"></path></svg>
+      <span style="font-size:9.5px;font-weight:600;letter-spacing:.02em">Masterlist</span>
+    </div>
+    <div onClick="{{ toggleSettings }}" title="Settings" style="width:64px;padding:9px 0;border-radius:11px;display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;background:{{ setBg }};color:{{ setFg }};transition:background 120ms linear" style-hover="background:rgba(255,255,255,.12)">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"></circle><path d="M19.4 15a1.7 1.7 0 00.34 1.87l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.7 1.7 0 00-2.9 1.2V22a2 2 0 11-4 0v-.1a1.7 1.7 0 00-2.9-1.2l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.7 1.7 0 002 15a2 2 0 010-4 1.7 1.7 0 001.51-2.87l-.06-.06A2 2 0 116.28 5.2l.06.06A1.7 1.7 0 009.3 4.1V4a2 2 0 114 0v.1a1.7 1.7 0 002.9 1.2l.06-.06a2 2 0 112.83 2.83l-.06.06A1.7 1.7 0 0022 11a2 2 0 010 4z"></path></svg>
+      <span style="font-size:9.5px;font-weight:600;letter-spacing:.02em">Settings {{ setCaret }}</span>
+    </div>
+    <div style="flex:1"></div>
+  </div>
+
+  <sc-if value="{{ settingsMenuOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeSettingsMenu }}" style="position:absolute;inset:0 0 0 84px;z-index:40;background:transparent"></div>
+  </sc-if>
+
+  <sc-if value="{{ settingsMenuOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;left:84px;top:0;bottom:0;z-index:41;width:212px;background:#fff;border-right:1px solid #EFDCE4;box-shadow:2px 0 22px rgba(42,26,34,.14);padding:21px 14px;display:flex;flex-direction:column;gap:4px;animation:slidein 150ms ease-out">
+      <div style="font-size:11px;font-weight:800;letter-spacing:.11em;text-transform:uppercase;color:#8B7079;padding:0 8px 9px">Settings</div>
+      <sc-for list="{{ settingsMenu }}" as="m" hint-placeholder-count="4">
+        <div onClick="{{ m.go }}" style="padding:9px 10px;border-radius:11px;font-size:13.5px;font-weight:{{ m.weight }};cursor:pointer;background:{{ m.bg }};color:{{ m.fg }}" style-hover="background:#FCF5F8">{{ m.label }}</div>
+      </sc-for>
+      <div style="flex:1"></div>
+    </div>
+  </sc-if>
+
+  <div style="flex:1;display:flex;flex-direction:column;min-width:0">
+
+    <sc-if value="{{ isDash }}" hint-placeholder-val="{{ true }}">
+    <div style="flex:1;display:flex;flex-direction:column;min-height:0">
+      <div style="height:76px;flex:none;background:#fff;border-bottom:1px solid #EFDCE4;display:flex;align-items:center;gap:14px;padding:0 28px">
+        <div style="font-size:22px;font-weight:700;letter-spacing:-.2px">Dashboard</div>
+        <div style="font-size:13px;color:#8B7079">as of 30 August 2026</div>
+        <div style="flex:1"></div>
+        <select value="{{ scope }}" onChange="{{ onScope }}" style="border:1px solid #EFDCE4;border-radius:11px;padding:8px 11px;font-size:13px;cursor:pointer;background:#fff;color:#2A1A22;outline:none">
+          <sc-for list="{{ scopeOptions }}" as="o" hint-placeholder-count="6">
+            <option value="{{ o }}">{{ o }}</option>
+          </sc-for>
+        </select>
+      </div>
+
+      <div style="flex:1;overflow:auto;padding:28px;display:flex;flex-direction:column;gap:21px">
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:14px">
+          <sc-for list="{{ tiles }}" as="t" hint-placeholder-count="5">
+            <div onClick="{{ t.go }}" style="background:#fff;border:1px solid #EFDCE4;border-radius:13px;padding:16px;cursor:pointer;transition:box-shadow 120ms linear,transform 120ms linear" style-hover="box-shadow:0 4px 12px rgba(126,63,92,.10);transform:translateY(-1px)">
+              <div style="font-size:11px;font-weight:800;letter-spacing:.11em;text-transform:uppercase;color:#8B7079">{{ t.label }}</div>
+              <div style="font-size:24px;font-weight:700;margin-top:6px;color:{{ t.color }}">{{ t.value }}</div>
+              <div style="font-size:12px;color:#8B7079;margin-top:2px">{{ t.count }} items</div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="font-size:12.5px;color:#8B7079;margin-top:-9px">Payables is the total — the four beside it add up to it. Click any tile to open the Tracker already filtered.</div>
+
+        <div style="flex:1;display:grid;grid-template-columns:1fr 1fr;gap:21px;min-height:340px">
+
+          <div style="background:#fff;border:1px solid #EFDCE4;border-radius:16px;padding:21px;display:flex;flex-direction:column;gap:12px">
+            <div style="font-size:16px;font-weight:700">Notes &amp; reminders</div>
+            <sc-for list="{{ notes }}" as="n" hint-placeholder-count="4">
+              <div style="display:flex;align-items:center;gap:11px">
+                <div onClick="{{ n.toggle }}" style="width:18px;height:18px;flex:none;border-radius:9px;border:1.5px solid {{ n.boxBorder }};background:{{ n.boxBg }};color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;cursor:pointer">{{ n.check }}</div>
+                <div style="flex:1;font-size:13.5px;color:{{ n.fg }};text-decoration:{{ n.deco }}">{{ n.t }}</div>
+                <sc-if value="{{ n.linked }}" hint-placeholder-val="{{ false }}">
+                  <span style="background:#FADCE6;color:#C4566E;border-radius:11px;padding:3px 9px;font-size:11px;font-weight:600">linked</span>
+                </sc-if>
+              </div>
+            </sc-for>
+            <div style="flex:1"></div>
+            <div style="display:flex;gap:9px">
+              <input value="{{ noteDraft }}" onChange="{{ onNoteDraft }}" onKeyDown="{{ onNoteKey }}" placeholder="Add a reminder…" style="flex:1;border:1px solid #EFDCE4;border-radius:10px;padding:9px 11px;font-size:13px;outline:none;background:#FCF5F8;color:#2A1A22">
+              <div onClick="{{ addNote }}" style="border-radius:11px;padding:9px 15px;font-size:13px;font-weight:600;background:#A8577B;color:#fff;cursor:pointer;white-space:nowrap" style-hover="background:#7E3F5C">Add</div>
+            </div>
+          </div>
+
+          <div style="background:#fff;border:1px solid #EFDCE4;border-radius:16px;padding:21px;display:flex;flex-direction:column;gap:14px">
+            <div style="display:flex;align-items:baseline;gap:9px">
+              <div style="font-size:16px;font-weight:700">Upcoming deadlines</div>
+              <div style="font-size:12px;color:#8B7079">next 30 days</div>
+            </div>
+            <sc-for list="{{ deadlines }}" as="d" hint-placeholder-count="5">
+              <div onClick="{{ d.go }}" style="display:flex;gap:12px;align-items:center;cursor:pointer;padding:4px;border-radius:11px" style-hover="background:#FCF5F8">
+                <div style="width:42px;flex:none;text-align:center;border:1.5px solid {{ d.chipBorder }};border-radius:10px;padding:4px 0">
+                  <div style="font-size:10px;font-weight:600;color:{{ d.chipFg }}">{{ d.mon }}</div>
+                  <div style="font-size:15px;font-weight:700;color:{{ d.chipFg }}">{{ d.day }}</div>
+                </div>
+                <div style="min-width:0;flex:1">
+                  <div style="font-size:13.5px;font-weight:600">{{ d.title }}</div>
+                  <div style="font-size:12px;color:{{ d.subFg }}">{{ d.sub }}</div>
+                </div>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B79FA9" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"></path></svg>
+              </div>
+            </sc-for>
+            <div style="flex:1"></div>
+            <div onClick="{{ goTracker }}" style="border-top:1px solid #EFDCE4;padding-top:12px;font-size:13px;color:#A8577B;font-weight:600;cursor:pointer">Open the Tracker →</div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ isTracker }}" hint-placeholder-val="{{ false }}">
+    <div style="flex:1;display:flex;min-height:0">
+
+      <div style="flex:1;display:flex;flex-direction:column;min-width:0">
+        <div style="height:76px;flex:none;background:#fff;border-bottom:1px solid #EFDCE4;display:flex;align-items:center;gap:14px;padding:0 28px">
+          <div style="font-size:22px;font-weight:700;letter-spacing:-.2px">Tracker</div>
+          <div style="font-size:13px;color:#8B7079">{{ trackerSummary }}</div>
+          <div style="flex:1"></div>
+          <input value="{{ search }}" onChange="{{ onSearch }}" placeholder="Search descriptions…" style="width:200px;border:1px solid #EFDCE4;border-radius:11px;padding:9px 12px;font-size:13px;outline:none;background:#FCF5F8;color:#2A1A22">
+          <div onClick="{{ openFilters }}" style="display:flex;align-items:center;gap:8px;border:1px solid #EFDCE4;border-radius:11px;padding:9px 13px;font-size:13px;font-weight:600;cursor:pointer;background:#fff;white-space:nowrap" style-hover="border-color:#A8577B;color:#A8577B">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 6h16"></path><path d="M7 12h10"></path><path d="M10 18h4"></path></svg>
+            Filters
+            <sc-if value="{{ filterCount }}" hint-placeholder-val="{{ false }}">
+              <span style="background:#A8577B;color:#fff;border-radius:9px;min-width:18px;text-align:center;padding:1px 5px;font-size:11px;font-weight:700">{{ filterCount }}</span>
+            </sc-if>
+          </div>
+          <div onClick="{{ openAdd }}" style="border-radius:11px;padding:10px 15px;font-size:13px;font-weight:600;background:#A8577B;color:#fff;cursor:pointer;white-space:nowrap" style-hover="background:#7E3F5C">+ Add transaction</div>
+        </div>
+
+        <div style="flex:1;overflow:auto"><div style="min-width:1010px">
+        <div style="display:grid;grid-template-columns:{{ gridCols }};padding:10px 28px;background:#FCF5F8;border-bottom:1px solid #EFDCE4;font-size:10.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#8B7079;position:sticky;top:0;z-index:2">
+          <div style="display:flex;align-items:center;gap:7px;min-width:0">
+            <span onClick="{{ toggleCol1 }}" title="Expand or collapse every group" style="width:15px;height:15px;flex:none;border-radius:8px;border:1.5px solid {{ col1BoxBorder }};background:{{ col1BoxBg }};color:#fff;display:flex;align-items:center;justify-content:center;font-size:9px;cursor:pointer">{{ col1Check }}</span>
+            <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ col1Label }}</span>
+          </div><div>Description</div><div>Period</div><div>Due date</div><div style="text-align:right">Amount</div><div style="text-align:center">Status</div><div>Completed</div><div></div>
+        </div>
+
+          <sc-for list="{{ groups }}" as="g" hint-placeholder-count="3">
+            <div>
+              <div onClick="{{ g.toggle }}" style="display:flex;align-items:center;gap:10px;padding:9px 28px;background:#F7E9F0;border-bottom:1px solid #EFDCE4;cursor:pointer">
+                <span style="font-size:11px;color:#8B7079">{{ g.caret }}</span>
+                <span style="font-size:13px;font-weight:700">{{ g.name }}</span>
+                <span style="font-size:12px;color:#8B7079">{{ g.countLabel }}</span>
+                <span style="flex:1"></span>
+                <span style="font-size:13px;font-weight:600">{{ g.subtotal }}</span>
+              </div>
+              <sc-for list="{{ g.rows }}" as="r" hint-placeholder-count="3">
+                <div onClick="{{ r.open }}" style="display:grid;grid-template-columns:{{ gridCols }};align-items:center;padding:12px 28px;border-bottom:1px solid #F5E7EE;font-size:13px;background:#fff;cursor:pointer" style-hover="background:#FDF7FA">
+                  <div style="font-weight:600">{{ r.head }}</div>
+                  <div style="padding-right:14px">{{ r.desc }}</div>
+                  <div style="color:#8B7079">{{ r.period }}</div>
+                  <div style="color:{{ r.dueFg }}">{{ r.dueLabel }}</div>
+                  <div style="text-align:right;font-weight:600">{{ r.amountLabel }}</div>
+                  <div style="text-align:center"><span style="background:{{ r.tagBg }};color:{{ r.tagFg }};border-radius:11px;padding:3px 9px;font-size:11px;font-weight:600">{{ r.tagLabel }}</span></div>
+                  <div style="color:{{ r.doneFg }};min-width:0">{{ r.doneLabel }}
+                    <sc-if value="{{ r.payLabel }}" hint-placeholder-val="{{ false }}">
+                      <div style="font-size:11px;color:#8B7079;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.payLabel }}</div>
+                    </sc-if>
+                  </div>
+                  <div style="text-align:right">
+                    <sc-if value="{{ r.payable }}" hint-placeholder-val="{{ true }}">
+                      <span onClick="{{ r.pay }}" style="border:1px solid #EFDCE4;border-radius:11px;padding:5px 10px;font-size:12px;font-weight:600;cursor:pointer;color:#A8577B;background:#fff" style-hover="background:#A8577B;color:#fff;border-color:#A8577B">Mark as paid</span>
+                    </sc-if>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </sc-for>
+          <sc-if value="{{ noRows }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:56px;text-align:center;color:#8B7079;font-size:13.5px">Nothing matches these filters. <span onClick="{{ clearFilters }}" style="color:#A8577B;font-weight:600;cursor:pointer">Clear them</span></div>
+          </sc-if>
+        </div></div>
+
+        <div style="flex:none;display:flex;align-items:center;gap:14px;padding:13px 28px;border-top:1px solid #EFDCE4;background:#FCF5F8;font-size:13px">
+          <span style="color:#8B7079">{{ shownLabel }}</span>
+          <span style="flex:1"></span>
+          <span style="color:#8B7079">Grand total</span>
+          <span style="font-weight:700;font-size:15px">{{ grandTotal }}</span>
+        </div>
+      </div>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ isAck }}" hint-placeholder-val="{{ false }}">
+    <div style="flex:1;display:flex;flex-direction:column;min-height:0">
+      <div style="height:76px;flex:none;background:#fff;border-bottom:1px solid #EFDCE4;display:flex;align-items:center;gap:14px;padding:0 28px">
+        <div style="font-size:22px;font-weight:700;letter-spacing:-.2px">Acknowledgement receipts</div>
+        <div style="font-size:13px;color:#8B7079">cash released, waiting to be liquidated</div>
+        <div style="flex:1"></div>
+        <div onClick="{{ openReceipt }}" style="border-radius:11px;padding:10px 15px;font-size:13px;font-weight:600;background:#A8577B;color:#fff;cursor:pointer;white-space:nowrap" style-hover="background:#7E3F5C">+ Add receipt</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:14px;padding:14px 28px;background:#FCF5F8;border-bottom:1px solid #EFDCE4;font-size:13px">
+        <span style="color:#8B7079">Released, not yet liquidated</span>
+        <span style="font-weight:700">{{ ackOutstanding }}</span>
+        <span style="color:#8B7079">·</span>
+        <span style="color:#8B7079">{{ ackOpenCount }} receipts open</span>
+        <span style="flex:1"></span>
+        <span style="color:#8B7079">Difference on liquidated receipts</span>
+        <span style="font-weight:700;color:{{ ackDiffFg }}">{{ ackDiffLabel }}</span>
+      </div>
+      <div style="flex:1;overflow:auto;background:#fff"><div style="min-width:1160px">
+      <div style="display:grid;grid-template-columns:60px 128px minmax(160px,1fr) 104px 116px 104px 112px 104px 92px;column-gap:14px;padding:10px 28px;background:#fff;border-bottom:1px solid #EFDCE4;font-size:10.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#8B7079;position:sticky;top:0;z-index:2">
+        <div>Company</div><div>Name</div><div>Description</div><div style="text-align:right">Amount</div><div style="text-align:center">Status</div><div>Liquidated</div><div style="text-align:right">Actual</div><div style="text-align:right">Difference</div><div></div>
+      </div>
+
+        <sc-for list="{{ receipts }}" as="r" hint-placeholder-count="6">
+          <div style="display:grid;grid-template-columns:60px 128px minmax(160px,1fr) 104px 116px 104px 112px 104px 92px;column-gap:14px;align-items:center;padding:13px 28px;border-bottom:1px solid #F5E7EE;font-size:13px" style-hover="background:#FDF7FA">
+            <div style="font-weight:600">{{ r.co }}</div>
+            <div>{{ r.name }}</div>
+            <div style="padding-right:14px;color:#5A4550">{{ r.desc }}</div>
+            <div style="text-align:right;font-weight:600">{{ r.amountLabel }}</div>
+            <div style="display:flex;justify-content:center">
+              <select value="{{ r.status }}" onChange="{{ r.setStatus }}" style="width:104px;text-align:center;text-align-last:center;border:1px solid #EFDCE4;border-radius:11px;padding:5px 7px;font-size:11.5px;font-weight:600;background:{{ r.tagBg }};color:{{ r.tagFg }};outline:none;cursor:pointer">
+                <option value="pending">Pending</option>
+                <option value="released">Released</option>
+                <option value="liquidated">Liquidated</option>
+                <option value="hold">On hold</option>
+              </select>
+            </div>
+            <div style="color:{{ r.dateFg }}">{{ r.dateLabel }}</div>
+            <div style="text-align:right;color:{{ r.dateFg }}">{{ r.actualLabel }}</div>
+            <div style="text-align:right;font-weight:600;color:{{ r.diffFg }}">{{ r.diffLabel }}</div>
+            <div style="text-align:right">
+              <sc-if value="{{ r.open }}" hint-placeholder-val="{{ true }}">
+                <span onClick="{{ r.liquidate }}" style="border:1px solid #EFDCE4;border-radius:11px;padding:5px 10px;font-size:12px;font-weight:600;cursor:pointer;color:#A8577B;background:#fff" style-hover="background:#A8577B;color:#fff;border-color:#A8577B">Liquidate</span>
+              </sc-if>
+            </div>
+          </div>
+        </sc-for>
+      </div></div>
+      <div style="flex:none;padding:16px 28px;border-top:1px solid #EFDCE4;background:#FCF5F8;font-size:12.5px;color:#8B7079">Setting a receipt to <strong style="color:#2A1A22">Liquidated</strong> opens two required fields — date liquidated and actual amount. The difference is worked out for you.</div>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ isMaster }}" hint-placeholder-val="{{ false }}">
+    <div style="flex:1;display:flex;flex-direction:column;min-height:0">
+      <div style="height:76px;flex:none;background:#fff;border-bottom:1px solid #EFDCE4;display:flex;align-items:center;gap:14px;padding:0 28px">
+        <div style="font-size:22px;font-weight:700;letter-spacing:-.2px">Masterlist</div>
+        <div style="font-size:13px;color:#8B7079">the payables that repeat, and the lists behind every dropdown</div>
+        <div style="flex:1"></div>
+        <div style="position:relative;display:flex">
+          <div onClick="{{ runMasterlist }}" style="border:1px solid #EFDCE4;border-right:none;border-radius:11px 0 0 11px;padding:10px 14px;font-size:13px;font-weight:600;cursor:pointer;background:#fff;white-space:nowrap" style-hover="border-color:#A8577B;color:#A8577B">Generate {{ genLabel }}</div>
+          <div onClick="{{ toggleGenMenu }}" title="Pick a month" style="border:1px solid #EFDCE4;border-radius:0 11px 11px 0;padding:10px 10px;cursor:pointer;background:#fff;display:flex;align-items:center" style-hover="border-color:#A8577B;color:#A8577B">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 9l7 7 7-7"></path></svg>
+          </div>
+          <sc-if value="{{ genMenuOpen }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute;top:46px;right:0;width:252px;background:#fff;border:1px solid #EFDCE4;border-radius:13px;box-shadow:0 12px 32px rgba(42,26,34,.16);padding:9px;z-index:30;animation:pop 140ms ease-out">
+              <div style="font-size:11px;font-weight:800;letter-spacing:.11em;text-transform:uppercase;color:#8B7079;padding:6px 8px 9px">Generate for</div>
+              <div style="max-height:236px;overflow:auto">
+                <sc-for list="{{ genMonths }}" as="m" hint-placeholder-count="8">
+                  <div onClick="{{ m.pick }}" style="display:flex;align-items:center;gap:9px;padding:8px 9px;border-radius:10px;font-size:13px;cursor:pointer;background:{{ m.bg }};color:{{ m.fg }}" style-hover="background:#FCF5F8">
+                    <span style="flex:1;font-weight:{{ m.weight }}">{{ m.label }}</span>
+                    <span style="font-size:11.5px;color:#9A8891">{{ m.note }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+        <div onClick="{{ openRecurring }}" style="border-radius:11px;padding:10px 15px;font-size:13px;font-weight:600;background:#A8577B;color:#fff;cursor:pointer;white-space:nowrap" style-hover="background:#7E3F5C">+ Add payable</div>
+      </div>
+
+      <sc-if value="{{ bannerOpen }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;align-items:center;gap:12px;padding:12px 28px;background:#F7E9F0;border-bottom:1px solid #EFDCE4;font-size:13px;animation:fade 160ms linear">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#A8577B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M8 12.5l2.6 2.5L16 9.5"></path></svg>
+          <span style="font-weight:600">{{ bannerText }}</span>
+          <span style="flex:1"></span>
+          <span onClick="{{ goTracker }}" style="text-decoration:underline;cursor:pointer">Review them</span>
+          <span onClick="{{ undoGenerate }}" style="text-decoration:underline;cursor:pointer">Undo</span>
+          <span onClick="{{ closeBanner }}" style="color:#8B7079;cursor:pointer">✕</span>
+        </div>
+      </sc-if>
+
+      <div style="flex:1;overflow:auto;display:flex;flex-direction:column">
+        <div style="flex:none;overflow-x:auto;overflow-y:visible"><div style="min-width:1000px">
+        <div style="padding:21px 28px 10px;font-size:11px;font-weight:800;letter-spacing:.11em;text-transform:uppercase;color:#8B7079">Recurring payables</div>
+        <div style="display:grid;grid-template-columns:78px 158px 126px minmax(190px,1fr) 168px 116px 80px;column-gap:9px;padding:10px 28px;background:#FCF5F8;border-top:1px solid #EFDCE4;border-bottom:1px solid #EFDCE4;font-size:10.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#8B7079">
+          <div>Company</div><div>Category</div><div>How often</div><div>Description</div><div>Due date</div><div style="text-align:right">Amount</div><div></div>
+        </div>
+        <sc-for list="{{ recurring }}" as="p" hint-placeholder-count="6">
+          <div style="display:grid;grid-template-columns:78px 158px 126px minmax(190px,1fr) 168px 116px 80px;column-gap:9px;align-items:center;padding:9px 28px;border-bottom:1px solid #F5E7EE;font-size:13px;background:#fff" style-hover="background:#FDF7FA">
+            <select value="{{ p.co }}" onChange="{{ p.setCo }}" style="width:100%;border:1px solid #EFDCE4;border-radius:8px;padding:6px 5px;font-size:12.5px;font-weight:600;outline:none;background:#FCF5F8;color:#2A1A22;cursor:pointer" style-hover="border-color:#A8577B">
+              <sc-for list="{{ companies }}" as="c" hint-placeholder-count="6"><option value="{{ c }}">{{ c }}</option></sc-for>
+            </select>
+            <select value="{{ p.cat }}" onChange="{{ p.setCat }}" style="width:100%;border:1px solid #EFDCE4;border-radius:8px;padding:6px 5px;font-size:12.5px;outline:none;background:#FCF5F8;color:#2A1A22;cursor:pointer" style-hover="border-color:#A8577B">
+              <sc-for list="{{ categories }}" as="c" hint-placeholder-count="6"><option value="{{ c }}">{{ c }}</option></sc-for>
+            </select>
+            <select value="{{ p.freq }}" onChange="{{ p.setFreq }}" style="width:100%;border:1px solid #EFDCE4;border-radius:8px;padding:6px 5px;font-size:12.5px;outline:none;background:#FCF5F8;color:#2A1A22;cursor:pointer" style-hover="border-color:#A8577B">
+              <sc-for list="{{ freqOptions }}" as="o" hint-placeholder-count="8"><option value="{{ o }}">{{ o }}</option></sc-for>
+            </select>
+            <input value="{{ p.desc }}" onChange="{{ p.setDesc }}" style="width:100%;border:1px solid #EFDCE4;border-radius:8px;padding:6px 8px;font-size:12.5px;outline:none;background:#FCF5F8;color:#2A1A22" style-hover="border-color:#A8577B">
+            <div style="display:flex;flex-direction:column;gap:3px">
+              <input type="date" value="{{ p.dueDate }}" onChange="{{ p.setDue }}" style="width:100%;border:1px solid #EFDCE4;border-radius:8px;padding:5px 7px;font-size:12.5px;outline:none;background:#FCF5F8;color:#2A1A22" style-hover="border-color:#A8577B">
+              <span style="font-size:11px;color:#9A8891">{{ p.rule }}</span>
+            </div>
+            <input value="{{ p.amount }}" onChange="{{ p.setAmount }}" style="width:100%;border:1px solid #EFDCE4;border-radius:8px;padding:6px 8px;font-size:12.5px;outline:none;background:#FCF5F8;color:#2A1A22;text-align:right;font-weight:600" style-hover="border-color:#A8577B">
+            <div style="text-align:right"><span onClick="{{ p.remove }}" style="font-size:12px;color:#8B7079;cursor:pointer" style-hover="color:#C4566E">Remove</span></div>
+          </div>
+        </sc-for>
+        <div style="padding:12px 28px 24px;font-size:12.5px;color:#8B7079">Every field here is editable in place. The due date and how often decide the due dates that Generate writes into the Tracker — which is what the dashboard tiles and Upcoming deadlines read.</div></div></div>
+
+      </div>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ isSettings }}" hint-placeholder-val="{{ false }}">
+    <div style="flex:1;display:flex;flex-direction:column;min-height:0">
+      <div style="height:76px;flex:none;background:#fff;border-bottom:1px solid #EFDCE4;display:flex;align-items:center;gap:14px;padding:0 28px">
+        <div style="font-size:22px;font-weight:700;letter-spacing:-.2px">{{ settingsTitle }}</div>
+        <div style="font-size:13px;color:#8B7079">{{ settingsSub }}</div>
+      </div>
+
+      <div style="flex:1;overflow:auto;padding:28px;display:flex;flex-direction:column;gap:21px;max-width:920px">
+
+        <sc-if value="{{ isSetMaster }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;flex-direction:column;gap:21px">
+            <div style="background:#fff;border:1px solid #EFDCE4;border-radius:16px;padding:21px;display:flex;flex-direction:column;gap:12px">
+              <div style="display:flex;align-items:baseline;gap:9px">
+                <div style="font-size:15px;font-weight:700">Companies</div>
+                <div style="font-size:12px;color:#8B7079">{{ companyCount }} in the dropdown</div>
+              </div>
+              <div style="display:flex;flex-wrap:wrap;gap:7px">
+                <sc-for list="{{ companyChips }}" as="c" hint-placeholder-count="12">
+                  <span style="border:1px solid #EFDCE4;border-radius:11px;padding:5px 11px;font-size:12px;background:#fff;display:inline-flex;align-items:center;gap:7px">{{ c.label }}<span onClick="{{ c.remove }}" style="color:#B79FA9;cursor:pointer" style-hover="color:#C4566E">✕</span></span>
+                </sc-for>
+              </div>
+              <div style="display:flex;gap:8px;max-width:340px">
+                <input value="{{ coDraft }}" onChange="{{ onCoDraft }}" placeholder="New company code" style="flex:1;border:1px solid #EFDCE4;border-radius:10px;padding:8px 11px;font-size:13px;outline:none;background:#FCF5F8;color:#2A1A22">
+                <div onClick="{{ addCompany }}" style="border:1px solid #EFDCE4;border-radius:11px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;background:#fff" style-hover="border-color:#A8577B;color:#A8577B">Add</div>
+              </div>
+            </div>
+            <div style="background:#fff;border:1px solid #EFDCE4;border-radius:16px;padding:21px;display:flex;flex-direction:column;gap:12px">
+              <div style="display:flex;align-items:baseline;gap:9px">
+                <div style="font-size:15px;font-weight:700">Expense categories</div>
+                <div style="font-size:12px;color:#8B7079">{{ categoryCount }} in the dropdown</div>
+              </div>
+              <div style="display:flex;flex-wrap:wrap;gap:7px">
+                <sc-for list="{{ categoryChips }}" as="c" hint-placeholder-count="10">
+                  <span style="border:1px solid #EFDCE4;border-radius:11px;padding:5px 11px;font-size:12px;background:#fff;display:inline-flex;align-items:center;gap:7px">{{ c.label }}<span onClick="{{ c.remove }}" style="color:#B79FA9;cursor:pointer" style-hover="color:#C4566E">✕</span></span>
+                </sc-for>
+              </div>
+              <div style="display:flex;gap:8px;max-width:340px">
+                <input value="{{ catDraft }}" onChange="{{ onCatDraft }}" placeholder="New category" style="flex:1;border:1px solid #EFDCE4;border-radius:10px;padding:8px 11px;font-size:13px;outline:none;background:#FCF5F8;color:#2A1A22">
+                <div onClick="{{ addCategory }}" style="border:1px solid #EFDCE4;border-radius:11px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;background:#fff" style-hover="border-color:#A8577B;color:#A8577B">Add</div>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <div style="background:#fff;border:1px solid #EFDCE4;border-radius:16px;padding:8px 21px">
+          <sc-for list="{{ settingRows }}" as="r" hint-placeholder-count="3">
+            <div style="display:flex;align-items:center;gap:16px;padding:15px 0;border-bottom:1px solid #F5E7EE">
+              <div style="min-width:0;flex:1">
+                <div style="font-size:13.5px;font-weight:600">{{ r.label }}</div>
+                <div style="font-size:12.5px;color:#8B7079;margin-top:2px">{{ r.hint }}</div>
+              </div>
+              <sc-if value="{{ r.isToggle }}" hint-placeholder-val="{{ true }}">
+                <div onClick="{{ r.toggle }}" style="width:42px;height:24px;flex:none;border-radius:12px;background:{{ r.trackBg }};padding:3px;cursor:pointer;display:flex;justify-content:{{ r.knobPos }};transition:background 130ms linear">
+                  <div style="width:18px;height:18px;border-radius:9px;background:#fff;box-shadow:0 1px 3px rgba(42,26,34,.25)"></div>
+                </div>
+              </sc-if>
+              <sc-if value="{{ r.isSelect }}" hint-placeholder-val="{{ false }}">
+                <select value="{{ r.value }}" onChange="{{ r.onChange }}" style="width:190px;flex:none;border:1px solid #EFDCE4;border-radius:10px;padding:8px 9px;font-size:13px;background:#fff;color:#2A1A22;outline:none">
+                  <sc-for list="{{ r.options }}" as="o" hint-placeholder-count="3">
+                    <option value="{{ o }}">{{ o }}</option>
+                  </sc-for>
+                </select>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+    </sc-if>
+
+  </div>
+
+  <sc-if value="{{ editOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeEdit }}" style="position:fixed;inset:0;background:rgba(42,26,34,.34);display:flex;align-items:flex-start;justify-content:center;padding:48px 0;z-index:44;animation:fade 140ms linear">
+      <div onClick="{{ stop }}" style="width:600px;max-height:100%;overflow:auto;background:#fff;border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:15px;box-shadow:0 18px 44px rgba(42,26,34,.24);animation:pop 160ms ease-out">
+        <div style="display:flex;align-items:center;gap:12px">
+          <div>
+            <div style="font-size:19px;font-weight:700">Transaction details</div>
+            <div style="font-size:12.5px;color:#8B7079;margin-top:2px">{{ editSub }}</div>
+          </div>
+          <div style="flex:1"></div>
+          <span onClick="{{ deleteEdit }}" style="display:inline-flex;align-items:center;gap:8px;border:1px solid #F3C9D5;border-radius:11px;padding:8px 14px;font-size:13px;font-weight:700;color:#C4566E;background:#fff;cursor:pointer" style-hover="background:#FADCE6;border-color:#C4566E">Delete transaction
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"></path><path d="M9 7V5h6v2"></path><path d="M6.5 7l.9 13h9.2l.9-13"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg>
+          </span>
+          <span onClick="{{ closeEdit }}" style="border:1px solid #EFDCE4;border-radius:11px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer" style-hover="border-color:#A8577B;color:#A8577B">Cancel</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          <div>
+            <div style="font-size:12px;color:#8B7079;margin-bottom:5px">Company</div>
+            <select value="{{ edit.co }}" onChange="{{ setECo }}" style="width:100%;border:1px solid #EFDCE4;border-radius:10px;padding:10px;font-size:13px;background:#fff;color:#2A1A22;outline:none">
+              <sc-for list="{{ companies }}" as="c" hint-placeholder-count="6"><option value="{{ c }}">{{ c }}</option></sc-for>
+            </select>
+          </div>
+          <div>
+            <div style="font-size:12px;color:#8B7079;margin-bottom:5px">Expense category</div>
+            <select value="{{ edit.cat }}" onChange="{{ setECat }}" style="width:100%;border:1px solid #EFDCE4;border-radius:10px;padding:10px;font-size:13px;background:#fff;color:#2A1A22;outline:none">
+              <sc-for list="{{ categories }}" as="c" hint-placeholder-count="6"><option value="{{ c }}">{{ c }}</option></sc-for>
+            </select>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:12px;color:#8B7079;margin-bottom:5px">Description</div>
+          <input value="{{ edit.desc }}" onChange="{{ setEDesc }}" style="width:100%;border:1px solid #EFDCE4;border-radius:10px;padding:10px;font-size:13px;outline:none;color:#2A1A22">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">
+          <div style="position:relative">
+            <div style="font-size:12px;color:#8B7079;margin-bottom:5px">Period covered</div>
+            <div onClick="{{ openEditPeriod }}" style="display:flex;align-items:center;gap:8px;border:1px solid #EFDCE4;border-radius:10px;padding:10px;font-size:13px;background:#fff;color:#2A1A22;cursor:pointer" style-hover="border-color:#A8577B">
+              <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ edit.period }}</span>
+              <span style="color:#B79FA9;font-size:10px">▾</span>
+            </div>
+            <sc-if value="{{ editPeriodOpen }}" hint-placeholder-val="{{ false }}">
+              <div style="position:absolute;top:68px;left:0;width:246px;background:#fff;border:1px solid #EFDCE4;border-radius:13px;box-shadow:0 12px 32px rgba(42,26,34,.18);padding:15px 13px 13px;z-index:60;display:flex;flex-direction:column;gap:11px;animation:pop 140ms ease-out">
+                <div onClick="{{ togglePeriodRange }}" style="position:absolute;top:-14px;right:10px;display:flex;align-items:center;gap:7px;background:#fff;border:1px solid #EFDCE4;border-radius:11px;box-shadow:0 3px 10px rgba(42,26,34,.14);padding:5px 10px;font-size:11.5px;font-weight:600;cursor:pointer">
+                  <span style="width:15px;height:15px;border-radius:8px;border:1.5px solid {{ rangeBoxBorder }};background:{{ rangeBoxBg }};color:#fff;display:flex;align-items:center;justify-content:center;font-size:9px">{{ rangeCheck }}</span>
+                  Date range
+                </div>
+                <div>
+                  <div style="font-size:11px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:#8B7079;margin-bottom:5px">{{ periodFromLabel }} <span style="font-weight:600;letter-spacing:0;text-transform:none;color:#B79FA9">day optional</span></div>
+                  <div style="display:flex;gap:7px">
+                    <input type="month" value="{{ periodFrom }}" onChange="{{ setPeriodFrom }}" style="flex:1;min-width:0;border:1px solid #EFDCE4;border-radius:10px;padding:8px 9px;font-size:13px;outline:none;background:#FCF5F8;color:#2A1A22">
+                    <input value="{{ periodFromDay }}" onChange="{{ setPeriodFromDay }}" placeholder="Day" style="width:56px;flex:none;border:1px solid #EFDCE4;border-radius:10px;padding:8px 9px;font-size:13px;outline:none;background:#FCF5F8;color:#2A1A22;text-align:center">
+                  </div>
+                </div>
+                <sc-if value="{{ periodRange }}" hint-placeholder-val="{{ false }}">
+                  <div>
+                    <div style="font-size:11px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:#8B7079;margin-bottom:5px">To</div>
+                    <div style="display:flex;gap:7px">
+                      <input type="month" value="{{ periodTo }}" onChange="{{ setPeriodTo }}" style="flex:1;min-width:0;border:1px solid #EFDCE4;border-radius:10px;padding:8px 9px;font-size:13px;outline:none;background:#FCF5F8;color:#2A1A22">
+                      <input value="{{ periodToDay }}" onChange="{{ setPeriodToDay }}" placeholder="Day" style="width:56px;flex:none;border:1px solid #EFDCE4;border-radius:10px;padding:8px 9px;font-size:13px;outline:none;background:#FCF5F8;color:#2A1A22;text-align:center">
+                    </div>
+                  </div>
+                </sc-if>
+                <div style="font-size:12px;color:#8B7079">Will read {{ periodPreview }}</div>
+                <div style="display:flex;gap:8px">
+                  <span onClick="{{ closePeriod }}" style="flex:1;text-align:center;border:1px solid #EFDCE4;border-radius:10px;padding:8px 0;font-size:12.5px;cursor:pointer">Cancel</span>
+                  <span onClick="{{ applyPeriod }}" style="flex:1;text-align:center;border-radius:10px;padding:8px 0;font-size:12.5px;font-weight:600;background:#A8577B;color:#fff;cursor:pointer" style-hover="background:#7E3F5C">Apply</span>
+                </div>
+              </div>
+            </sc-if>
+          </div>
+          <div>
+            <div style="font-size:12px;color:#8B7079;margin-bottom:5px">Due date</div>
+            <input type="date" value="{{ edit.due }}" onChange="{{ setEDue }}" style="width:100%;border:1px solid #EFDCE4;border-radius:10px;padding:9px 10px;font-size:13px;outline:none;color:#2A1A22">
+          </div>
+          <div>
+            <div style="font-size:12px;color:#8B7079;margin-bottom:5px">Amount</div>
+            <input value="{{ edit.amount }}" onChange="{{ setEAmount }}" style="width:100%;border:1px solid #EFDCE4;border-radius:10px;padding:10px;font-size:13px;outline:none;text-align:right;color:#2A1A22">
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          <div>
+            <div style="font-size:12px;color:#8B7079;margin-bottom:5px">Status</div>
+            <select value="{{ edit.status }}" onChange="{{ setEStatus }}" style="width:100%;border:1px solid #EFDCE4;border-radius:10px;padding:10px;font-size:13px;background:#fff;color:#2A1A22;outline:none">
+              <option value="pending">Pending</option><option value="completed">Completed</option><option value="hold">On hold</option>
+            </select>
+          </div>
+          <div>
+            <div style="font-size:12px;color:#8B7079;margin-bottom:5px">Date completed</div>
+            <input type="date" value="{{ edit.done }}" onChange="{{ setEDone }}" style="width:100%;border:1px solid #EFDCE4;border-radius:10px;padding:9px 10px;font-size:13px;outline:none;color:#2A1A22">
+            <sc-if value="{{ editPayLabel }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;align-items:center;gap:7px;margin-top:5px;font-size:11.5px;color:#8B7079">
+                <span>{{ editPayLabel }}</span>
+                <span onClick="{{ editPayEdit }}" style="color:#A8577B;font-weight:600;cursor:pointer">change</span>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:12px;color:#8B7079;margin-bottom:5px">Notes <span style="color:#B79FA9">optional</span></div>
+          <input value="{{ edit.notes }}" onChange="{{ setENotes }}" style="width:100%;border:1px solid #EFDCE4;border-radius:10px;padding:10px;font-size:13px;outline:none;color:#2A1A22">
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;border-top:1px solid #EFDCE4;padding-top:15px">
+          <div style="flex:1"></div>
+          <span onClick="{{ discardEdit }}" style="border:1px solid #EFDCE4;border-radius:11px;padding:10px 15px;font-size:13px;cursor:pointer">Discard changes</span>
+          <span onClick="{{ saveEdit }}" style="border-radius:11px;padding:10px 20px;font-size:13px;font-weight:600;background:#A8577B;color:#fff;cursor:pointer;white-space:nowrap" style-hover="background:#7E3F5C">Save</span>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ filtersOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeFilters }}" style="position:fixed;inset:0;background:rgba(42,26,34,.30);z-index:38;display:flex;justify-content:flex-end;animation:fade 130ms linear">
+      <div onClick="{{ stop }}" style="width:312px;height:100%;background:#fff;border-left:1px solid #EFDCE4;box-shadow:-14px 0 40px rgba(42,26,34,.18);padding:22px 20px;display:flex;flex-direction:column;gap:18px;overflow:auto;animation:slidein 170ms ease-out">
+        <div style="display:flex;align-items:center">
+          <div style="font-size:16px;font-weight:700">Show me</div>
+          <div style="flex:1"></div>
+          <div onClick="{{ closeFilters }}" style="color:#8B7079;cursor:pointer;font-size:15px">✕</div>
+        </div>
+        <div style="display:flex;gap:9px">
+          <div onClick="{{ clearFilters }}" style="flex:1;border:1px dashed #D3A8BB;border-radius:11px;padding:10px;text-align:center;font-size:12.5px;color:#8B7079;cursor:pointer" style-hover="border-color:#A8577B;color:#A8577B">Clear all</div>
+          <div onClick="{{ closeFilters }}" style="flex:1;border-radius:11px;padding:10px;text-align:center;font-size:13px;font-weight:600;background:#A8577B;color:#fff;cursor:pointer" style-hover="background:#7E3F5C">Show results</div>
+        </div>
+        <div style="font-size:12.5px;color:#8B7079;margin-top:-8px">{{ shownLabel }}</div>
+        <div>
+          <div style="font-size:11px;font-weight:800;letter-spacing:.11em;text-transform:uppercase;color:#8B7079;margin-bottom:7px">Company</div>
+          <select value="{{ coFilter }}" onChange="{{ onCoFilter }}" style="width:100%;border:1px solid #EFDCE4;border-radius:10px;padding:8px 9px;font-size:13px;background:#fff;color:#2A1A22;outline:none">
+            <sc-for list="{{ coOptions }}" as="o" hint-placeholder-count="6">
+              <option value="{{ o }}">{{ o }}</option>
+            </sc-for>
+          </select>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:800;letter-spacing:.11em;text-transform:uppercase;color:#8B7079;margin-bottom:7px">Expense category</div>
+          <select value="{{ catFilter }}" onChange="{{ onCatFilter }}" style="width:100%;border:1px solid #EFDCE4;border-radius:10px;padding:8px 9px;font-size:13px;background:#fff;color:#2A1A22;outline:none">
+            <sc-for list="{{ catOptions }}" as="o" hint-placeholder-count="5">
+              <option value="{{ o }}">{{ o }}</option>
+            </sc-for>
+          </select>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:800;letter-spacing:.11em;text-transform:uppercase;color:#8B7079;margin-bottom:7px">Status</div>
+          <sc-for list="{{ statusFilters }}" as="s" hint-placeholder-count="4">
+            <div onClick="{{ s.toggle }}" style="display:flex;align-items:center;gap:9px;margin-bottom:7px;cursor:pointer">
+              <span style="width:17px;height:17px;border-radius:9px;border:1.5px solid {{ s.boxBorder }};background:{{ s.boxBg }};color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px">{{ s.check }}</span>
+              <span style="font-size:13.5px">{{ s.label }}</span>
+              <span style="flex:1"></span>
+              <span style="font-size:12px;color:#8B7079">{{ s.count }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:800;letter-spacing:.11em;text-transform:uppercase;color:#8B7079;margin-bottom:7px">Group rows by</div>
+          <div style="display:flex;gap:6px">
+            <span onClick="{{ groupByCompany }}" style="flex:1;text-align:center;border-radius:11px;padding:6px 0;font-size:12px;font-weight:600;cursor:pointer;background:{{ gbCoBg }};color:{{ gbCoFg }};border:1px solid #EFDCE4">Company</span>
+            <span onClick="{{ groupByCategory }}" style="flex:1;text-align:center;border-radius:11px;padding:6px 0;font-size:12px;font-weight:600;cursor:pointer;background:{{ gbCatBg }};color:{{ gbCatFg }};border:1px solid #EFDCE4">Category</span>
+          </div>
+        </div>
+        <div style="flex:1"></div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ addOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;inset:0;background:rgba(42,26,34,.34);display:flex;align-items:flex-start;justify-content:center;padding:56px 0;z-index:40;animation:fade 140ms linear" onClick="{{ closeAdd }}">
+      <div onClick="{{ stop }}" style="width:560px;max-height:100%;overflow:auto;background:#fff;border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:15px;box-shadow:0 18px 44px rgba(42,26,34,.24);animation:pop 160ms ease-out">
+        <div style="display:flex;align-items:baseline">
+          <div style="font-size:19px;font-weight:700">Add a transaction</div>
+          <div style="flex:1"></div>
+          <div onClick="{{ closeAdd }}" style="color:#8B7079;cursor:pointer;font-size:15px">✕</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          <div>
+            <div style="font-size:12px;color:#8B7079;margin-bottom:5px">Company</div>
+            <select value="{{ form.co }}" onChange="{{ setCo }}" style="width:100%;border:1px solid {{ err.co }};border-radius:10px;padding:10px;font-size:13px;background:#fff;color:#2A1A22;outline:none">
+              <option value="">Choose a company</option>
+              <sc-for list="{{ companies }}" as="c" hint-placeholder-count="6"><option value="{{ c }}">{{ c }}</option></sc-for>
+            </select>
+          </div>
+          <div>
+            <div style="font-size:12px;color:#8B7079;margin-bottom:5px">Expense category</div>
+            <select value="{{ form.cat }}" onChange="{{ setCat }}" style="width:100%;border:1px solid {{ err.cat }};border-radius:10px;padding:10px;font-size:13px;background:#fff;color:#2A1A22;outline:none">
+              <option value="">Choose a category</option>
+              <sc-for list="{{ categories }}" as="c" hint-placeholder-count="6"><option value="{{ c }}">{{ c }}</option></sc-for>
+            </select>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:12px;color:#8B7079;margin-bottom:5px">Description</div>
+          <input value="{{ form.desc }}" onChange="{{ setDesc }}" placeholder="What is being paid for" style="width:100%;border:1px solid {{ err.desc }};border-radius:10px;padding:10px;font-size:13px;outline:none;color:#2A1A22">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">
+          <div style="position:relative">
+            <div style="font-size:12px;color:#8B7079;margin-bottom:5px">Period covered</div>
+            <div onClick="{{ openAddPeriod }}" style="display:flex;align-items:center;gap:8px;border:1px solid #EFDCE4;border-radius:10px;padding:10px;font-size:13px;background:#fff;color:#2A1A22;cursor:pointer" style-hover="border-color:#A8577B">
+              <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ form.period }}</span>
+              <span style="color:#B79FA9;font-size:10px">▾</span>
+            </div>
+            <sc-if value="{{ addPeriodOpen }}" hint-placeholder-val="{{ false }}">
+              <div style="position:absolute;top:68px;left:0;width:246px;background:#fff;border:1px solid #EFDCE4;border-radius:13px;box-shadow:0 12px 32px rgba(42,26,34,.18);padding:15px 13px 13px;z-index:60;display:flex;flex-direction:column;gap:11px;animation:pop 140ms ease-out">
+                <div onClick="{{ togglePeriodRange }}" style="position:absolute;top:-14px;right:10px;display:flex;align-items:center;gap:7px;background:#fff;border:1px solid #EFDCE4;border-radius:11px;box-shadow:0 3px 10px rgba(42,26,34,.14);padding:5px 10px;font-size:11.5px;font-weight:600;cursor:pointer">
+                  <span style="width:15px;height:15px;border-radius:8px;border:1.5px solid {{ rangeBoxBorder }};background:{{ rangeBoxBg }};color:#fff;display:flex;align-items:center;justify-content:center;font-size:9px">{{ rangeCheck }}</span>
+                  Date range
+                </div>
+                <div>
+                  <div style="font-size:11px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:#8B7079;margin-bottom:5px">{{ periodFromLabel }} <span style="font-weight:600;letter-spacing:0;text-transform:none;color:#B79FA9">day optional</span></div>
+                  <div style="display:flex;gap:7px">
+                    <input type="month" value="{{ periodFrom }}" onChange="{{ setPeriodFrom }}" style="flex:1;min-width:0;border:1px solid #EFDCE4;border-radius:10px;padding:8px 9px;font-size:13px;outline:none;background:#FCF5F8;color:#2A1A22">
+                    <input value="{{ periodFromDay }}" onChange="{{ setPeriodFromDay }}" placeholder="Day" style="width:56px;flex:none;border:1px solid #EFDCE4;border-radius:10px;padding:8px 9px;font-size:13px;outline:none;background:#FCF5F8;color:#2A1A22;text-align:center">
+                  </div>
+                </div>
+                <sc-if value="{{ periodRange }}" hint-placeholder-val="{{ false }}">
+                  <div>
+                    <div style="font-size:11px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:#8B7079;margin-bottom:5px">To</div>
+                    <div style="display:flex;gap:7px">
+                      <input type="month" value="{{ periodTo }}" onChange="{{ setPeriodTo }}" style="flex:1;min-width:0;border:1px solid #EFDCE4;border-radius:10px;padding:8px 9px;font-size:13px;outline:none;background:#FCF5F8;color:#2A1A22">
+                      <input value="{{ periodToDay }}" onChange="{{ setPeriodToDay }}" placeholder="Day" style="width:56px;flex:none;border:1px solid #EFDCE4;border-radius:10px;padding:8px 9px;font-size:13px;outline:none;background:#FCF5F8;color:#2A1A22;text-align:center">
+                    </div>
+                  </div>
+                </sc-if>
+                <div style="font-size:12px;color:#8B7079">Will read {{ periodPreview }}</div>
+                <div style="display:flex;gap:8px">
+                  <span onClick="{{ closePeriod }}" style="flex:1;text-align:center;border:1px solid #EFDCE4;border-radius:10px;padding:8px 0;font-size:12.5px;cursor:pointer">Cancel</span>
+                  <span onClick="{{ applyPeriod }}" style="flex:1;text-align:center;border-radius:10px;padding:8px 0;font-size:12.5px;font-weight:600;background:#A8577B;color:#fff;cursor:pointer" style-hover="background:#7E3F5C">Apply</span>
+                </div>
+              </div>
+            </sc-if>
+          </div>
+          <div>
+            <div style="font-size:12px;color:#8B7079;margin-bottom:5px">Due date</div>
+            <input type="date" value="{{ form.due }}" onChange="{{ setDue }}" style="width:100%;border:1px solid #EFDCE4;border-radius:10px;padding:9px 10px;font-size:13px;outline:none;color:#2A1A22">
+          </div>
+          <div>
+            <div style="font-size:12px;color:#8B7079;margin-bottom:5px">Amount</div>
+            <input value="{{ form.amount }}" onChange="{{ setAmount }}" placeholder="0.00" style="width:100%;border:1px solid {{ err.amount }};border-radius:10px;padding:10px;font-size:13px;outline:none;text-align:right;color:#2A1A22">
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          <div>
+            <div style="font-size:12px;color:#8B7079;margin-bottom:5px">Status</div>
+            <div style="display:flex;gap:7px">
+              <sc-for list="{{ statusChoices }}" as="s" hint-placeholder-count="3">
+                <span onClick="{{ s.pick }}" style="border-radius:11px;padding:8px 12px;font-size:12px;font-weight:600;cursor:pointer;background:{{ s.bg }};color:{{ s.fg }};border:1px solid {{ s.bd }}">{{ s.label }}</span>
+              </sc-for>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:12px;color:#8B7079;margin-bottom:5px">Date completed</div>
+            <div style="border:1px dashed #D3A8BB;border-radius:10px;padding:10px;font-size:12.5px;color:#9A8891;background:#FCF5F8">{{ completedHint }}</div>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:12px;color:#8B7079;margin-bottom:5px">Notes <span style="color:#B79FA9">optional</span></div>
+          <input value="{{ form.notes }}" onChange="{{ setNotes }}" style="width:100%;border:1px solid #EFDCE4;border-radius:10px;padding:10px;font-size:13px;outline:none;color:#2A1A22">
+        </div>
+        <div style="font-size:12.5px;color:#8B7079">Overdue isn’t on the list — the system marks that for you once the due date passes.</div>
+        <div style="display:flex;gap:10px;align-items:center;padding-top:3px">
+          <sc-if value="{{ formError }}" hint-placeholder-val="{{ false }}">
+            <span style="font-size:12.5px;color:#C4566E;font-weight:600">{{ formError }}</span>
+          </sc-if>
+          <div style="flex:1"></div>
+          <span onClick="{{ closeAdd }}" style="border:1px solid #EFDCE4;border-radius:11px;padding:10px 15px;font-size:13px;cursor:pointer">Cancel</span>
+          <span onClick="{{ saveAnother }}" style="border:1px solid #EFDCE4;border-radius:11px;padding:10px 15px;font-size:13px;cursor:pointer">Save &amp; add another</span>
+          <span onClick="{{ save }}" style="border-radius:11px;padding:10px 18px;font-size:13px;font-weight:600;background:#A8577B;color:#fff;cursor:pointer;white-space:nowrap" style-hover="background:#7E3F5C">Save</span>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ payOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;inset:0;background:rgba(42,26,34,.34);display:flex;align-items:center;justify-content:center;z-index:48;animation:fade 140ms linear" onClick="{{ closePay }}">
+      <div onClick="{{ stop }}" style="width:420px;background:#fff;border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:15px;box-shadow:0 18px 44px rgba(42,26,34,.24);animation:pop 160ms ease-out">
+        <div>
+          <div style="font-size:19px;font-weight:700">How was it paid?</div>
+          <div style="font-size:12.5px;color:#8B7079;margin-top:3px">{{ paySubtitle }}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <sc-for list="{{ payTypes }}" as="p" hint-placeholder-count="3">
+            <div onClick="{{ p.pick }}" style="display:flex;align-items:center;gap:11px;border:1.5px solid {{ p.bd }};border-radius:12px;padding:12px 13px;font-size:13.5px;font-weight:600;cursor:pointer;background:{{ p.bg }};color:{{ p.fg }}" style-hover="border-color:#A8577B">
+              <span style="width:17px;height:17px;flex:none;border-radius:9px;border:1.5px solid {{ p.dotBd }};background:{{ p.dotBg }};color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px">{{ p.check }}</span>
+              {{ p.label }}
+            </div>
+          </sc-for>
+        </div>
+        <sc-if value="{{ payIsCheck }}" hint-placeholder-val="{{ false }}">
+          <div style="animation:pop 140ms ease-out">
+            <div style="font-size:12px;color:#8B7079;margin-bottom:5px">Check number <span style="color:#C4566E">required</span></div>
+            <input value="{{ payCheck }}" onChange="{{ setPayCheck }}" placeholder="e.g. 004821" style="width:100%;border:1px solid {{ payCheckBorder }};border-radius:10px;padding:10px;font-size:13px;outline:none;background:#FCF5F8;color:#2A1A22">
+          </div>
+        </sc-if>
+        <div style="display:flex;gap:10px;align-items:center">
+          <div style="flex:1"></div>
+          <span onClick="{{ closePay }}" style="border:1px solid #EFDCE4;border-radius:11px;padding:10px 15px;font-size:13px;cursor:pointer">Cancel</span>
+          <span onClick="{{ confirmPay }}" style="border-radius:11px;padding:10px 18px;font-size:13px;font-weight:600;background:#A8577B;color:#fff;cursor:pointer;white-space:nowrap" style-hover="background:#7E3F5C">Mark as paid</span>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ liqOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;inset:0;background:rgba(42,26,34,.34);display:flex;align-items:center;justify-content:center;z-index:40;animation:fade 140ms linear" onClick="{{ closeLiq }}">
+      <div onClick="{{ stop }}" style="width:440px;background:#fff;border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:15px;box-shadow:0 18px 44px rgba(42,26,34,.24);animation:pop 160ms ease-out">
+        <div style="font-size:19px;font-weight:700">Liquidate receipt</div>
+        <div style="font-size:13px;color:#8B7079">{{ liqSubtitle }}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          <div>
+            <div style="font-size:12px;color:#8B7079;margin-bottom:5px">Date liquidated <span style="color:#C4566E">required</span></div>
+            <input type="date" value="{{ liqDate }}" onChange="{{ setLiqDate }}" style="width:100%;border:1px solid #EFDCE4;border-radius:10px;padding:9px 10px;font-size:13px;outline:none;color:#2A1A22">
+          </div>
+          <div>
+            <div style="font-size:12px;color:#8B7079;margin-bottom:5px">Actual amount <span style="color:#C4566E">required</span></div>
+            <input value="{{ liqAmount }}" onChange="{{ setLiqAmount }}" placeholder="0.00" style="width:100%;border:1px solid {{ liqErrBorder }};border-radius:10px;padding:10px;font-size:13px;outline:none;text-align:right;color:#2A1A22">
+          </div>
+        </div>
+        <div style="border:1px dashed #D3A8BB;border-radius:10px;padding:14px;text-align:center;font-size:12.5px;color:#9A8891;background:#FCF5F8">Drop the receipt photo or PDF here</div>
+        <div style="background:#FCF5F8;border-radius:11px;padding:12px;font-size:13px;display:flex;align-items:center">
+          <span style="color:#8B7079">Difference</span><span style="flex:1"></span><span style="font-weight:700;color:{{ liqDiffFg }}">{{ liqDiffLabel }}</span>
+        </div>
+        <div style="display:flex;gap:10px">
+          <div style="flex:1"></div>
+          <span onClick="{{ closeLiq }}" style="border:1px solid #EFDCE4;border-radius:11px;padding:10px 15px;font-size:13px;cursor:pointer">Cancel</span>
+          <span onClick="{{ saveLiq }}" style="border-radius:11px;padding:10px 18px;font-size:13px;font-weight:600;background:#A8577B;color:#fff;cursor:pointer;white-space:nowrap" style-hover="background:#7E3F5C">Save</span>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ recOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;inset:0;background:rgba(42,26,34,.34);display:flex;align-items:center;justify-content:center;z-index:40;animation:fade 140ms linear" onClick="{{ closeRecurring }}">
+      <div onClick="{{ stop }}" style="width:520px;background:#fff;border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:15px;box-shadow:0 18px 44px rgba(42,26,34,.24);animation:pop 160ms ease-out">
+        <div style="font-size:19px;font-weight:700">Add a recurring payable</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          <div>
+            <div style="font-size:12px;color:#8B7079;margin-bottom:5px">Company</div>
+            <select value="{{ rec.co }}" onChange="{{ setRecCo }}" style="width:100%;border:1px solid #EFDCE4;border-radius:10px;padding:10px;font-size:13px;background:#fff;color:#2A1A22;outline:none">
+              <option value="">Choose a company</option>
+              <sc-for list="{{ companies }}" as="c" hint-placeholder-count="6"><option value="{{ c }}">{{ c }}</option></sc-for>
+            </select>
+          </div>
+          <div>
+            <div style="font-size:12px;color:#8B7079;margin-bottom:5px">Expense category</div>
+            <select value="{{ rec.cat }}" onChange="{{ setRecCat }}" style="width:100%;border:1px solid #EFDCE4;border-radius:10px;padding:10px;font-size:13px;background:#fff;color:#2A1A22;outline:none">
+              <option value="">Choose a category</option>
+              <sc-for list="{{ categories }}" as="c" hint-placeholder-count="6"><option value="{{ c }}">{{ c }}</option></sc-for>
+            </select>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:12px;color:#8B7079;margin-bottom:5px">Description</div>
+          <input value="{{ rec.desc }}" onChange="{{ setRecDesc }}" style="width:100%;border:1px solid #EFDCE4;border-radius:10px;padding:10px;font-size:13px;outline:none;color:#2A1A22">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">
+          <div>
+            <div style="font-size:12px;color:#8B7079;margin-bottom:5px">How often</div>
+            <select value="{{ rec.freq }}" onChange="{{ setRecFreq }}" style="width:100%;border:1px solid #EFDCE4;border-radius:10px;padding:10px;font-size:13px;background:#fff;color:#2A1A22;outline:none">
+              <sc-for list="{{ freqOptions }}" as="o" hint-placeholder-count="8"><option value="{{ o }}">{{ o }}</option></sc-for>
+            </select>
+          </div>
+          <div>
+            <div style="font-size:12px;color:#8B7079;margin-bottom:5px">Due date</div>
+            <input type="date" value="{{ rec.dueDate }}" onChange="{{ setRecDue }}" style="width:100%;border:1px solid #EFDCE4;border-radius:10px;padding:9px 10px;font-size:13px;outline:none;color:#2A1A22">
+            <div style="font-size:11.5px;color:#9A8891;margin-top:4px">{{ recRule }}</div>
+          </div>
+          <div>
+            <div style="font-size:12px;color:#8B7079;margin-bottom:5px">Amount</div>
+            <input value="{{ rec.amount }}" onChange="{{ setRecAmount }}" placeholder="0.00" style="width:100%;border:1px solid #EFDCE4;border-radius:10px;padding:10px;font-size:13px;outline:none;text-align:right;color:#2A1A22">
+          </div>
+        </div>
+        <div style="display:flex;gap:10px">
+          <div style="flex:1"></div>
+          <span onClick="{{ closeRecurring }}" style="border:1px solid #EFDCE4;border-radius:11px;padding:10px 15px;font-size:13px;cursor:pointer">Cancel</span>
+          <span onClick="{{ saveRecurring }}" style="border-radius:11px;padding:10px 18px;font-size:13px;font-weight:600;background:#A8577B;color:#fff;cursor:pointer;white-space:nowrap" style-hover="background:#7E3F5C">Save</span>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ toast }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:#2A1A22;color:#fff;border-radius:11px;padding:12px 18px;font-size:13px;z-index:60;box-shadow:0 8px 24px rgba(42,26,34,.28);animation:pop 160ms ease-out">{{ toast }}</div>
+  </sc-if>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900}}">
+const TODAY = '2026-08-30';
+const CO = ['GTOI','VAR','VER','ANG','DNN','ZON','WDO','BSC','HAL','VNQ','OPT','FEPA','SHK','TOR','ZSM','GZZ','MIC','CUPA','BAR','MCR','ZPH'];
+const CAT = ['Accounting Services','Legal Services','Rental Expense','Withholding Taxes','Alan Expense','Jack Expense','Salary & Wages','Petty Cash Fund','General Expense','Credit card','Consultancy Fee','Advertising Expense','Other'];
+const TAG = {
+  completed:{bg:'#DFF0E6',fg:'#5C8F72',label:'Completed'},
+  pending:{bg:'#F9EFDC',fg:'#BE8A38',label:'Pending'},
+  overdue:{bg:'#FADCE6',fg:'#C4566E',label:'Overdue'},
+  hold:{bg:'#F1E7EC',fg:'#8B7079',label:'On hold'},
+  released:{bg:'#EEE4F4',fg:'#7A5C93',label:'Released'},
+  liquidated:{bg:'#DFF0E6',fg:'#5C8F72',label:'Liquidated'}
+};
+const MON = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+const FREQ = ['Once','Daily','Weekly','Bi-weekly','Bi-monthly','Monthly','Quarterly','Yearly'];
+const MAX_OCC = 6;
+
+class Component extends DCLogic {
+  state = {
+    screen: 'dashboard',
+    scope: 'All companies',
+    txns: [
+      {id:1,co:'GTOI',cat:'Rental Expense',desc:'Warehouse B monthly rent',period:'Aug 2026',due:'2026-08-24',amount:45000,status:'pending',done:''},
+      {id:2,co:'GTOI',cat:'Accounting Services',desc:'Monthly bookkeeping retainer',period:'Aug 2026',due:'2026-09-05',amount:30000,status:'pending',done:''},
+      {id:3,co:'GTOI',cat:'Salary & Wages',desc:'Semi-monthly payroll, 2nd half',period:'Aug 2026',due:'2026-08-30',amount:210000,status:'completed',done:'2026-08-29'},
+      {id:4,co:'GTOI',cat:'Credit card',desc:'Corporate card settlement',period:'Jul 2026',due:'2026-09-12',amount:88400,status:'hold',done:''},
+      {id:5,co:'GTOI',cat:'Withholding Taxes',desc:'BIR 1601-C remittance',period:'Aug 2026',due:'2026-08-20',amount:18200,status:'pending',done:''},
+      {id:6,co:'GTOI',cat:'Petty Cash Fund',desc:'Replenishment — admin',period:'Aug 2026',due:'2026-09-01',amount:8000,status:'pending',done:''},
+      {id:7,co:'GTOI',cat:'Consultancy Fee',desc:'IT retainer — 3rd quarter',period:'Jul–Sep 2026',due:'2026-09-20',amount:75000,status:'pending',done:''},
+      {id:8,co:'ZON',cat:'Salary & Wages',desc:'Payroll, 2nd half of August',period:'Aug 2026',due:'2026-09-04',amount:210000,status:'pending',done:''},
+      {id:9,co:'ZON',cat:'Jack Expense',desc:'Site visit reimbursements',period:'Aug 2026',due:'2026-09-02',amount:24000,status:'hold',done:''},
+      {id:10,co:'ZON',cat:'General Expense',desc:'Office supplies restock',period:'Aug 2026',due:'2026-08-26',amount:9400,status:'completed',done:'2026-08-26'},
+      {id:11,co:'VAR',cat:'Withholding Taxes',desc:'BIR 1601-C remittance',period:'Jul 2026',due:'2026-08-28',amount:18200,status:'pending',done:''},
+      {id:12,co:'VAR',cat:'Rental Expense',desc:'Sales office lease',period:'Aug 2026',due:'2026-09-01',amount:52000,status:'pending',done:''},
+      {id:13,co:'BSC',cat:'Accounting Services',desc:'Monthly bookkeeping retainer',period:'Aug 2026',due:'2026-09-05',amount:30000,status:'pending',done:''},
+      {id:14,co:'BSC',cat:'Rental Expense',desc:'Head office lease',period:'Aug 2026',due:'2026-09-01',amount:62000,status:'pending',done:''},
+      {id:15,co:'FEPA',cat:'Consultancy Fee',desc:'IT retainer — 3rd quarter',period:'Jul–Sep 2026',due:'2026-09-20',amount:75000,status:'pending',done:''},
+      {id:16,co:'DNN',cat:'Alan Expense',desc:'Field allowance — August',period:'Aug 2026',due:'2026-08-29',amount:12500,status:'pending',done:''},
+      {id:17,co:'ZSM',cat:'Petty Cash Fund',desc:'Replenishment — warehouse',period:'Aug 2026',due:'2026-08-29',amount:8000,status:'pending',done:''},
+      {id:18,co:'MIC',cat:'General Expense',desc:'Utilities and internet',period:'Aug 2026',due:'2026-08-27',amount:6400,status:'pending',done:''},
+      {id:19,co:'MCR',cat:'Advertising Expense',desc:'Regional campaign placement',period:'Aug 2026',due:'2026-09-15',amount:99000,status:'pending',done:''},
+      {id:20,co:'FEPA',cat:'Legal Services',desc:'Contract review retainer',period:'Aug 2026',due:'2026-08-31',amount:61000,status:'completed',done:'2026-08-28'}
+    ],
+    receipts: [
+      {id:1,co:'GTOI',name:'Nicholas Gordon',desc:'Site inspection cash advance',amount:25000,status:'liquidated',date:'2026-08-22',actual:23400},
+      {id:2,co:'ZON',name:'Maria Lansang',desc:'Client meeting expenses',amount:12000,status:'liquidated',date:'2026-08-18',actual:13850},
+      {id:3,co:'VAR',name:'Jack Rivera',desc:'Permit filing fees',amount:40000,status:'released',date:'',actual:null},
+      {id:4,co:'BSC',name:'Alan Mercado',desc:'Equipment purchase advance',amount:85000,status:'released',date:'',actual:null},
+      {id:5,co:'MCR',name:'Grace Bautista',desc:'Travel — Cebu branch visit',amount:18000,status:'pending',date:'',actual:null},
+      {id:6,co:'FEPA',name:'Ramon Cruz',desc:'Advertising placement deposit',amount:30000,status:'hold',date:'',actual:null}
+    ],
+    recurring: [
+      {id:1,co:'GTOI',cat:'Rental Expense',freq:'Monthly',desc:'Warehouse B monthly rent',dueDate:'2026-08-24',amount:45000},
+      {id:2,co:'GTOI',cat:'Accounting Services',freq:'Monthly',desc:'Bookkeeping retainer',dueDate:'2026-09-05',amount:30000},
+      {id:3,co:'ZON',cat:'Salary & Wages',freq:'Bi-monthly',desc:'Payroll, 15th and end of month',dueDate:'2026-08-15',amount:210000},
+      {id:4,co:'VAR',cat:'Withholding Taxes',freq:'Monthly',desc:'BIR 1601-C remittance',dueDate:'2026-08-10',amount:18200},
+      {id:5,co:'FEPA',cat:'Consultancy Fee',freq:'Quarterly',desc:'IT retainer',dueDate:'2026-09-20',amount:75000},
+      {id:6,co:'BSC',cat:'Rental Expense',freq:'Monthly',desc:'Head office lease',dueDate:'2026-09-01',amount:62000}
+    ],
+    notes: [
+      {t:'Follow up BIR receipt — GTOI',done:false,linked:true},
+      {t:'Ask ZON for the signed lease copy',done:false,linked:false},
+      {t:'Reconcile petty cash for August',done:true,linked:false}
+    ],
+    noteDraft:'',
+    companies: CO.slice(),
+    categories: CAT.slice(),
+    coDraft:'', catDraft:'',
+    coFilter:'All companies', catFilter:'All categories', statuses:{pending:true,overdue:true,completed:false,hold:false},
+    filtersOpen:false,
+    settingsMenuOpen:false, settingsTab:'masterlist',
+    settings:{
+      autoGen:true, warnDuplicate:true, mlDefaultFreq:'Monthly',
+      ackRequirePhoto:true, ackAutoNotify:false, ackDefaultStatus:'Pending',
+      trkShowGrandTotal:true, trkGroupDefault:'Company', trkOverdueRed:true,
+      dashDefaultScope:'All companies', dashWindow:'Next 30 days', dashShowNotes:true
+    },
+    groupBy:'company', collapsed:{}, search:'',
+    periodOpen:null, periodRange:false, periodFrom:TODAY.slice(0,7), periodTo:'2026-09', periodFromDay:'', periodToDay:'',
+    addOpen:false, form:null, formError:'',
+    editOpen:false, editId:null, edit:null, editOrig:null,
+    payOpen:false, payId:null, payFor:'row', payPrev:'pending', payType:'Cash', payCheck:'', payErr:false,
+    liqOpen:false, liqId:null, liqDate:TODAY, liqAmount:'', liqErr:false,
+    recOpen:false, rec:{co:'',cat:'',desc:'',freq:'Monthly',dueDate:TODAY,amount:''},
+    bannerOpen:false, bannerText:'', generatedIds:[],
+    genMonth: TODAY.slice(0,7), genMenuOpen:false,
+    toast:''
+  };
+
+  fmt(n){ return '₱' + Math.round(n).toLocaleString('en-US'); }
+  short(n){ if(n>=1000000) return '₱' + (n/1000000).toFixed(2) + 'M'; if(n>=1000) return '₱' + Math.round(n/1000) + 'K'; return this.fmt(n); }
+  dstr(d){ if(!d) return '—'; const p = d.split('-'); return MON[+p[1]-1].charAt(0)+MON[+p[1]-1].slice(1).toLowerCase()+' '+p[2]; }
+  eff(t){ return (t.status === 'pending' && t.due < TODAY) ? 'overdue' : t.status; }
+  flash(msg){ if(this._tt) clearTimeout(this._tt); this.setState({toast:msg}); this._tt = setTimeout(() => this.setState({toast:''}), 2600); }
+  componentWillUnmount(){ if(this._tt) clearTimeout(this._tt); }
+
+  go(screen){ return () => this.setState({screen, settingsMenuOpen:false, filtersOpen:false}); }
+  goSettings(tab){ return () => this.setState({screen:'settings', settingsTab:tab, settingsMenuOpen:true, filtersOpen:false}); }
+  setS(k, v){ this.setState(s => ({settings: Object.assign({}, s.settings, {[k]:v})})); }
+  tog(k, label, hint){
+    const on = this.state.settings[k];
+    return {label, hint, isToggle:true, isSelect:false, trackBg: on ? '#A8577B' : '#EFDCE4', knobPos: on ? 'flex-end' : 'flex-start', toggle: () => this.setS(k, !on)};
+  }
+  sel(k, label, hint, options){
+    return {label, hint, isToggle:false, isSelect:true, value: this.state.settings[k], options, onChange: e => this.setS(k, e.target.value)};
+  }
+
+  tileFilter(key){
+    return () => {
+      const s = {pending:false,overdue:false,completed:false,hold:false};
+      if(key === 'all'){ s.pending = true; s.overdue = true; s.completed = true; s.hold = true; }
+      else s[key] = true;
+      this.setState({screen:'tracker', statuses:s, coFilter:'All companies', catFilter:'All categories', search:'', collapsed:{}, filtersOpen:false, settingsMenuOpen:false});
+    };
+  }
+
+  visible(){
+    const st = this.state;
+    const anyStatus = Object.keys(st.statuses).some(k => st.statuses[k]);
+    return st.txns.filter(t => {
+      if(st.coFilter !== 'All companies' && t.co !== st.coFilter) return false;
+      if(st.catFilter !== 'All categories' && t.cat !== st.catFilter) return false;
+      if(anyStatus && !st.statuses[this.eff(t)]) return false;
+      if(st.search && (t.desc + ' ' + t.cat + ' ' + t.co).toLowerCase().indexOf(st.search.toLowerCase()) < 0) return false;
+      return true;
+    });
+  }
+
+  confirmPay(){
+    const st = this.state, id = st.payId, type = st.payType;
+    const num = String(st.payCheck).trim();
+    if(type === 'Check' && !num){ this.setState({payErr:true}); return; }
+    const check = type === 'Check' ? num : '';
+    if(st.payFor === 'edit'){
+      this.setState(s => ({edit: Object.assign({}, s.edit, {status:'completed', done: s.edit.done || TODAY, payType:type, checkNo:check}), payOpen:false, payErr:false}));
+      return;
+    }
+    this.setState(s => ({
+      txns: s.txns.map(t => t.id === id ? Object.assign({}, t, {status:'completed', done:TODAY, payType:type, checkNo:check}) : t),
+      payOpen:false, payErr:false
+    }));
+    this.flash('Paid by ' + type.toLowerCase() + (type === 'Check' ? ' #' + num : '') + ' — date completed filled in as 30 Aug 2026');
+  }
+  cancelPay(){
+    const st = this.state;
+    if(st.payFor === 'edit'){
+      this.setState(s => ({edit: Object.assign({}, s.edit, {status: st.payPrev}), payOpen:false, payErr:false}));
+      return;
+    }
+    this.setState({payOpen:false, payErr:false});
+  }
+  setEditStatus(ev){
+    const v = ev.target.value;
+    if(v === 'completed'){
+      const e = this.state.edit || {};
+      this.setState(s => ({
+        edit: Object.assign({}, s.edit, {status:'completed'}),
+        payOpen:true, payFor:'edit', payPrev: (s.edit || {}).status || 'pending',
+        payType: e.payType || 'Cash', payCheck: e.checkNo || '', payErr:false
+      }));
+      return;
+    }
+    this.setState(s => ({edit: Object.assign({}, s.edit, {status:v, payType:'', checkNo:''})}));
+  }
+
+  openRow(t){
+    const e = {co:t.co, cat:t.cat, desc:t.desc, period:t.period, due:t.due, amount:String(t.amount), status:t.status, done:t.done || '', notes:t.notes || '', payType:t.payType || '', checkNo:t.checkNo || ''};
+    this.setState({editOpen:true, editId:t.id, edit:e, editOrig:e});
+  }
+  setE(k){ return ev => { const v = ev.target.value; this.setState(s => ({edit: Object.assign({}, s.edit, {[k]:v})})); }; }
+  saveEdit(){
+    const e = this.state.edit, id = this.state.editId;
+    const amt = parseFloat(String(e.amount).replace(/[^0-9.]/g,''));
+    if(!e.desc || !amt){ this.flash('Description and amount are required'); return; }
+    this.setState(s => ({
+      txns: s.txns.map(t => t.id === id ? Object.assign({}, t, {
+        co:e.co, cat:e.cat, desc:e.desc, period:e.period, due:e.due, amount:amt, status:e.status,
+        payType: e.status === 'completed' ? (e.payType || 'Cash') : '', checkNo: e.status === 'completed' ? (e.checkNo || '') : '',
+        done: e.status === 'completed' ? (e.done || TODAY) : '', notes:e.notes
+      }) : t),
+      editOpen:false
+    }));
+    this.flash('Transaction updated');
+  }
+
+  blankForm(){ return {co:'',cat:'',desc:'',period:'Aug 2026',due:TODAY,amount:'',status:'pending',notes:''}; }
+  setF(k){ return e => { const v = e.target.value; this.setState(s => ({form: Object.assign({}, s.form, {[k]:v}), formError:''})); }; }
+
+  commit(keepOpen){
+    const f = this.state.form || this.blankForm();
+    const amt = parseFloat(String(f.amount).replace(/[^0-9.]/g,''));
+    if(!f.co || !f.cat || !f.desc || !amt){ this.setState({formError:'Company, category, description and amount are required.'}); return; }
+    const row = {id: Date.now(), co:f.co, cat:f.cat, desc:f.desc, period:f.period, due:f.due, amount:amt, status:f.status, done: f.status === 'completed' ? TODAY : ''};
+    this.setState(s => ({
+      txns: [row].concat(s.txns),
+      form: keepOpen ? Object.assign(this.blankForm(), {co:f.co, cat:f.cat, period:f.period}) : null,
+      addOpen: !!keepOpen, formError:'', screen:'tracker'
+    }));
+    this.flash(f.co + ' · ' + f.desc + ' added to the Tracker');
+  }
+
+  monthLabel(key){
+    const p = String(key).split('-');
+    const m = MON[+p[1]-1];
+    return m.charAt(0) + m.slice(1).toLowerCase() + ' ' + p[0];
+  }
+  monthKeys(){
+    const p = TODAY.split('-');
+    let y = +p[0], m = +p[1];
+    const out = [];
+    for(let i = 0; i < 13; i++){
+      out.push(y + '-' + String(m).padStart(2,'0'));
+      m++; if(m > 12){ m = 1; y++; }
+    }
+    return out;
+  }
+  daysIn(key){ const p = key.split('-'); return new Date(+p[0], +p[1], 0).getDate(); }
+  ord(n){ const s = n % 100; if(s >= 11 && s <= 13) return n + 'th'; return n + (['th','st','nd','rd'][n % 10] || 'th'); }
+  weekday(d){ return ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][new Date(d + 'T00:00:00').getDay()]; }
+  ruleLabel(freq, date){
+    if(!date) return 'pick a due date';
+    const day = +date.split('-')[2];
+    switch(freq){
+      case 'Once': return 'once, on ' + this.dstr(date);
+      case 'Daily': return 'every day';
+      case 'Weekly': return 'every ' + this.weekday(date);
+      case 'Bi-weekly': return 'every other ' + this.weekday(date);
+      case 'Bi-monthly': return day + 15 > 28 ? this.ord(day) + ' & month-end' : this.ord(day) + ' & ' + this.ord(day + 15) + ' of the month';
+      case 'Quarterly': return this.ord(day) + ', every 3 months';
+      case 'Yearly': return this.dstr(date) + ', once a year';
+      default: return this.ord(day) + ' of the month';
+    }
+  }
+  occurrences(p, monthKey){
+    const y = +monthKey.slice(0,4), m = +monthKey.slice(5,7);
+    const dim = this.daysIn(monthKey);
+    const anchor = /^\d{4}-\d{2}-\d{2}$/.test(String(p.dueDate || '')) ? p.dueDate : monthKey + '-15';
+    const ay = +anchor.slice(0,4), am = +anchor.slice(5,7), ad = +anchor.slice(8,10);
+    const mk = d => monthKey + '-' + String(Math.max(1, Math.min(dim, d))).padStart(2,'0');
+    const day = Math.min(dim, ad);
+    switch(p.freq){
+      case 'Once': return anchor.slice(0,7) === monthKey ? [anchor] : [];
+      case 'Daily': { const out = []; for(let d = 1; d <= dim && out.length < MAX_OCC; d++) out.push(mk(d)); return out; }
+      case 'Weekly':
+      case 'Bi-weekly': {
+        const step = p.freq === 'Weekly' ? 7 : 14;
+        const target = new Date(anchor + 'T00:00:00').getDay();
+        let d = 1;
+        while(d <= dim && new Date(y, m - 1, d).getDay() !== target) d++;
+        const out = [];
+        for(; d <= dim && out.length < MAX_OCC; d += step) out.push(mk(d));
+        return out;
+      }
+      case 'Bi-monthly': {
+        const second = Math.min(dim, day + 15);
+        return second === day ? [mk(day)] : [mk(day), mk(second)];
+      }
+      case 'Quarterly': {
+        const diff = (y - ay) * 12 + (m - am);
+        return (((diff % 3) + 3) % 3) === 0 ? [mk(day)] : [];
+      }
+      case 'Yearly': return m === am ? [mk(day)] : [];
+      default: return [mk(day)];
+    }
+  }
+  generatedFor(key){
+    const label = this.monthLabel(key);
+    return this.state.txns.filter(t => t.period === label).length;
+  }
+
+  generate(key){
+    const month = /^\d{4}-(0[1-9]|1[0-2])$/.test(String(key || '')) ? key : this.state.genMonth;
+    if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(String(month))){ this.flash('Pick a valid month first'); return; }
+    const label = this.monthLabel(month);
+    const existing = this.state.txns;
+    const rows = [];
+    let skipped = 0, n = 0;
+    this.state.recurring.forEach(p => {
+      const occ = this.occurrences(p, month);
+      const amt = Math.max(0, Number(p.amount) || 0);
+      occ.forEach(due => {
+        const desc = occ.length > 1 ? p.desc + ' — ' + this.dstr(due) : p.desc;
+        if(existing.some(t => t.co === p.co && t.cat === p.cat && t.period === label && t.desc === desc)){ skipped++; return; }
+        rows.push({id: Date.now() + (n++), co:p.co, cat:p.cat, desc:desc, period:label,
+          due: due, amount:amt, status:'pending', done:''});
+      });
+    });
+    if(!rows.length){ this.flash('Every recurring payable already exists for ' + label); this.setState({genMenuOpen:false}); return; }
+    this.setState(s => ({txns: rows.concat(s.txns), generatedIds: rows.map(r => r.id), bannerOpen:true, genMenuOpen:false, genMonth: month,
+      bannerText: rows.length + ' ' + label + ' payables were added to the Tracker' + (skipped ? ' — ' + skipped + ' skipped as duplicates' : '') + '.'}));
+  }
+
+  undoGenerate(){
+    this.setState(s => ({txns: s.txns.filter(t => s.generatedIds.indexOf(t.id) < 0), generatedIds:[], bannerOpen:false}));
+    this.flash('Generated rows removed');
+  }
+
+  saveLiq(){
+    const amt = parseFloat(String(this.state.liqAmount).replace(/[^0-9.]/g,''));
+    if(!amt || !this.state.liqDate){ this.setState({liqErr:true}); return; }
+    const id = this.state.liqId;
+    this.setState(s => ({
+      receipts: s.receipts.map(r => r.id === id ? Object.assign({}, r, {status:'liquidated', date:s.liqDate, actual:amt}) : r),
+      liqOpen:false, liqErr:false
+    }));
+    this.flash('Receipt liquidated');
+  }
+
+  renderVals(){
+    const st = this.state;
+    const f = st.form || this.blankForm();
+    const fmt = n => this.fmt(n);
+
+    const navBg = k => st.screen === k ? 'rgba(255,255,255,.18)' : 'transparent';
+    const navFg = k => st.screen === k ? '#FFFFFF' : 'rgba(255,255,255,.62)';
+
+    const scope = typeof st.scope === 'string' ? st.scope : 'All companies';
+    const scoped = scope === 'All companies' ? st.txns : st.txns.filter(t => t.co === scope);
+    const sum = k => scoped.filter(t => this.eff(t) === k).reduce((a,t) => a + t.amount, 0);
+    const cnt = k => scoped.filter(t => this.eff(t) === k).length;
+    const total = scoped.reduce((a,t) => a + t.amount, 0);
+
+    const tiles = [
+      {label:'Payables', value:fmt(total), count:scoped.length, color:'#2A1A22', go:this.tileFilter('all')},
+      {label:'Completed', value:fmt(sum('completed')), count:cnt('completed'), color:'#5C8F72', go:this.tileFilter('completed')},
+      {label:'Pending', value:fmt(sum('pending')), count:cnt('pending'), color:'#BE8A38', go:this.tileFilter('pending')},
+      {label:'Overdue', value:fmt(sum('overdue')), count:cnt('overdue'), color:'#C4566E', go:this.tileFilter('overdue')},
+      {label:'On hold', value:fmt(sum('hold')), count:cnt('hold'), color:'#8B7079', go:this.tileFilter('hold')}
+    ];
+
+    const deadlines = scoped.filter(t => t.status !== 'completed').sort((a,b) => a.due < b.due ? -1 : 1).slice(0,6).map(t => {
+      const over = t.due < TODAY;
+      const p = t.due.split('-');
+      return {
+        mon: MON[+p[1]-1], day: p[2],
+        title: t.co + ' · ' + t.cat,
+        sub: fmt(t.amount) + (over ? ' · overdue' : ''),
+        chipBorder: over ? '#C4566E' : '#EFDCE4',
+        chipFg: over ? '#C4566E' : '#2A1A22',
+        subFg: over ? '#C4566E' : '#8B7079',
+        go: this.tileFilter(over ? 'overdue' : 'pending')
+      };
+    });
+
+    const notes = st.notes.map((n, i) => ({
+      t:n.t, linked:n.linked, check: n.done ? '✓' : '',
+      boxBg: n.done ? '#A8577B' : '#fff', boxBorder: n.done ? '#A8577B' : '#D3A8BB',
+      fg: n.done ? '#B79FA9' : '#2A1A22', deco: n.done ? 'line-through' : 'none',
+      toggle: () => this.setState(s => ({notes: s.notes.map((x, j) => j === i ? Object.assign({}, x, {done: !x.done}) : x)}))
+    }));
+
+    const rows = this.visible();
+    const keyOf = t => st.groupBy === 'company' ? t.co : t.cat;
+    const order = [];
+    rows.forEach(t => { if(order.indexOf(keyOf(t)) < 0) order.push(keyOf(t)); });
+    const groups = order.map(name => {
+      const rs = rows.filter(t => keyOf(t) === name);
+      const open = !st.collapsed[name];
+      return {
+        name, caret: open ? '▾' : '▸',
+        countLabel: rs.length + (open ? ' rows' : ' rows, hidden'),
+        subtotal: fmt(rs.reduce((a,t) => a + t.amount, 0)),
+        toggle: () => this.setState(s => ({collapsed: Object.assign({}, s.collapsed, {[name]: !s.collapsed[name]})})),
+        rows: open ? rs.map(t => {
+          const e = this.eff(t);
+          return {
+            head: st.groupBy === 'company' ? t.cat : t.co,
+            desc: t.desc, period: t.period,
+            dueLabel: this.dstr(t.due), dueFg: e === 'overdue' ? '#C4566E' : '#5A4550',
+            amountLabel: fmt(t.amount),
+            tagBg: TAG[e].bg, tagFg: TAG[e].fg, tagLabel: TAG[e].label,
+            doneLabel: t.done ? this.dstr(t.done) : '—', doneFg: t.done ? '#5A4550' : '#B79FA9',
+            payLabel: (t.done && t.payType) ? (t.payType === 'Check' ? 'Check #' + t.checkNo : t.payType) : '',
+            payable: e !== 'completed',
+            pay: ev => { if(ev && ev.stopPropagation) ev.stopPropagation(); this.setState({payOpen:true, payFor:'row', payId:t.id, payType:'Cash', payCheck:'', payErr:false}); },
+            open: () => this.openRow(t)
+          };
+        }) : []
+      };
+    });
+
+    const allOpen = order.every(k => !st.collapsed[k]);
+    const shownTotal = rows.reduce((a, t) => a + t.amount, 0);
+    const statusFilters = [
+      {k:'pending', label:'Pending'}, {k:'overdue', label:'Overdue'},
+      {k:'completed', label:'Completed'}, {k:'hold', label:'On hold'}
+    ].map(s => ({
+      label:s.label, count: st.txns.filter(t => this.eff(t) === s.k).length,
+      check: st.statuses[s.k] ? '✓' : '',
+      boxBg: st.statuses[s.k] ? '#A8577B' : '#fff', boxBorder: st.statuses[s.k] ? '#A8577B' : '#D3A8BB',
+      toggle: () => this.setState(x => ({statuses: Object.assign({}, x.statuses, {[s.k]: !x.statuses[s.k]})}))
+    }));
+
+    const defaultStatuses = st.statuses.pending && st.statuses.overdue && !st.statuses.completed && !st.statuses.hold;
+    const filterCount = (st.coFilter !== 'All companies' ? 1 : 0) + (st.catFilter !== 'All categories' ? 1 : 0) + (defaultStatuses ? 0 : 1) + (st.search ? 1 : 0);
+
+    const SETTINGS_TABS = [
+      {k:'masterlist', label:'Masterlist settings', title:'Masterlist settings', sub:'the lists behind every dropdown, and how recurring payables behave'},
+      {k:'ackrec', label:'AckRec settings', title:'AckRec settings', sub:'how acknowledgement receipts are released and liquidated'},
+      {k:'tracker', label:'Tracker settings', title:'Tracker settings', sub:'defaults for the payables sheet'},
+      {k:'dashboard', label:'Dashboard settings', title:'Dashboard settings', sub:'what the landing screen opens with'}
+    ];
+    const tab = SETTINGS_TABS.filter(t => t.k === st.settingsTab)[0] || SETTINGS_TABS[0];
+    const settingsMenu = SETTINGS_TABS.map(t => {
+      const on = st.screen === 'settings' && st.settingsTab === t.k;
+      return {label:t.label, bg: on ? '#F7E9F0' : 'transparent', fg: on ? '#A8577B' : '#2A1A22', weight: on ? '700' : '500', go: this.goSettings(t.k)};
+    });
+    const settingRows = {
+      masterlist: [
+        this.tog('autoGen','Generate recurring payables automatically','On the 1st of each month, add every recurring payable to the Tracker as pending.'),
+        this.tog('warnDuplicate','Warn on duplicates','Flag a new transaction that matches an existing company, category and period.'),
+        this.sel('mlDefaultFreq','Default frequency for a new payable','Pre-selected in the Add payable form.',FREQ)
+      ],
+      ackrec: [
+        this.tog('ackRequirePhoto','Require a receipt file to liquidate','Liquidation cannot be saved without a photo or PDF attached.'),
+        this.tog('ackAutoNotify','Notify the holder when a receipt ages','A reminder goes out if cash stays unliquidated past 14 days.'),
+        this.sel('ackDefaultStatus','Status for a new receipt','What the status dropdown starts on.',['Pending','Released','On hold'])
+      ],
+      tracker: [
+        this.sel('trkGroupDefault','Group rows by, on open','Which grouping the sheet starts in.',['Company','Category']),
+        this.tog('trkShowGrandTotal','Show the grand total bar','The running total of the filtered rows at the bottom of the sheet.'),
+        this.tog('trkOverdueRed','Mark overdue rows in red','Colour the due date once the date has passed.')
+      ],
+      dashboard: [
+        this.sel('dashDefaultScope','Company scope on open','Which companies the tiles count.',['All companies','GTOI only','ZON only']),
+        this.sel('dashWindow','Deadline window','How far ahead Upcoming deadlines looks.',['Next 7 days','Next 30 days','Next 90 days']),
+        this.tog('dashShowNotes','Show notes & reminders','Keep the reminder list on the dashboard.')
+      ]
+    }[tab.k];
+
+    const openReceipts = st.receipts.filter(r => r.status !== 'liquidated');
+    const liquidated = st.receipts.filter(r => r.status === 'liquidated');
+    const netDiff = liquidated.reduce((a, r) => a + (r.amount - r.actual), 0);
+    const receipts = st.receipts.map(r => {
+      const diff = r.actual == null ? null : r.amount - r.actual;
+      return {
+        co:r.co, name:r.name, desc:r.desc, amountLabel:fmt(r.amount),
+        tagBg:TAG[r.status].bg, tagFg:TAG[r.status].fg, tagLabel:TAG[r.status].label,
+        dateLabel: r.date ? this.dstr(r.date) : '—', dateFg: r.date ? '#5A4550' : '#B79FA9',
+        actualLabel: r.actual == null ? '—' : fmt(r.actual),
+        diffLabel: diff == null ? '—' : (diff === 0 ? 'exact' : fmt(Math.abs(diff)) + (diff > 0 ? ' back' : ' over')),
+        diffFg: diff == null ? '#B79FA9' : (diff >= 0 ? '#5C8F72' : '#C4566E'),
+        open: r.status !== 'liquidated',
+        status: r.status,
+        setStatus: e => {
+          const v = e.target.value;
+          if(v === 'liquidated'){ this.setState({liqOpen:true, liqId:r.id, liqDate:TODAY, liqAmount:String(r.amount), liqErr:false}); return; }
+          this.setState(s => ({receipts: s.receipts.map(x => x.id === r.id ? Object.assign({}, x, {status:v, date:'', actual:null}) : x)}));
+        },
+        liquidate: () => this.setState({liqOpen:true, liqId:r.id, liqDate:TODAY, liqAmount:String(r.amount), liqErr:false})
+      };
+    });
+
+    const payRow = st.txns.filter(t => t.id === st.payId)[0];
+    const liqRec = st.receipts.filter(r => r.id === st.liqId)[0];
+    const liqAmt = parseFloat(String(st.liqAmount).replace(/[^0-9.]/g,''));
+    const liqDiff = liqRec && liqAmt ? liqRec.amount - liqAmt : null;
+
+    return {
+      goDash: this.go('dashboard'), goTrackerNav: this.go('tracker'), goAck: this.go('ackrec'), goMaster: this.go('masterlist'),
+      dashBg: navBg('dashboard'), dashFg: navFg('dashboard'),
+      trkBg: navBg('tracker'), trkFg: navFg('tracker'),
+      ackBg: navBg('ackrec'), ackFg: navFg('ackrec'),
+      mstBg: navBg('masterlist'), mstFg: navFg('masterlist'),
+      isDash: st.screen === 'dashboard', isTracker: st.screen === 'tracker',
+      isAck: st.screen === 'ackrec', isMaster: st.screen === 'masterlist',
+      isSettings: st.screen === 'settings',
+      setBg: navBg('settings'), setFg: navFg('settings'),
+      setCaret: st.settingsMenuOpen ? '▾' : '▸',
+      toggleSettings: () => this.setState(s => ({settingsMenuOpen: !s.settingsMenuOpen})),
+      settingsMenuOpen: st.settingsMenuOpen,
+      closeSettingsMenu: () => this.setState({settingsMenuOpen:false}),
+      settingsMenu, settingRows,
+      settingsTitle: tab.title, settingsSub: tab.sub,
+      isSetMaster: st.settingsTab === 'masterlist',
+      goMasterSettings: this.goSettings('masterlist'),
+      filtersOpen: st.filtersOpen && st.screen === 'tracker', filterCount: filterCount || 0,
+      openFilters: () => this.setState({filtersOpen:true}),
+      closeFilters: () => this.setState({filtersOpen:false}),
+      coFilter: st.coFilter,
+      coOptions: ['All companies'].concat(st.companies),
+      onCoFilter: e => this.setState({coFilter: e.target.value}),
+      goTracker: this.go('tracker'),
+      scope,
+      scopeOptions: ['All companies'].concat(st.companies),
+      onScope: e => this.setState({scope: e.target.value}),
+      tiles, deadlines, notes,
+      noteDraft: st.noteDraft,
+      onNoteDraft: e => this.setState({noteDraft: e.target.value}),
+      onNoteKey: e => { if(e.key === 'Enter') this.addNoteNow(); },
+      addNote: () => this.addNoteNow(),
+
+      statusFilters, groups,
+      catFilter: st.catFilter,
+      catOptions: ['All categories'].concat(st.categories),
+      onCatFilter: e => this.setState({catFilter: e.target.value}),
+      col1: st.groupBy === 'company' ? 'Category' : 'Company',
+      col1Label: st.groupBy === 'company' ? 'Category' : 'Company',
+      col1Check: allOpen ? '✓' : '',
+      col1BoxBg: allOpen ? '#A8577B' : '#fff',
+      col1BoxBorder: allOpen ? '#A8577B' : '#D3A8BB',
+      toggleCol1: () => this.setState(s => {
+        if(!allOpen) return {collapsed:{}};
+        const c = {}; order.forEach(k => { c[k] = true; });
+        return {collapsed:c};
+      }),
+      gridCols: '150px minmax(190px,1fr) 100px 92px 104px 108px 100px 104px',
+      groupByCompany: () => this.setState({groupBy:'company', collapsed:{}}),
+      groupByCategory: () => this.setState({groupBy:'category', collapsed:{}}),
+      gbCoBg: st.groupBy === 'company' ? '#A8577B' : '#fff', gbCoFg: st.groupBy === 'company' ? '#fff' : '#5A4550',
+      gbCatBg: st.groupBy === 'category' ? '#A8577B' : '#fff', gbCatFg: st.groupBy === 'category' ? '#fff' : '#5A4550',
+      clearFilters: () => this.setState({coFilter:'All companies', catFilter:'All categories', search:'', statuses:{pending:true,overdue:true,completed:false,hold:false}}),
+      search: st.search, onSearch: e => this.setState({search: e.target.value}),
+      trackerSummary: groups.length + ' groups · ' + rows.length + ' rows',
+      shownLabel: 'Showing ' + rows.length + ' of ' + st.txns.length + ' transactions',
+      grandTotal: fmt(shownTotal),
+      noRows: rows.length === 0,
+
+      ackOutstanding: fmt(openReceipts.reduce((a, r) => a + r.amount, 0)),
+      ackOpenCount: openReceipts.length,
+      ackDiffLabel: netDiff === 0 ? 'none' : fmt(Math.abs(netDiff)) + (netDiff > 0 ? ' returned' : ' overspent'),
+      ackDiffFg: netDiff >= 0 ? '#5C8F72' : '#C4566E',
+      receipts,
+      openReceipt: () => this.flash('Add-receipt form comes next — say the word and I will build it'),
+
+      recurring: st.recurring.map(p => ({
+        co:p.co, cat:p.cat, freq:p.freq, desc:p.desc, dueDate:p.dueDate || '', amount: String(p.amount),
+        rule: this.ruleLabel(p.freq, p.dueDate),
+        setCo: e => this.updRec(p.id, 'co', e.target.value),
+        setCat: e => this.updRec(p.id, 'cat', e.target.value),
+        setFreq: e => this.updRec(p.id, 'freq', e.target.value),
+        setDesc: e => this.updRec(p.id, 'desc', e.target.value),
+        setDue: e => this.updRec(p.id, 'dueDate', e.target.value),
+        setAmount: e => this.updRec(p.id, 'amount', e.target.value),
+        remove: () => { this.setState(s => ({recurring: s.recurring.filter(x => x.id !== p.id)})); this.flash(p.co + ' · ' + p.cat + ' removed from the masterlist'); }
+      })),
+      freqOptions: FREQ,
+      recRule: this.ruleLabel(st.rec.freq, st.rec.dueDate),
+      companyChips: st.companies.map(c => ({label:c, remove: () => this.setState(s => ({companies: s.companies.filter(x => x !== c)}))})),
+      categoryChips: st.categories.map(c => ({label:c, remove: () => this.setState(s => ({categories: s.categories.filter(x => x !== c)}))})),
+      companyCount: st.companies.length, categoryCount: st.categories.length,
+      coDraft: st.coDraft, catDraft: st.catDraft,
+      onCoDraft: e => this.setState({coDraft: e.target.value}),
+      onCatDraft: e => this.setState({catDraft: e.target.value}),
+      addCompany: () => { const v = st.coDraft.trim(); if(!v) return; this.setState(s => ({companies: s.companies.concat([v.toUpperCase()]), coDraft:''})); },
+      addCategory: () => { const v = st.catDraft.trim(); if(!v) return; this.setState(s => ({categories: s.categories.concat([v]), catDraft:''})); },
+      genLabel: this.monthLabel(st.genMonth),
+      genMenuOpen: st.genMenuOpen,
+      toggleGenMenu: () => this.setState(s => ({genMenuOpen: !s.genMenuOpen})),
+      genMonths: this.monthKeys().map(k => {
+        const n = this.generatedFor(k), on = k === st.genMonth;
+        return {label: this.monthLabel(k), note: n ? n + ' rows exist' : '', bg: on ? '#F7E9F0' : 'transparent',
+          fg: on ? '#A8577B' : '#2A1A22', weight: on ? '700' : '500',
+          pick: () => this.setState({genMonth:k, genMenuOpen:false})};
+      }),
+      runMasterlist: () => this.generate(st.genMonth),
+      undoGenerate: () => this.undoGenerate(),
+      bannerOpen: st.bannerOpen, bannerText: st.bannerText,
+      closeBanner: () => this.setState({bannerOpen:false}),
+
+      editOpen: st.editOpen, edit: st.edit || {co:'',cat:'',desc:'',period:'',due:'',amount:'',status:'pending',done:'',notes:''},
+      editSub: st.edit ? st.edit.co + ' · ' + st.edit.cat : '',
+      editPeriodOpen: st.periodOpen === 'edit',
+      addPeriodOpen: st.periodOpen === 'add',
+      openEditPeriod: () => this.openPeriod('edit', (st.edit || {}).period),
+      openAddPeriod: () => this.openPeriod('add', f.period),
+      periodRange: st.periodRange,
+      periodFrom: st.periodFrom, periodTo: st.periodTo,
+      periodFromDay: st.periodFromDay, periodToDay: st.periodToDay,
+      setPeriodFromDay: e => this.setState({periodFromDay: String(e.target.value).replace(/[^0-9]/g,'').slice(0,2)}),
+      setPeriodToDay: e => this.setState({periodToDay: String(e.target.value).replace(/[^0-9]/g,'').slice(0,2)}),
+      periodFromLabel: st.periodRange ? 'From' : 'Month & year',
+      periodPreview: this.periodLabel(),
+      rangeCheck: st.periodRange ? '✓' : '',
+      rangeBoxBg: st.periodRange ? '#A8577B' : '#fff',
+      rangeBoxBorder: st.periodRange ? '#A8577B' : '#D3A8BB',
+      togglePeriodRange: () => this.setState(s => ({periodRange: !s.periodRange})),
+      setPeriodFrom: e => this.setState({periodFrom: e.target.value || TODAY.slice(0,7)}),
+      setPeriodTo: e => this.setState({periodTo: e.target.value || TODAY.slice(0,7)}),
+      closePeriod: () => this.setState({periodOpen:null}),
+      applyPeriod: () => this.applyPeriod(),
+      closeEdit: () => this.setState({editOpen:false}),
+      discardEdit: () => this.setState(s => ({edit: s.editOrig})),
+      deleteEdit: () => { const id = st.editId; this.setState(s => ({txns: s.txns.filter(t => t.id !== id), editOpen:false})); this.flash('Transaction deleted'); },
+      saveEdit: () => this.saveEdit(),
+      setECo: this.setE('co'), setECat: this.setE('cat'), setEDesc: this.setE('desc'), setEPeriod: this.setE('period'),
+      setEDue: this.setE('due'), setEAmount: this.setE('amount'), setEStatus: ev => this.setEditStatus(ev),
+      editPayLabel: (st.edit && st.edit.status === 'completed' && st.edit.payType) ? (st.edit.payType === 'Check' ? 'Paid by check #' + st.edit.checkNo : 'Paid by ' + st.edit.payType.toLowerCase()) : '',
+      editPayEdit: () => this.setState(s => ({payOpen:true, payFor:'edit', payPrev:'completed', payType: (s.edit || {}).payType || 'Cash', payCheck: (s.edit || {}).checkNo || '', payErr:false})),
+      setEDone: this.setE('done'), setENotes: this.setE('notes'),
+
+      addOpen: st.addOpen, form:f, companies: st.companies, categories: st.categories,
+      periods: ['Aug 2026','Sep 2026','Jul 2026','Jul–Sep 2026','Oct–Dec 2026'],
+      openAdd: () => this.setState({addOpen:true, form:this.blankForm(), formError:''}),
+      closeAdd: () => this.setState({addOpen:false, formError:''}),
+      stop: e => e.stopPropagation(),
+      setCo: this.setF('co'), setCat: this.setF('cat'), setDesc: this.setF('desc'),
+      setDue: this.setF('due'), setAmount: this.setF('amount'), setNotes: this.setF('notes'),
+      statusChoices: [{k:'pending',label:'Pending'},{k:'completed',label:'Completed'},{k:'hold',label:'On hold'}].map(s => ({
+        label:s.label,
+        bg: f.status === s.k ? '#A8577B' : '#fff', fg: f.status === s.k ? '#fff' : '#5A4550', bd: f.status === s.k ? '#A8577B' : '#EFDCE4',
+        pick: () => this.setState(x => ({form: Object.assign({}, x.form || this.blankForm(), {status:s.k})}))
+      })),
+      completedHint: f.status === 'completed' ? '30 Aug 2026' : 'fills in when you mark it completed',
+      err: {
+        co: st.formError && !f.co ? '#C4566E' : '#EFDCE4',
+        cat: st.formError && !f.cat ? '#C4566E' : '#EFDCE4',
+        desc: st.formError && !f.desc ? '#C4566E' : '#EFDCE4',
+        amount: st.formError && !f.amount ? '#C4566E' : '#EFDCE4'
+      },
+      formError: st.formError,
+      save: () => this.commit(false), saveAnother: () => this.commit(true),
+
+      payOpen: st.payOpen,
+      paySubtitle: st.payFor === 'edit'
+        ? ((st.edit || {}).co || '') + ' · ' + ((st.edit || {}).cat || '') + ' · ' + ((st.edit || {}).desc || '')
+        : (payRow ? payRow.co + ' · ' + payRow.cat + ' · ' + fmt(payRow.amount) + ' due ' + this.dstr(payRow.due) : ''),
+      payTypes: ['Cash','Check','E-cash'].map(p => {
+        const on = st.payType === p;
+        return {label:p, check: on ? '✓' : '', bg: on ? '#F7E9F0' : '#fff', fg: on ? '#A8577B' : '#2A1A22',
+          bd: on ? '#A8577B' : '#EFDCE4', dotBg: on ? '#A8577B' : '#fff', dotBd: on ? '#A8577B' : '#D3A8BB',
+          pick: () => this.setState({payType:p, payErr:false})};
+      }),
+      payIsCheck: st.payType === 'Check',
+      payCheck: st.payCheck,
+      payCheckBorder: st.payErr ? '#C4566E' : '#EFDCE4',
+      setPayCheck: e => this.setState({payCheck: e.target.value, payErr:false}),
+      closePay: () => this.cancelPay(),
+      confirmPay: () => this.confirmPay(),
+
+      liqOpen: st.liqOpen, liqDate: st.liqDate, liqAmount: st.liqAmount,
+      liqErrBorder: st.liqErr ? '#C4566E' : '#EFDCE4',
+      liqSubtitle: liqRec ? liqRec.co + ' · ' + liqRec.name + ' · released ' + fmt(liqRec.amount) : '',
+      liqDiffLabel: liqDiff == null ? '—' : (liqDiff === 0 ? 'exact' : fmt(Math.abs(liqDiff)) + (liqDiff > 0 ? ' to return' : ' overspent')),
+      liqDiffFg: liqDiff == null ? '#8B7079' : (liqDiff >= 0 ? '#5C8F72' : '#C4566E'),
+      setLiqDate: e => this.setState({liqDate: e.target.value}),
+      setLiqAmount: e => this.setState({liqAmount: e.target.value, liqErr:false}),
+      closeLiq: () => this.setState({liqOpen:false}),
+      saveLiq: () => this.saveLiq(),
+
+      recOpen: st.recOpen, rec: st.rec,
+      openRecurring: () => this.setState({recOpen:true, rec:{co:'',cat:'',desc:'',freq: st.settings.mlDefaultFreq || 'Monthly', dueDate:TODAY, amount:''}}),
+      closeRecurring: () => this.setState({recOpen:false}),
+      setRecCo: e => this.setR('co', e), setRecCat: e => this.setR('cat', e), setRecDesc: e => this.setR('desc', e),
+      setRecFreq: e => this.setR('freq', e), setRecDue: e => this.setR('dueDate', e), setRecAmount: e => this.setR('amount', e),
+      saveRecurring: () => {
+        const r = st.rec, amt = parseFloat(String(r.amount).replace(/[^0-9.]/g,''));
+        if(!r.co || !r.cat || !amt){ this.flash('Company, category and amount are required'); return; }
+        this.setState(s => ({recurring: s.recurring.concat([{id:Date.now(), co:r.co, cat:r.cat, freq:r.freq, desc:r.desc || r.cat, dueDate:r.dueDate || TODAY, amount:amt}]), recOpen:false}));
+        this.flash('Recurring payable added');
+      },
+      toast: st.toast
+    };
+  }
+
+  setR(k, e){ const v = e.target.value; this.setState(s => ({rec: Object.assign({}, s.rec, {[k]:v})})); }
+  updRec(id, k, v){
+    const val = k === 'amount' ? (parseFloat(String(v).replace(/[^0-9.]/g,'')) || 0) : v;
+    this.setState(s => ({recurring: s.recurring.map(p => p.id === id ? Object.assign({}, p, {[k]:val}) : p)}));
+  }
+  cap(m){ return m.charAt(0) + m.slice(1).toLowerCase(); }
+  periodPart(m, d, withYear){
+    const mon = this.cap(MON[+m.slice(5,7) - 1]);
+    const day = String(d || '').replace(/[^0-9]/g,'');
+    return (day ? day + ' ' : '') + mon + (withYear ? ' ' + m.slice(0,4) : '');
+  }
+  periodLabel(){
+    const st = this.state;
+    const f = /^\d{4}-\d{2}$/.test(String(st.periodFrom)) ? st.periodFrom : TODAY.slice(0,7);
+    const df = String(st.periodFromDay || '').replace(/[^0-9]/g,'');
+    if(!st.periodRange) return df ? this.periodPart(f, df, true) : this.monthLabel(f);
+    let t = /^\d{4}-\d{2}$/.test(String(st.periodTo)) ? st.periodTo : f;
+    if(t < f) t = f;
+    const dt = String(st.periodToDay || '').replace(/[^0-9]/g,'');
+    if(t === f && !df && !dt) return this.monthLabel(f);
+    if(f.slice(0,4) === t.slice(0,4)) return this.periodPart(f, df, false) + '–' + this.periodPart(t, dt, true);
+    return this.periodPart(f, df, true) + '–' + this.periodPart(t, dt, true);
+  }
+  openPeriod(which, current){
+    const m = /(\d{4})-(\d{2})/.exec(String(current || ''));
+    const st = {periodOpen: which, periodFromDay:'', periodToDay:''};
+    if(!m && typeof current === 'string'){
+      const yr = /(20\d{2})/.exec(current);
+      const mons = current.toUpperCase().match(/JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC/g);
+      if(yr && mons && mons.length){
+        st.periodFrom = yr[1] + '-' + String(MON.indexOf(mons[0]) + 1).padStart(2,'0');
+        st.periodRange = mons.length > 1;
+        if(mons.length > 1) st.periodTo = yr[1] + '-' + String(MON.indexOf(mons[1]) + 1).padStart(2,'0');
+        const days = current.match(/\b(\d{1,2})\s+[A-Za-z]{3}/g) || [];
+        if(days[0]) st.periodFromDay = (days[0].match(/\d{1,2}/) || [''])[0];
+        if(days[1]) st.periodToDay = (days[1].match(/\d{1,2}/) || [''])[0];
+      }
+    }
+    this.setState(st);
+  }
+  applyPeriod(){
+    const label = this.periodLabel(), which = this.state.periodOpen;
+    if(which === 'edit') this.setState(s => ({edit: Object.assign({}, s.edit, {period: label}), periodOpen:null}));
+    else this.setState(s => ({form: Object.assign({}, s.form || this.blankForm(), {period: label}), periodOpen:null}));
+  }
+  addNoteNow(){
+    const v = this.state.noteDraft.trim();
+    if(!v) return;
+    this.setState(s => ({notes: s.notes.concat([{t:v, done:false, linked:false}]), noteDraft:''}));
+  }
+}
+
+</script>
+</body>
+</html>

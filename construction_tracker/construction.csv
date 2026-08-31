@@ -1,0 +1,58 @@
+,,,,,,,,,,,,,,,,,,,
+LEFT SIDE PANEL,,,,,,,,,,,,,,,,,,,
+DASHBOARD ,,,,,,,,,,,,,,Project Status:,,,,Expenses,
+,Projects,,,,,,,,,,,,,,Active,,,-,Date
+,Daily Cash Flow Summary,,,,,,,,,,,,,,Complete,,,-,Project (kung para saang project itong gastos na to)
+,Payable,,Due dates,,,,,,,,,,,,Hold,,,-,Expense Category
+,Debts,,Name & Amount,,,,,,,,,,,,Cancelled,,,-,Description
+,,,,,,,,,,,,,,Expense Categories:,,,,-,Amount
+ATTENDANCE,,,,,,,,,,,,,,,Materials,,,-,Status
+,Date,,,,,,,,,,,,,,Salary,,,-,*If Paid:
+,Project,(Dropdown ng projects),,,,,,,,,,,,,Cash Advance,,,,
+,,,,,,,,,,,,,,,Equipment rental,,,Materials,
+,,Worker Name: ,Position,Time In,Time Out,Remarks,,,,,,,,,"Transportations (Gas, Parking)",,,-,Project
+,,(Automatically show the employee name list),(Automatically show based on Masterlist),,,,,,,,,,,,Permits,,,-,Date Requested
+,,,,,,,,,,,,,,,Rental,,,-,Materials
+,,,,,,,,,,,,,,,Utilities,,,-,Qty
+,,,,,,,,,,,,,,,Petty Cash,,,-,Unit
+CASH FLOW ,,,"ito yung in and outs ng pera per day so yung balance na makikita dito, running siya.",,,,,,,,,,,,House Expense,,,-,Unit Cost
+,Daily Summary,,,,,,,,,,,,,,,,,-,Total Cost
+,,Date,,Hindi ito nae-edit. bale dito nakaautomatic compute yung Cash in Cash Out,,,,,,,,,,Worker Positions:,,,,-,Supplier
+,,Beginning Balance,,,,,,,,,,,,,Foreman,,,-,Status
+,,Total Cash In,,,,,,,,,,,,,Mason,,,-,Receipt
+,,Total Cash out,,,,,,,,,,,,,Carpenter,,,Debts,
+,,Ending Balance,,,,,,,,,,,,,Helper,,,,Creditor Name
+,,,,,,,,,,,,,,,Electrician,,,,Dept Type
+,Data Entry (+Add Transaction),,,,,,,,,,,,,,Plumber,,,,OriginalAmount
+,,Date,Project,Category,Description,Cash In,Cash Out,Remarks,,,,,,,Other,,,,Amount Paid
+,,,(Dropdown ng mga listed projects),(Dropdown of Expense categories),(text box lang po ito),,,(text box lang po ito),,,,,,Debts type,,,,,Balance
+,,,,,,,,,,,,,,,Supplier,,,,Priority
+,,,,,,,,,,,,,,,Worker,,,,Last Payment
+,,,,,,,,,,,,,,,Personal,,,,Frequency of Payment
+PROJECTS,,(Yung parang ginawa mo sa Opportunity (ref. Zone CRM)),,,,,,,,,,,,,Loan,,,,Next Payment
+,Project / Client Name,,,Start Date,,,,,,,,,,Payment Status:,,,,,Status
+,Location,,,Target Finish,,,,,,,,,,,Pending,,,,Contact
+,Foreman Assigned,,,Contract Amount,,,,,,,,,,,Partial Paid (with percentage),,,,References (upload receipts of payments)
+,Project Status,,,Budget Cost,,,,,,,,,,,Paid,,,Forecast,
+,Amount Billed,,,Amount Collected,,,,,,,,,,,Hold,,,,Expected Collection
+,Outstanding,,,Actual Cost,,,,,,,,,,,,,,,Estimated Payroll Costs
+,,,,,,,,,,,,,,,,,,,Estimated Materials Costs
+PAYROLL,,,,,,,,,,,,,,WORKER MASTERLIST,,,,,
+,Pay Period,(Date Range),,,,,,,,,,,,,Worker Name,,,,
+,Project,(Client Name - Location),,,,,,,,,,,,,Position,,,,
+,,,,,,,,,,,,,,,Daily Rate,,,,
+,,Worker Name,Position,Rate per day,Days/Hrs Worked,Gross Pay,Cash Vale,Other Deductions (if applicable),Net Pay,Payment Status,,,,,Project assigned,,,,
+,,,,,(Showing total work hours per day),(Rate * Total work hours),(Cash Advance),,(Gross pay - Deductions),,,,,,Start Date,,,,
+,,,,,,,,,,,,,,,Status,,,,
+,,,,,,,,,,,,,,,Phone Number,,,,
+PAYABLES,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,
+,,Name,Debt Type,Amount,Amount Paid,Balance,Next Payment,Status,Contact,References (upload receipts of payments),,,,,,,,,
+,,,,,,,,,,,,,,EXPENSES,,,,,
+,,,,,,,,,,,,,,(placeholders),,,,,
+,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,RECEIVABLES,,,,,
+,,,,,,,,,,,,,,(placeholders),,,,,

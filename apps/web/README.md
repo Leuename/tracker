@@ -180,7 +180,7 @@ the prototype's choice; it is preserved rather than corrected.
   of the month, and notifying a holder after 14 days. Both need work to happen while nobody has
   the app open, and there is no scheduler. They belong back the day one exists.
 - **No deployment.** The app runs from `npm run dev` or a locally served `dist/`. Nothing
-  publishes it. See [Repository Evidence](../../Repository%20Evidence.md).
+  publishes it. See [Repository Evidence](../../docs/Repository%20Evidence.md).
 - **Two prototype affordances are still inert**, exactly as drawn: the "+ Add receipt" button
   raises a toast rather than a form, and the liquidation drop zone accepts no file.
 - **Three settings are decorative.** `trkShowGrandTotal` and `trkOverdueRed` are wired;
@@ -198,9 +198,9 @@ the prototype's choice; it is preserved rather than corrected.
   decides which rows an account can read or write.
 - **MD-02** keeps every cross-reference path-qualified and locally resolvable.
 
-implements: [Awesome Guidelines Integration](../../Awesome%20Guidelines%20Integration.md)
+implements: [Awesome Guidelines Integration](../../docs/Awesome%20Guidelines%20Integration.md)
 
-Related: [Repository Evidence](../../Repository%20Evidence.md) · [Decisions](../../Decisions.md) · [Handoff](../../Handoff.md) · [company_tracker scope](../../company_tracker/AGENTS.md)
+Related: [Repository Evidence](../../docs/Repository%20Evidence.md) · [Decisions](../../docs/Decisions.md) · [Handoff](../../docs/Handoff.md) · [company_tracker scope](../../company_tracker/AGENTS.md)
 
 ## Response headers
 
