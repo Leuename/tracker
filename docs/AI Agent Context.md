@@ -22,7 +22,8 @@ This is the agent-agnostic entry point. It describes where facts live, how instr
 - **observed-in:** [Repository Evidence](Repository%20Evidence.md) records what is present, absent, generated, or externally loaded.
 - **decided-by:** [Decisions](Decisions.md) records current boundaries and activation gates.
 - **continued-by:** [Handoff](Handoff.md) records completed documentation work and unresolved source gaps.
-- **resumed-by:** [Session Continuation Package 2026-09-01](../handoff/2026-09-01%20Session%20Continuation%20Package.md) maps a whole session into one entry point — service identifiers, the codebase map, open items awaiting the owner's decision, and the traps that cost time. Read it before [Handoff](Handoff.md), which it indexes rather than replaces.
+- **resumed-by:** [Repository Restructure and Data Clear](../handoff/2026-09-01%20Repository%20Restructure%20and%20Data%20Clear.md) is the current entry point for a fresh session. It supersedes [Session Continuation Package](../handoff/2026-09-01%20Session%20Continuation%20Package.md) as the place to start, while that note remains the record of how the app was built.
+- **archived-in:** [Seeded Data Backup](seeded-data-backup/README.md) holds the demo rows cleared from the ledger on 2026-09-01, with the totals verified against the live database before the delete.
 - **specialized-by:** [Turborepo and Turbopack](Turborepo%20and%20Turbopack.md) governs conditional build-tool adoption.
 
 ## Artifact Taxonomy

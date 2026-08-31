@@ -3,7 +3,7 @@ title: Session Continuation Package 2026-09-01
 tags: [handoff, continuation, erp, tracker, supabase, vercel, testing, security, decisions]
 created: 2026-09-01
 status: current
-supersedes: none
+superseded_by: "[Repository Restructure and Data Clear](2026-09-01%20Repository%20Restructure%20and%20Data%20Clear.md) — that note is the current entry point; this one remains the record of phases 1 to 9"
 related:
   - "[Handoff](../docs/Handoff.md) — the per-pass record; this note indexes it, it does not replace it"
   - "[Decisions](../docs/Decisions.md) — D1 to D11, the authority on what is authorised"
@@ -13,6 +13,11 @@ up: "[AI Agent Context](../docs/AI%20Agent%20Context.md)"
 ---
 
 # Session Continuation Package 2026-09-01
+
+> **Not the entry point any more.** Start at
+> [Repository Restructure and Data Clear](2026-09-01%20Repository%20Restructure%20and%20Data%20Clear.md),
+> which carries the current layout, ledger state and open items. This note remains the record of
+> phases 1 to 9 — how the app was built — and its traps 1 to 12 all still apply.
 
 **Purpose.** A fresh chat, with no memory of this session, can read this note and resume without
 losing context. It is a *map and an index*, not a copy. Where a fact already lives in a canonical

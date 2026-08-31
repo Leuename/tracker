@@ -327,6 +327,68 @@ While it was on, both suites failed against production for that reason and not o
 
 The ledger was verified back at its starting state afterwards: 20 transactions, 6 receipts, 6 recurring rules, one config row, no stored files, and no row carrying a test tag or a probe note.
 
+## 2026-09-01 — Re-rooted the repository, cleared the demo data
+
+Two owner requests, in sequence, plus the documentation work that framed them. The full map is in
+[Repository Restructure and Data Clear](../handoff/2026-09-01%20Repository%20Restructure%20and%20Data%20Clear.md);
+this is the record of what each pass did.
+
+### Documentation and resume prompts
+
+The first continuation package was written, then a standing rule added: every handoff must carry
+copy-pasteable resume prompts naming the document's exact path and telling the next session to
+verify before acting. Recorded globally and in `.claude/rules/documentation.md`. Handoffs live in
+`handoff/` at the repository root, named `YYYY-MM-DD Title.md`.
+
+### Re-rooting
+
+The repository held `apps/web` alone, so the knowledge notes lived on one machine and nowhere
+else. The root moved to the project root; notes to `docs/`, handoffs to `handoff/`. 451 local
+markdown links were rewritten by resolving each against the pre-move tree and recomputing it, not
+by search and replace; 46 application files recorded as renames.
+
+This required the owner to set Vercel's Root Directory to `apps/web`, which had been unset. Two
+deploys failed with `vite: command not found` in the interval. **Production stayed up on the last
+good build the whole time** — a failed Vercel build never replaces a working deployment.
+
+`apps/web/vercel.json` deliberately stayed where it was: with a Root Directory set, Vercel reads
+`vercel.json` from that directory, so moving it to the repo root would silently stop the security
+headers applying.
+
+### Clearing the demo data
+
+All 32 rows dated 2026-08-31; nothing genuine was lost. The seed was removed with them, so a new
+workspace opens empty. The `app_config` row was kept on purpose: `load()` reads its absence as
+"never used", so deleting *it* is what restarts a workspace. Company and category lists survived
+for the same practical reason — emptying them blanks every dropdown.
+
+An archive of the cleared rows is in [docs/seeded-data-backup/](seeded-data-backup/README.md),
+generated from `apps/web/src/data.js` in database column shape. Its totals — 20 / ₱1,142,100,
+6 / ₱210,000, 6 / ₱440,200 — match what was read from the live database immediately before the
+delete, which is what makes it a faithful copy rather than an approximation.
+
+### What clearing the data exposed
+
+Six specs depended on demo data they had not created. Making them self-sufficient surfaced five
+further defects in the tests themselves: fixtures sharing one name so two rows matched a single
+locator; fixtures created after sign-in and therefore invisible to an already-loaded page; a
+masterlist spec that required a rule row when empty is legitimate; and `smoke` both leaving rows
+behind on a thrown assertion and never restoring the category list it edited. The last two were
+real — both residues were found on the verification pass and removed.
+
+### Validation
+
+`npm test` 33 of 33. `npm run e2e` 24 of 24, five consecutive local runs plus production.
+`npm run security` 33 of 33 against production, headers included. `npm run smoke` passing.
+`npm audit` clean. Ledger confirmed at zero with one config row and no residue.
+
+### One unexplained observation
+
+A single suite run reported `6 passed` — only `app.spec.js`, with no failure or skip logged. It
+has not reproduced in five consecutive runs since and no cause was established. If it recurs,
+check whether `playwright.config.js` loaded `.env.local`: `haveCredentials()` skips the entire
+functional file when it did not, and that skip is quiet.
+
 ## Guideline Basis
 
 - **PG-04** requires a continuation record with exact scope, checks, limitations, and unresolved evidence.
