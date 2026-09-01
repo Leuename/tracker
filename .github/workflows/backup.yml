@@ -57,5 +57,8 @@ jobs:
           git add backups
           # The manifest carries a timestamp, so there is normally something to
           # commit. Guarded anyway: a no-op run must not fail the workflow.
-          git diff --staged --quiet || git commit -m "Back up the workspace"
+          # [skip ci] keeps Vercel out of it. A push to main is a production
+          # deploy, and without this every night would redeploy the same code
+          # because a JSON file changed.
+          git diff --staged --quiet || git commit -m "Back up the workspace [skip ci]"
           git push

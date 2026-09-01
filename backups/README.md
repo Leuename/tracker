@@ -74,6 +74,9 @@ a restore script nobody has ever run is not a safety net.
 - **A tested restore.** Nobody has performed one against an empty project. Until somebody
   has, this is a backup that is *believed* to work.
 
+The commit message carries `[skip ci]`, so Vercel ignores it. Without that, a push to `main` is a
+production deploy and every night would redeploy identical code because a JSON file moved.
+
 ## The trap
 
 GitHub disables a scheduled workflow after 60 days without a commit to the repository. The
