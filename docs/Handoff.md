@@ -795,7 +795,22 @@ workflow made it. `git.deploymentEnabled` applied to the very push that introduc
 been an open question written down as a trap; Vercel reads the setting from the commit it is about
 to deploy, so it took effect immediately rather than one push later. Trap 32 is corrected to say so.
 
-The run carries one annotation, harmless: `actions/checkout@v4` and `actions/setup-node@v4` still
+### `verify.yml`, the suites that write to real data
+
+Dispatched by hand the same day: run `33530924458`, 3m32s, green. The counts matter more than the
+tick, because this suite's failure mode is passing without running:
+
+```
+27 passed (2.5m)
+41 checks, 0 failed
+smoke passed
+```
+
+Ledger immediately afterwards: 4 accounts, 0 probe accounts, 21 transactions — the owner's — and
+zero `E2E-`, `SEC ` or `smoke` residue on any table. `audit_log` went from 154 rows to 222, which
+is the trail recording CI's own writes. That is correct and permanent: nothing may delete from it.
+
+### One annotation on the CI runs, harmless: `actions/checkout@v4` and `actions/setup-node@v4` still
 target Node 20 and the runner forces them onto Node 24. That is a deprecation on those actions, not
 on this repository's Node version, and needs nothing until they publish a v5.
 

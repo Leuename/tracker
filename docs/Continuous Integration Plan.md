@@ -27,6 +27,13 @@ CLI in the workflow. `git.deploymentEnabled` was honoured on the very push that 
 which had been an open question: the setting is read from the commit being deployed, so it took
 effect immediately rather than one push later.
 
+`verify.yml` ran for the first time the same day, by `workflow_dispatch`: run `33530924458`,
+3m32s, all three suites green against the deployment — `27 passed`, `41 checks, 0 failed`,
+`smoke passed`. The counts are the point. A suite that skipped would have printed `27 skipped` and
+still exited 0 before `E2E_REQUIRE_CREDENTIALS` existed, so the log line is the evidence the gate
+is real, not the green tick. The ledger was clean afterwards: zero tagged residue on every table,
+zero probe accounts, only the owner's 21 transactions.
+
 One annotation, harmless: `actions/checkout@v4` and `actions/setup-node@v4` still target Node 20
 and are forced onto Node 24 by the runner. It is a deprecation notice on the actions themselves,
 not on this repository's Node version, and needs no change until those actions publish a v5.

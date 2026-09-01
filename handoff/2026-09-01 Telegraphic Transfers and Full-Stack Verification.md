@@ -234,7 +234,7 @@ No `E2E-`, `smoke`, or `SEC ` residue of any kind.
 | | Why still out | Grade |
 |---|---|---|
 | ~~**Audit trail**~~ | **Built in Phase 21.** Live in the database: `audit_log`, `log_change()`, five triggers. [Decisions](../docs/Decisions.md) D24, D25 | — |
-| ~~**CI**~~ | **Closed.** Built in Phase 21, wired in 22, proven in 23: `v0.5.0` went out through `ci.yml` run `33530246170`, both jobs green, and Vercel's git integration produced no competing deployment | — |
+| ~~**CI**~~ | **Closed.** Built in Phase 21, wired in 22, proven in 23: `v0.5.0` went out through `ci.yml` run `33530246170`, both jobs green, no competing deployment from Vercel. `verify.yml` proven too — run `33530924458`, 27 e2e, 41 checks, smoke, no residue | — |
 | **Scheduler** (`autoGen`, `ackAutoNotify`) | `pg_cron` 1.6.4 is available but not installed; notification delivery has no channel | C |
 | **Last write wins** | The real hotspot is `app_config` — one jsonb row rewritten whole, so two people editing *different* settings already collide | C |
 | **`apps/api/`** | Empty directory declaring an intent. Deleting it is also a documentation change | A |
@@ -408,12 +408,12 @@ Hold these while you work:
   the test suites. cleanupOrphanFiles() deletes any stored file no receipt row points at.
 
 Everything held back is now built and released as v0.5.0: the audit trail is live in
-the database, CI gates production through .github/workflows/ci.yml, and self-serve
-sign-up is closed. The gate has run green once. Two things have still never been
-exercised, and both are worth doing before trusting them: verify.yml has never run at
-all, so trigger it manually (gh workflow run verify.yml --repo Leuename/tracker) and
-watch it, remembering it WRITES to the production ledger; and no backup has ever been
-restored, so the restore path remains a claim rather than a fact. After that the open
+the database, CI gates production through .github/workflows/ci.yml, self-serve sign-up
+is closed, and both workflows have run green — ci.yml on push and verify.yml by
+dispatch, with 27 e2e specs, 41 security checks and smoke all really executing rather
+than skipping. One thing has still never been exercised: no backup has ever been
+restored, so the restore path remains a claim rather than a fact, and proving it means
+rebuilding an empty project from backups/ and the nine migrations. After that the open
 items are the read-only role (D20), the scheduler, last-write-wins on app_config, and
 rotating both the shared five-character password and the tracker-ci Vercel token.
 
