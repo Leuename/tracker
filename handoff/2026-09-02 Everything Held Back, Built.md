@@ -273,7 +273,7 @@ Rotation is **deferred by the owner** and is deliberately not listed. Do not rai
 | 1 | `is_viewer()` callable over RPC | **Open question.** Supabase advisor `WARN`: a `security definer` function executable by `authenticated` via `/rest/v1/rpc/is_viewer`. It takes no arguments and reveals only the caller's own role, so the exposure is small — but it is unknown whether revoking `EXECUTE` would break RLS policy evaluation, which calls it. **Not tested: it was 07:46 in Manila and a wrong answer means no account can write.** Resolve on a scratch project, or during a quiet window. If policies survive, change `db.js` to read `profiles` directly and revoke the grant |
 | 2 | Leaked-password protection | **Deferred, Pro-only.** Supabase advisor `WARN`; not available on the free plan |
 | 3 | Three unused indexes | **Expected.** `txns_co_idx`, `transfers_co_idx`, `transfers_status_idx`, INFO-level, on near-empty tables |
-| 4 | `profiles.json` not yet in `backups/` | **Resolves itself.** `profiles` joined `TABLES` at 23:12; the last backup ran at 20:28. The next nightly picks it up — but until it does, **a restore cannot restore the roster**, and everyone would come back as a viewer |
+| ~~4~~ | ~~`profiles.json` not in `backups/`~~ | **Closed 2026-09-02.** A backup run captured `profiles: 4 rows`; the roster is in the snapshot. Its *restore* is still untested — see *Believed, but never proven* |
 | 5 | Viewer UI affordances | Buttons still render for a viewer and refuse on click, with a persistent banner explaining why. Greying them out is a per-screen change across 6 screens and 12 modals |
 | 6 | A real notification channel | The scheduler reports to the Actions job summary. Email or SMS needs a provider, addresses and an owner — a decision, not an implementation (D31) |
 | 7 | Node 20 deprecation | Every workflow run annotates `actions/checkout@v4` and `actions/setup-node@v4` being forced onto Node 24. Harmless; needs a v5 release of those actions |
@@ -355,8 +355,10 @@ MD5-verified, all four workflows last-green, production 200.
 
 ## Believed, but never proven
 
-- **`profiles` has never been in a backup**, so a restore today would return everyone as a viewer.
-  One nightly run fixes it; until then this is the gap in an otherwise proven restore.
+- **`profiles` is in the backup but has never been *restored*.** A run on 2026-09-02 captured all
+  four rows. The restore rehearsal predates the table, so the roster's return trip is untested —
+  and it is the one whose failure is quiet, because a restore that drops it leaves everybody a
+  viewer rather than throwing.
 - **Restoring `files/` has never been exercised end to end.** The smoke check proves the bytes
   survive a download and re-upload; nobody has restored a bucket into an empty project.
 - **`audit_log` was restored as an 18-row stratified sample**, not all 222. The mechanism is one
@@ -426,14 +428,15 @@ Hold these while you work:
   row points at.
 
 Next work, highest value first:
-1. Run the nightly backup once (gh workflow run backup.yml) so profiles.json enters
-   backups/. Until it does, a restore returns everyone as a viewer — the one real gap
-   in an otherwise proven restore path.
-2. Settle whether is_viewer() still needs EXECUTE granted to authenticated for RLS
+1. Settle whether is_viewer() still needs EXECUTE granted to authenticated for RLS
    policy evaluation. A Supabase advisor flags it as a security-definer function
    callable over RPC. Test on a scratch project or in a quiet window, NOT during Manila
    working hours: if policies do need it, revoking blocks every write. If they do not,
-   change db.js to read profiles directly and revoke it.
+   change db.js to read profiles directly and revoke it. Note a scratch project costs an
+   active one — the free plan allows two and both slots are held.
+2. profiles is now in backups/ but its RESTORE is untested, and that failure is quiet: a
+   restore that drops the roster leaves everybody a viewer instead of throwing. Fold it
+   into the next restore rehearsal.
 3. Then the smaller open items in this handoff's table.
 
 Report what you verified and what drifted, confirm the state back to me in a few lines,

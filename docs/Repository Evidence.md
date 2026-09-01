@@ -51,7 +51,7 @@ A restore was performed on 2026-09-01 into an empty project. Every `txns` row ca
 
 Two Supabase security advisors stand open as of 2026-09-02, both `WARN`. `public.is_viewer()` is a `security definer` function executable by `authenticated` over `/rest/v1/rpc/is_viewer`; it takes no arguments and returns only the caller's own role, and whether revoking `EXECUTE` would break the row-level security policies that call it is **untested**. Leaked-password protection is unavailable on the free plan. Three `INFO` unused-index notices — `txns_co_idx`, `transfers_co_idx`, `transfers_status_idx` — are expected on near-empty tables.
 
-`backups/` does not yet contain `profiles.json`: the table joined `TABLES` in `apps/web/scripts/backup.mjs` at 23:12 UTC on 2026-09-01 and the most recent snapshot ran at 20:28. Until a nightly run closes that gap, a restore would return every account as a `viewer`.
+`backups/` contains `profiles.json` as of 2026-09-02, captured at four rows by workflow run `33573166991`. Its restore is untested: the restore rehearsal predates the table, and a restore that dropped the roster would leave every account a `viewer` silently rather than failing.
 
 ## Interpretation Boundary
 
