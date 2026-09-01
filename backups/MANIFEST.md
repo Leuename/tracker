@@ -4,7 +4,7 @@ Written by `apps/web/scripts/backup.mjs`. Do not edit by hand.
 
 | | |
 |---|---|
-| Taken | 2026-09-01T08:13:56.285Z |
+| Taken | 2026-09-01T08:17:46.690Z |
 | Project | jusifpditdigqdjiwdaj.supabase.co |
 | `txns` rows | 0 |
 | `receipts` rows | 1 |
