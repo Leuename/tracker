@@ -170,6 +170,25 @@ A version that means two different things is worse than an ugly version number.
 
 `v0.2.0` is the first, covering D13 to D19.
 
+## D20 — Four Equal Accounts, With a Read-Only Role Coming
+
+Confirmed on 2026-09-01: all four accounts stay admin-equivalent. Every one can read, write and
+delete every row, receipts included. This supersedes nothing in D8; it re-affirms it against a
+larger account list and a deletion capability that did not exist when D8 was written.
+
+**A fifth account with consumer-only privilege is planned.** The current schema cannot express it.
+Every policy reads `for all to authenticated using (true) with check (true)`, so being signed in
+*is* the authorization — there is no per-account distinction to hang a restriction on, and column
+grants are role-wide rather than per-user.
+
+Adding a read-only user is therefore a schema change, not a settings change. It needs a place to
+record what an account is — a `profiles` table keyed on `auth.uid()`, or a JWT claim — and every
+policy rewritten to consult it. Expect a migration, a matching change in
+`supabase/migrations/`, and security specs that prove the read-only account is actually refused a
+write rather than merely lacking a button.
+
+Do not build it before it is asked for. Do not describe the app as having roles until it does.
+
 ## Guideline Basis
 
 - **AGENT-03** ensures adapter workflows stop rather than invent authorization.
