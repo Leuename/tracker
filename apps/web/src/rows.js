@@ -83,3 +83,39 @@ export const fromTransfer = (r) => ({
 export const CONFIG_KEYS = ['notes', 'companies', 'categories', 'settings']
 
 export const configOf = (s) => Object.fromEntries(CONFIG_KEYS.map((k) => [k, s[k]]))
+
+/**
+ * What actually changed between two configs, or null if nothing did.
+ *
+ * The config row is shared by four people, so sending the whole thing on every
+ * save means the last writer silently discards whatever the others changed in
+ * the meantime. Sending only the changed keys lets `merge_app_config` combine
+ * two people's edits instead of picking one.
+ *
+ * `settings` is descended into, because that is where the collisions actually
+ * happen — two toggles on one screen, saved seconds apart. Everything else is
+ * compared whole: a company list is one value, and two people editing *it* at
+ * the same time still resolves last-write-wins. That is a real limit, not an
+ * oversight; per-item merging is a bigger change than the problem has earned.
+ *
+ * A settings key that disappears is not reported. Nothing removes one today,
+ * and a patch that cannot express deletion is easier to reason about than one
+ * that half can.
+ */
+export function configPatch(prev, next) {
+  const same = (a, b) => JSON.stringify(a) === JSON.stringify(b)
+  const patch = {}
+
+  for (const key of CONFIG_KEYS) {
+    if (key === 'settings') continue
+    if (!same(prev[key], next[key])) patch[key] = next[key]
+  }
+
+  const settings = {}
+  for (const key of Object.keys(next.settings || {})) {
+    if (!same((prev.settings || {})[key], next.settings[key])) settings[key] = next.settings[key]
+  }
+  if (Object.keys(settings).length) patch.settings = settings
+
+  return Object.keys(patch).length ? patch : null
+}

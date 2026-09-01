@@ -236,7 +236,7 @@ No `E2E-`, `smoke`, or `SEC ` residue of any kind.
 | ~~**Audit trail**~~ | **Built in Phase 21.** Live in the database: `audit_log`, `log_change()`, five triggers. [Decisions](../docs/Decisions.md) D24, D25 | — |
 | ~~**CI**~~ | **Closed.** Built in Phase 21, wired in 22, proven in 23: `v0.5.0` went out through `ci.yml` run `33530246170`, both jobs green, no competing deployment from Vercel. `verify.yml` proven too — run `33530924458`, 27 e2e, 41 checks, smoke, no residue | — |
 | **Scheduler** (`autoGen`, `ackAutoNotify`) | `pg_cron` 1.6.4 is available but not installed; notification delivery has no channel | C |
-| **Last write wins** | The real hotspot is `app_config` — one jsonb row rewritten whole, so two people editing *different* settings already collide | C |
+| ~~**Last write wins**~~ | **Closed.** `merge_app_config` folds patches server-side and the client sends diffs ([Decisions](../docs/Decisions.md) D28). Two people editing the *same* key still resolve last-write-wins, deliberately | — |
 | **`apps/api/`** | Empty directory declaring an intent. Deleting it is also a documentation change | A |
 | **Per-wire FX rate** | D22. The correct fix for cross-currency totals | — |
 | **Read-only role** | D20. Needs a `profiles` table or JWT claim and every policy rewritten | — |

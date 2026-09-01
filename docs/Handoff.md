@@ -934,6 +934,66 @@ The free-tier limit is the durable lesson. Two active projects is the ceiling, s
 costs an active project and someone has to give one up first**. Anyone planning the next one should
 agree that trade before creating anything, not after.
 
+## 2026-09-01 — Working the remaining list
+
+Four items, taken in order of how quietly each was doing damage.
+
+### The backup's biggest file was a sort bug, not a design problem
+
+`backup.mjs` ordered rows with `String(a.id).localeCompare(String(b.id))`, which puts ids in the
+order `1, 10, 100, 101, … 2, 20`. Every night's new audit rows therefore landed scattered through
+`audit_log.json` rather than at the end: one real snapshot rewrote 6,342 lines and reported **236
+deletions in a table nothing can delete from**, which should have been the tell.
+
+Sorted numerically, a night's rows append and the diff shows zero deletions. This also corrects
+yesterday's note in [Decisions](Decisions.md) D24, which blamed unbounded retention. That was right
+about the symptom and wrong about the cause — the volume is fine, the sort was not.
+
+### Stored documents are covered now
+
+`backup.mjs` walks the receipts bucket and downloads every object, and that path had never run: the
+bucket has been empty at every backup ever taken, so `files: 0 stored` said nothing about whether a
+document would survive one.
+
+`npm run smoke` now stores a receipt document — random bytes behind a PDF header, so a byte
+comparison cannot pass by accident — downloads it and compares SHA-256, then uploads the held copy
+back under a second key and compares again. Those are the two hops a backup and a restore actually
+make. Both files are removed before the receipt rows they belong to, so nothing is left that no row
+points at.
+
+### `app_config` stopped losing people's edits
+
+The one on the held-back list that was actively costing data rather than merely risking it. The
+config row holds four independent things and the client rewrote all four on every save, so two
+people editing *different* settings clobbered each other — and the loser would have read it as "it
+didn't save", not as a collision.
+
+`merge_app_config(patch jsonb)` folds a patch into the stored row, two levels deep so that two
+toggles on one screen merge rather than one winning. `configPatch(prev, next)` computes what the tab
+actually changed, and the store sends that instead of the document. Both halves are needed: the
+merge is useless while the client still sends everything.
+
+Proven by replaying the collision against the live project — two patches from one starting config,
+both changes present afterwards, and the whole-document save it replaces demonstrated to have
+discarded one:
+
+```
+PASS  Bob's company list change landed
+PASS  Alice's toggle survived Bob's save — trkOverdueRed=false
+PASS  a whole-document save would have discarded the toggle
+```
+
+Recorded as [Decisions](Decisions.md) D28, with its limit stated: two people editing the *same* key
+still resolve last-write-wins.
+
+### Results
+
+`npm test` 41/41 — two new cases on `configPatch`, including that it compares by value, since a
+re-render hands back fresh arrays with identical contents and saving on those would rewrite the
+whole config on every keystroke. `npm run build` green, `npm audit` 0, `npm run e2e` 27/27,
+`npm run security` 41/41, `npm run smoke` passing with the new document round-trip. Ten migrations,
+the newest MD5-verified.
+
 ## Guideline Basis
 
 - **PG-04** requires a continuation record with exact scope, checks, limitations, and unresolved evidence.

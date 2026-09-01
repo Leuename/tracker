@@ -3,7 +3,7 @@ import { initialState } from './data.js'
 import { isAuthError, sessionExpired } from './errors.js'
 import { alphabetical } from './logic.js'
 import {
-  configOf, forUpdate, fromReceipt, fromRecurring, fromTransfer, fromTxn,
+  CONFIG_KEYS, configOf, forUpdate, fromReceipt, fromRecurring, fromTransfer, fromTxn,
   toReceipt, toRecurring, toTransfer, toTxn,
 } from './rows.js'
 
@@ -148,11 +148,26 @@ const queries = {
    *
    * `updated_at` is deliberately absent: a trigger owns it.
    */
-  saveConfig: async (state) => {
-    const payload = { data: configOf(state) }
-    const updated = await supabase.from('app_config').update(payload).eq('id', true).select('id').then(ok)
-    if (updated && updated.length) return updated
-    return supabase.from('app_config').insert({ id: true, ...payload }).then(ok)
+  /**
+   * Save a PATCH of the config, not the whole thing.
+   *
+   * `merge_app_config` folds it into the stored row server-side, so two people
+   * changing different settings both keep their change. Sending the whole
+   * document, as this used to, meant the second save was built from a config
+   * loaded before the first and quietly threw the first away.
+   *
+   * A patch is a partial config — `{ settings: { trkOverdueRed: true } }`, or
+   * `{ companies: [...] }`. Passing a complete config still works and simply
+   * merges every key.
+   */
+  saveConfig: async (patch) => {
+    const body = Object.fromEntries(
+      CONFIG_KEYS.filter((k) => k in patch).map((k) => [k, patch[k]]),
+    )
+    const touched = await supabase.rpc('merge_app_config', { patch: body }).then(ok)
+    if (touched) return touched
+    // No config row yet — a workspace nobody has opened. Seed it whole.
+    return supabase.from('app_config').insert({ id: true, data: configOf(patch) }).then(ok)
   },
 }
 

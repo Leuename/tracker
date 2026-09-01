@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  CONFIG_KEYS, configOf, forUpdate, fromReceipt, fromRecurring, fromTxn, toReceipt, toRecurring, toTxn,
+  CONFIG_KEYS, configOf, forUpdate, fromReceipt, fromRecurring, fromTxn, toReceipt, toRecurring, toTxn, configPatch,
 } from './rows.js'
 import { initialState } from './data.js'
 
@@ -111,4 +111,45 @@ test('an update payload never carries the primary key', () => {
     if (k === 'id') continue
     assert.deepEqual(update[k], row[k], k + ' must survive forUpdate')
   }
+})
+
+test('configPatch reports only what changed', () => {
+  const prev = {
+    notes: [{ t: 'file returns', done: false }],
+    companies: ['ANG', 'BAR'],
+    categories: ['Other'],
+    settings: { trkOverdueRed: true, dashWindow: 'Next 30 days' },
+  }
+  assert.equal(configPatch(prev, prev), null, 'an unchanged config saves nothing')
+
+  const renamed = { ...prev, companies: ['ANG', 'BAR', 'ZON'] }
+  assert.deepEqual(configPatch(prev, renamed), { companies: ['ANG', 'BAR', 'ZON'] })
+
+  // The collision this exists for: one person flips a toggle, another edits a
+  // different toggle. Each patch must carry only its own key, or the second
+  // save puts the first one back.
+  const toggled = { ...prev, settings: { ...prev.settings, trkOverdueRed: false } }
+  assert.deepEqual(configPatch(prev, toggled), { settings: { trkOverdueRed: false } })
+
+  const windowed = { ...prev, settings: { ...prev.settings, dashWindow: 'Next 7 days' } }
+  assert.deepEqual(configPatch(prev, windowed), { settings: { dashWindow: 'Next 7 days' } })
+
+  // Two unrelated changes in one save still travel together.
+  const both = { ...prev, categories: ['Other', 'Rent'], settings: { ...prev.settings, dashWindow: 'Today' } }
+  assert.deepEqual(configPatch(prev, both), {
+    categories: ['Other', 'Rent'],
+    settings: { dashWindow: 'Today' },
+  })
+})
+
+test('configPatch compares by value, not by reference', () => {
+  const prev = { notes: [{ t: 'a' }], companies: ['ANG'], categories: [], settings: { x: 1 } }
+  // A re-render hands back fresh arrays holding identical contents; saving on
+  // that would write the whole config over everyone else's edits on every
+  // keystroke, which is exactly what patching is meant to stop.
+  const rebuilt = { notes: [{ t: 'a' }], companies: ['ANG'], categories: [], settings: { x: 1 } }
+  assert.equal(configPatch(prev, rebuilt), null)
+
+  const edited = { ...prev, notes: [{ t: 'a', done: true }] }
+  assert.deepEqual(configPatch(prev, edited), { notes: [{ t: 'a', done: true }] })
 })

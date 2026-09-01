@@ -328,6 +328,36 @@ itself deployed by Vercel the old way**, and that is expected rather than a fail
 `ignoreCommand` stays alongside it as a second lock, for the case where this key is ever removed.
 
 
+## D28 — Config Saves Are Patches, Merged in the Database
+
+`app_config` is one jsonb row holding four independent things — notes, companies, categories and
+settings — and the client rewrote all four on every save. Two people editing *different* settings
+therefore clobbered each other: whoever saved second built `data` from the config they had loaded
+and silently discarded the other's change. Nobody had reported it, and it would have been
+attributed to "it didn't save" rather than to a collision.
+
+Built 2026-09-01, in two halves that only work together:
+
+- `public.merge_app_config(patch jsonb)`, `security invoker` with a pinned `search_path`, folds a
+  patch into the stored row. **Two levels deep**: a shallow `data || patch` would fix the
+  notes-versus-companies case and leave the one people actually hit — two toggles on the settings
+  screen — still broken, because `settings` is itself an object.
+- `configPatch(prev, next)` in `apps/web/src/rows.js` computes what this tab changed since its last
+  save, and `store.jsx` sends that instead of the whole config.
+
+The merge lives in the database for the same reason the audit trail does (D7, D24): there is no
+server in between, so a merge written in the app is a merge any client can skip.
+
+**What this does not solve, deliberately.** Two people editing the *same* key still resolve
+last-write-wins — both editing the company list, one loses. Fixing that needs per-item operations
+rather than a document, which is a bigger change than the problem has earned. A settings key that
+disappears is also not expressed in a patch; nothing removes one today.
+
+Verified against the live project by replaying the collision: two patches from one starting config,
+both changes present afterwards, and the whole-document save it replaces shown to have discarded
+one. Covered by unit tests on `configPatch` and by the existing e2e config spec.
+
+
 ## Guideline Basis
 
 - **AGENT-03** ensures adapter workflows stop rather than invent authorization.

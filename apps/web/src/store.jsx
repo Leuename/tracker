@@ -1,7 +1,7 @@
 import { createContext, useContext, useReducer, useRef, useState, useCallback, useEffect } from 'react'
 import { initialState } from './data.js'
 import { db, load } from './db.js'
-import { CONFIG_KEYS } from './rows.js'
+import { configOf, configPatch } from './rows.js'
 import { openingView } from './logic.js'
 import { supabase } from './supabase.js'
 import { Splash } from './Auth.jsx'
@@ -13,7 +13,6 @@ const reduce = (s, patch) => ({ ...s, ...(typeof patch === 'function' ? patch(s)
 const Ctx = createContext(null)
 
 /** The slices that go into the `app_config` row, as one comparable string. */
-const configSnapshot = (s) => JSON.stringify(CONFIG_KEYS.map((k) => s[k]))
 
 export function StoreProvider({ children }) {
   const [state, set] = useReducer(reduce, initialState)
@@ -70,15 +69,21 @@ export function StoreProvider({ children }) {
   // Config is a single shared row of lists and toggles, so it saves by
   // comparison rather than through each of the eight actions that touch it.
   // Debounced because the settings screen fires on every keystroke and switch.
+  //
+  // What goes to the database is the DIFF against what this tab last saved, not
+  // the whole config. Four people share this row; sending all of it meant the
+  // second save of any pair was built from a config loaded before the first and
+  // silently discarded it. `merge_app_config` folds patches together instead.
   const savedConfig = useRef(null)
   useEffect(() => {
     if (!ready) return undefined
-    const snapshot = configSnapshot(state)
-    if (savedConfig.current === null) { savedConfig.current = snapshot; return undefined }
-    if (savedConfig.current === snapshot) return undefined
+    const next = configOf(state)
+    if (savedConfig.current === null) { savedConfig.current = next; return undefined }
+    const patch = configPatch(savedConfig.current, next)
+    if (!patch) return undefined
     const t = setTimeout(() => {
-      savedConfig.current = snapshot
-      save(db.saveConfig(state), 'the settings')
+      savedConfig.current = next
+      save(db.saveConfig(patch), 'the settings')
     }, 600)
     return () => clearTimeout(t)
   }, [ready, state, save])

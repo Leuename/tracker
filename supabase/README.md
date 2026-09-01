@@ -12,7 +12,7 @@ up: "[AI Agent Context](../docs/AI%20Agent%20Context.md)"
 
 # Supabase schema
 
-The nine migrations that built the hosted project, in the order they were applied.
+The ten migrations that built the hosted project, in the order they were applied.
 
 Until 2026-09-01 these existed **only** inside the Supabase project. The repository had no
 schema source of truth, so losing the project lost the shape of the data as well as the
@@ -29,6 +29,7 @@ data. They are versioned here now.
 | `20260901092751_lock_transfer_server_managed_columns` | Revokes the table-wide grant the previous migration left behind ([D23](../docs/Decisions.md)) |
 | `20260901150411_audit_log` | `audit_log`, the `security definer` `log_change()`, and one trigger per table ([D24](../docs/Decisions.md)) |
 | `20260901150458_lock_audit_log_truncate` | Revokes the TRUNCATE and TRIGGER grants `revoke insert, update, delete` had left ([D25](../docs/Decisions.md)) |
+| `20260901165841_merge_app_config` | `merge_app_config(patch)`, so two people editing different settings stop clobbering each other ([D28](../docs/Decisions.md)) |
 
 ## How these were produced
 
