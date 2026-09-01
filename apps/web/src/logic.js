@@ -239,3 +239,42 @@ export const longDate = (d) => {
  * out of the reducer, and Array.prototype.sort mutates.
  */
 export const alphabetical = (list) => [...(list || [])].sort((a, b) => String(a).localeCompare(String(b)))
+
+/**
+ * Peso value of one unit of each wire currency.
+ *
+ * These are STATIC. Nothing here reads a rate feed, and no rate is stored on
+ * the row, so the strip totals are an indication of size and not an accounting
+ * figure — a wire sent last quarter is valued at today's constant, and the
+ * constant is only as fresh as the last time somebody edited this line.
+ *
+ * Each wire keeps its own currency and amount untouched in the database, so
+ * the per-row figures on the sheet are always exact; only the two cross-
+ * currency totals depend on this table.
+ *
+ * ponytail: static table, move to app_config settings (or a stored per-wire
+ * rate, which is what accounting would actually want) when the totals start
+ * being used as figures rather than as a sense of scale.
+ */
+export const TRANSFER_RATES = { PHP: 1, USD: 58, GBP: 74, EUR: 63, AUD: 38 }
+
+/** A wire's amount converted to pesos, for totalling across currencies. */
+export const inPesos = (w) => Number(w.amount || 0) * (TRANSFER_RATES[w.cur] || 1)
+
+/** '$38,200' — a wire always prints in the currency it is actually sent in. */
+export const curFmt = (cur, n, symbols) =>
+  ((symbols || {})[cur] || '') + Math.round(Number(n) || 0).toLocaleString('en-US')
+
+/**
+ * The two figures above the transfer sheet.
+ *
+ * Cancelled and on-hold wires are deliberately excluded from both: a cancelled
+ * wire stays on the sheet for the audit trail but is not money going anywhere,
+ * and one on hold is not yet committed either.
+ */
+export const transferTotals = (transfers = []) => {
+  const pending = transfers.filter((w) => w.status === 'pending')
+  const released = transfers.filter((w) => w.status === 'released')
+  const sum = (rows) => rows.reduce((a, w) => a + inPesos(w), 0)
+  return { pending: sum(pending), pendingCount: pending.length, released: sum(released) }
+}

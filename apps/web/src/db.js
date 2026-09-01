@@ -3,7 +3,8 @@ import { initialState } from './data.js'
 import { isAuthError, sessionExpired } from './errors.js'
 import { alphabetical } from './logic.js'
 import {
-  configOf, forUpdate, fromReceipt, fromRecurring, fromTxn, toReceipt, toRecurring, toTxn,
+  configOf, forUpdate, fromReceipt, fromRecurring, fromTransfer, fromTxn,
+  toReceipt, toRecurring, toTransfer, toTxn,
 } from './rows.js'
 
 /**
@@ -50,15 +51,16 @@ const retryOnce = (fn) => async (...args) => {
 async function start() {
   const defaults = configOf(initialState)
   await supabase.from('app_config').insert({ id: true, data: defaults }).then(ok)
-  return { txns: [], receipts: [], recurring: [], ...defaults, notes: [] }
+  return { txns: [], receipts: [], recurring: [], transfers: [], ...defaults, notes: [] }
 }
 
 /** Read the shared dataset, seeding it on the workspace's first run. */
 async function read() {
-  const [txns, receipts, recurring, config] = await Promise.all([
+  const [txns, receipts, recurring, transfers, config] = await Promise.all([
     supabase.from('txns').select('*').order('id', { ascending: false }).then(ok),
     supabase.from('receipts').select('*').order('id').then(ok),
     supabase.from('recurring').select('*').order('id').then(ok),
+    supabase.from('transfers').select('*').order('id').then(ok),
     supabase.from('app_config').select('data').maybeSingle().then(ok),
   ])
 
@@ -71,6 +73,7 @@ async function read() {
     txns: txns.map(fromTxn),
     receipts: receipts.map(fromReceipt),
     recurring: recurring.map(fromRecurring),
+    transfers: transfers.map(fromTransfer),
     notes: cfg.notes || initialState.notes,
     // Held a–z on the way in, so a row written before the lists were sorted
     // still displays in order without needing a migration to rewrite it.
@@ -132,6 +135,10 @@ const queries = {
   insertRecurring: (p) => supabase.from('recurring').insert(toRecurring(p)).then(ok),
   updateRecurring: (p) => supabase.from('recurring').update(forUpdate(toRecurring(p))).eq('id', p.id).then(ok),
   deleteRecurring: (id) => supabase.from('recurring').delete().eq('id', id).then(ok),
+
+  insertTransfer: (w) => supabase.from('transfers').insert(toTransfer(w)).then(ok),
+  updateTransfer: (w) => supabase.from('transfers').update(forUpdate(toTransfer(w))).eq('id', w.id).then(ok),
+  deleteTransfer: (id) => supabase.from('transfers').delete().eq('id', id).then(ok),
 
   /**
    * The config row is a singleton pinned by `id = true`. An upsert would carry

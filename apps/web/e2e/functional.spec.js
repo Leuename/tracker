@@ -683,3 +683,61 @@ test('a receipt can be edited in place, the way a transaction can', async ({ pag
   expect(problems, 'no console error or failed request while editing a receipt').toEqual([])
   await D.cleanup()
 })
+
+test('a telegraphic transfer is added, edited in place, and edited in the form', async ({ page }) => {
+  const problems = watch(page)
+  await signIn(page)
+  await go(page, 'Telegraphic')
+
+  const who = D.MARK + ' Sumitomo Metals'
+  await page.getByRole('button', { name: '+ Add transfer' }).click()
+  const modal = page.locator('.modal')
+  await modal.getByLabel('Company').selectOption('GTOI')
+  await modal.getByLabel('Beneficiary').fill(who)
+  await modal.getByLabel('Currency').selectOption('GBP')
+  await modal.getByLabel('Amount').fill('38200')
+  await modal.getByLabel('Note').fill(D.MARK + ' steel order')
+  await modal.getByRole('button', { name: 'Save' }).click()
+  await expect(modal).toBeHidden()
+
+  const c = await D.db()
+  const find = async () => (await c.from('transfers').select('*').eq('name', who)).data || []
+  await expect.poll(async () => (await find()).length, { timeout: 10_000 }).toBe(1)
+  const saved = (await find())[0]
+  expect(saved.co).toBe('GTOI')
+  expect(saved.cur, 'the wire stores the currency it is sent in').toBe('GBP')
+  expect(Number(saved.amount), 'the amount is not converted on the way in').toBe(38200)
+  expect(saved.status).toBe('pending')
+
+  // The row prints in its own currency, never in pesos.
+  const row = page.locator('.sheet-row', { hasText: who })
+  await expect(row.getByText('£38,200')).toBeVisible()
+
+  // Status is editable in place, and the write is coalesced, so poll for it.
+  await row.getByLabel('Status for ' + who).selectOption('released')
+  await expect.poll(async () => (await D.transferById(saved.id)).status, { timeout: 10_000 }).toBe('released')
+
+  // The form reaches what the sheet cannot: company, beneficiary and amount.
+  await row.getByText(who, { exact: true }).click()
+  const form = page.getByRole('dialog')
+  await expect(form.getByRole('heading', { name: 'Transfer details' })).toBeVisible()
+  await form.getByLabel('Amount').fill('41000')
+  await form.getByRole('button', { name: 'Save' }).click()
+  await expect(form).toBeHidden()
+  await expect.poll(async () => Number((await D.transferById(saved.id)).amount), { timeout: 10_000 }).toBe(41000)
+
+  // A transfer with no beneficiary is not a state the form may save.
+  await page.locator('.sheet-row', { hasText: who }).getByText(who, { exact: true }).click()
+  await page.getByRole('dialog').getByLabel('Beneficiary').fill('')
+  await page.getByRole('dialog').getByRole('button', { name: 'Save' }).click()
+  await expect(page.getByText('Company, beneficiary and amount are required.')).toBeVisible()
+  await page.getByRole('dialog').getByRole('button', { name: 'Cancel' }).click()
+
+  await page.reload()
+  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible({ timeout: 25_000 })
+  await go(page, 'Telegraphic')
+  await expect(page.getByText(who), 'the transfer must survive a reload').toBeVisible()
+
+  expect(problems, 'no console error or failed request across a transfer').toEqual([])
+  await D.cleanup()
+})

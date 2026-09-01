@@ -33,6 +33,10 @@ export const CO = ['ANG', 'BAR', 'BSC', 'CUPA', 'DNN', 'FEPA', 'GTOI', 'GZZ', 'H
 
 export const CAT = ['Accounting Services', 'Advertising Expense', 'Alan Expense', 'Consultancy Fee', 'Credit card', 'General Expense', 'Jack Expense', 'Legal Services', 'Other', 'Petty Cash Fund', 'Rental Expense', 'Salary & Wages', 'Withholding Taxes']
 
+/** The currencies a wire may be sent in, and how each one prints. */
+export const CUR = ['AUD', 'EUR', 'GBP', 'PHP', 'USD']
+export const CSYM = { USD: '$', GBP: '\u00A3', PHP: '\u20B1', EUR: '\u20AC', AUD: 'A$' }
+
 export const TAG = {
   completed: { bg: '#DFF0E6', fg: '#5C8F72', label: 'Completed' },
   pending: { bg: '#F9EFDC', fg: '#BE8A38', label: 'Pending' },
@@ -40,6 +44,8 @@ export const TAG = {
   hold: { bg: '#F1E7EC', fg: '#8B7079', label: 'On hold' },
   released: { bg: '#EEE4F4', fg: '#7A5C93', label: 'Released' },
   liquidated: { bg: '#DFF0E6', fg: '#5C8F72', label: 'Liquidated' },
+  onhold: { bg: '#F1E7EC', fg: '#8B7079', label: 'Onhold' },
+  cancelled: { bg: '#EDEAEB', fg: '#9A8A90', label: 'Cancelled' },
 }
 
 export const MON = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
@@ -122,6 +128,7 @@ export const initialState = {
   txns,
   receipts,
   recurring,
+  transfers: [],
   notes: [
     { t: 'Follow up BIR receipt — GTOI', done: false, linked: true },
     { t: 'Ask ZON for the signed lease copy', done: false, linked: false },
@@ -184,6 +191,15 @@ export const initialState = {
   rcpEdit: null,
   rcpEditOrig: null,
   rcpEditError: '',
+  telOpen: false,
+  tel: null,
+  telError: '',
+  telEditOpen: false,
+  telEditId: null,
+  telEdit: null,
+  telEditOrig: null,
+  telEditError: '',
+  delTelId: null,
   rcp: { co: '', name: '', desc: '', amount: '', status: 'pending' },
   rcpError: '',
   recOpen: false,

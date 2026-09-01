@@ -59,6 +59,13 @@ export async function receiptById(id) {
   return data
 }
 
+export async function transferById(id) {
+  const c = await db()
+  const { data, error } = await c.from('transfers').select('*').eq('id', id).maybeSingle()
+  if (error) throw error
+  return data
+}
+
 export async function config() {
   const c = await db()
   const { data, error } = await c.from('app_config').select('data').maybeSingle()
@@ -89,6 +96,19 @@ export async function makeReceipt(fields = {}) {
     amount: 5000, status: 'released', date: null, actual: null, ...fields,
   }
   const { error } = await c.from('receipts').insert(row)
+  if (error) throw error
+  return row
+}
+
+export async function makeTransfer(fields = {}) {
+  const c = await db()
+  const tag = unique()
+  const row = {
+    id: Date.now() + Math.floor(Math.random() * 1000),
+    co: 'ZON', name: tag + ' beneficiary', cur: 'USD',
+    amount: 4200, status: 'pending', note: tag + ' wire', ...fields,
+  }
+  const { error } = await c.from('transfers').insert(row)
   if (error) throw error
   return row
 }
@@ -134,6 +154,8 @@ export async function cleanup(needle = MARK) {
     await c.from('recurring').delete().like('description', '%' + tag + '%')
     await c.from('receipts').delete().like('name', '%' + tag + '%')
     await c.from('receipts').delete().like('description', '%' + tag + '%')
+    await c.from('transfers').delete().like('name', '%' + tag + '%')
+    await c.from('transfers').delete().like('note', '%' + tag + '%')
   }
   await cleanupOrphanFiles()
 }

@@ -1,10 +1,11 @@
 import { useActions } from './actions.js'
 import { SETTINGS_TABS } from './data.js'
-import { IconAck, IconDashboard, IconMaster, IconSettings, IconSignOut, IconTracker } from './icons.jsx'
+import { IconAck, IconDashboard, IconMaster, IconSettings, IconSignOut, IconTelegraphic, IconTracker } from './icons.jsx'
 import { supabase } from './supabase.js'
 import Dashboard from './screens/Dashboard.jsx'
 import Tracker from './screens/Tracker.jsx'
 import AckRec from './screens/AckRec.jsx'
+import Telegraphic from './screens/Telegraphic.jsx'
 import Masterlist from './screens/Masterlist.jsx'
 import Settings from './screens/Settings.jsx'
 import AddTransaction from './modals/AddTransaction.jsx'
@@ -15,16 +16,20 @@ import AddRecurring from './modals/AddRecurring.jsx'
 import AddReceipt from './modals/AddReceipt.jsx'
 import DeleteReceipt from './modals/DeleteReceipt.jsx'
 import EditReceipt from './modals/EditReceipt.jsx'
+import AddTransfer from './modals/AddTransfer.jsx'
+import EditTransfer from './modals/EditTransfer.jsx'
+import DeleteTransfer from './modals/DeleteTransfer.jsx'
 import Filters from './modals/Filters.jsx'
 
 const NAV = [
   { k: 'dashboard', label: 'Dashboard', Icon: IconDashboard },
   { k: 'tracker', label: 'Tracker', Icon: IconTracker },
   { k: 'ackrec', label: 'AckRec', Icon: IconAck },
+  { k: 'telegraphic', label: 'Telegraphic', Icon: IconTelegraphic },
   { k: 'masterlist', label: 'Masterlist', Icon: IconMaster },
 ]
 
-const SCREENS = { dashboard: Dashboard, tracker: Tracker, ackrec: AckRec, masterlist: Masterlist, settings: Settings }
+const SCREENS = { dashboard: Dashboard, tracker: Tracker, ackrec: AckRec, telegraphic: Telegraphic, masterlist: Masterlist, settings: Settings }
 
 export default function App() {
   const { state, set, go, goSettings } = useActions()
@@ -81,6 +86,9 @@ export default function App() {
       {state.rcpOpen ? <AddReceipt /> : null}
       {state.delRcpId ? <DeleteReceipt /> : null}
       {state.rcpEditOpen ? <EditReceipt /> : null}
+      {state.telOpen ? <AddTransfer /> : null}
+      {state.telEditOpen ? <EditTransfer /> : null}
+      {state.delTelId ? <DeleteTransfer /> : null}
       {state.toast ? <div className="toast" role="status">{state.toast}</div> : null}
     </div>
   )

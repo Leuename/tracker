@@ -32,7 +32,7 @@ import { supabase } from '../src/supabase.js'
 const HERE = dirname(fileURLToPath(import.meta.url))
 const OUT = join(HERE, '..', '..', '..', 'backups')
 const BUCKET = 'receipts'
-const TABLES = ['txns', 'receipts', 'recurring', 'app_config']
+const TABLES = ['txns', 'receipts', 'recurring', 'transfers', 'app_config']
 
 const email = process.env.BACKUP_EMAIL
 const password = process.env.BACKUP_PASSWORD

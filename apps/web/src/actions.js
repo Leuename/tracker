@@ -1,24 +1,32 @@
 import { useStore } from './store.jsx'
-import { TODAY, blankForm } from './data.js'
+import { CUR, TODAY, blankForm } from './data.js'
 import { db } from './db.js'
 import { alphabetical, amountOf, buildGeneratedRows, isMonthKey, longDate, monthLabel, parsePeriod, periodLabel } from './logic.js'
 
-// The masterlist edits in place, so its description and amount fields fire on
-// every keystroke. One pending write per row, coalesced, instead of one per
-// character. Config slices are handled the same way inside the store.
-const pendingRec = new Map()
+// The masterlist and the transfer sheet both edit in place, so their text
+// fields fire on every keystroke. One pending write per row, coalesced,
+// instead of one per character. Config slices are handled the same way inside
+// the store.
+//
+// Keys carry the table name because ids are Date.now() and two tables can
+// mint the same millisecond; a bare id would let one row's pending write
+// cancel an unrelated row's.
+const pendingRow = new Map()
+const keyOf = (table, id) => table + ':' + id
 
-const queueRec = (row, save) => {
-  clearTimeout(pendingRec.get(row.id))
-  pendingRec.set(row.id, setTimeout(() => {
-    pendingRec.delete(row.id)
-    save(db.updateRecurring(row), 'the masterlist row')
+const queueRow = (table, row, save, write, what) => {
+  const key = keyOf(table, row.id)
+  clearTimeout(pendingRow.get(key))
+  pendingRow.set(key, setTimeout(() => {
+    pendingRow.delete(key)
+    save(write(row), what)
   }, 500))
 }
 
-const cancelRec = (id) => {
-  clearTimeout(pendingRec.get(id))
-  pendingRec.delete(id)
+const cancelRow = (table, id) => {
+  const key = keyOf(table, id)
+  clearTimeout(pendingRow.get(key))
+  pendingRow.delete(key)
 }
 
 /**
@@ -376,16 +384,96 @@ export function useActions() {
     }
   }
 
+  // ---- telegraphic transfers -------------------------------------------
+  // The sheet edits currency, status and note in place, the way the masterlist
+  // does, so those go through the same coalescing queue: one write per row
+  // after typing stops, not one per keystroke in the note field.
+  const TEL_BLANK = () => ({ co: '', name: '', cur: 'USD', amount: '', status: 'pending', note: '' })
+
+  const openTransfer = () => set({ telOpen: true, telError: '', tel: TEL_BLANK() })
+  const closeTransfer = () => set({ telOpen: false, telError: '' })
+  const setTel = (k) => (e) => {
+    const v = e.target.value
+    set((s) => ({ tel: { ...(s.tel || TEL_BLANK()), [k]: v }, telError: '' }))
+  }
+
+  const saveTransfer = () => {
+    const w = state.tel || TEL_BLANK()
+    const amt = amountOf(w.amount)
+    if (!w.co || !w.name.trim() || !amt) {
+      set({ telError: 'Company, beneficiary and amount are required.' })
+      return
+    }
+    if (CUR.indexOf(w.cur) < 0) {
+      set({ telError: 'Pick a currency.' })
+      return
+    }
+    const row = {
+      id: Date.now(), co: w.co, name: w.name.trim(), cur: w.cur,
+      amount: amt, status: w.status, note: w.note.trim(),
+    }
+    set((s) => ({ transfers: [...s.transfers, row], telOpen: false, telError: '' }))
+    save(db.insertTransfer(row), 'the new transfer')
+    flash(row.co + ' \u00b7 ' + row.name + ' — transfer added')
+  }
+
+  const updTel = (id, k, v) => {
+    const next = { ...state.transfers.find((w) => w.id === id), [k]: v }
+    set((s) => ({ transfers: s.transfers.map((w) => w.id === id ? next : w) }))
+    queueRow('transfers', next, save, db.updateTransfer, 'the transfer')
+  }
+
+  const openTransferRow = (w) => () => {
+    const e = { co: w.co, name: w.name, cur: w.cur, amount: String(w.amount), status: w.status, note: w.note || '' }
+    set({ telEditOpen: true, telEditId: w.id, telEdit: e, telEditOrig: e, telEditError: '' })
+  }
+
+  const setTelE = (k) => (e) => {
+    const v = e.target.value
+    set((s) => ({ telEdit: { ...(s.telEdit || TEL_BLANK()), [k]: v }, telEditError: '' }))
+  }
+
+  const saveTransferEdit = () => {
+    const e = state.telEdit || TEL_BLANK()
+    const id = state.telEditId
+    const amt = amountOf(e.amount)
+    if (!e.co || !e.name.trim() || !amt) {
+      set({ telEditError: 'Company, beneficiary and amount are required.' })
+      return
+    }
+    const next = {
+      ...state.transfers.find((w) => w.id === id),
+      co: e.co, name: e.name.trim(), cur: e.cur, amount: amt, status: e.status, note: e.note.trim(),
+    }
+    cancelRow('transfers', id)
+    set((s) => ({ transfers: s.transfers.map((w) => w.id === id ? next : w), telEditOpen: false, telEditError: '' }))
+    save(db.updateTransfer(next), 'the transfer')
+    flash('Transfer updated')
+  }
+
+  const askRemoveTransfer = (w) => () => set({ delTelId: w.id })
+  const cancelRemoveTransfer = () => set({ delTelId: null })
+
+  const confirmRemoveTransfer = () => {
+    const id = state.delTelId
+    const w = state.transfers.find((x) => x.id === id)
+    if (!w) { set({ delTelId: null }); return }
+    cancelRow('transfers', id)
+    set((s) => ({ transfers: s.transfers.filter((x) => x.id !== id), delTelId: null }))
+    save(db.deleteTransfer(id), 'the deletion')
+    flash(w.co + ' \u00b7 ' + w.name + ' — transfer deleted')
+  }
+
   // ---- masterlist ------------------------------------------------------
   const updRec = (id, k, v) => {
     const val = k === 'amount' ? (amountOf(v) || 0) : v
     const next = { ...state.recurring.find((p) => p.id === id), [k]: val }
     set((s) => ({ recurring: s.recurring.map((p) => p.id === id ? next : p) }))
-    queueRec(next, save)
+    queueRow('recurring', next, save, db.updateRecurring, 'the masterlist row')
   }
 
   const removeRec = (p) => () => {
-    cancelRec(p.id)
+    cancelRow('recurring', p.id)
     set((s) => ({ recurring: s.recurring.filter((x) => x.id !== p.id) }))
     save(db.deleteRecurring(p.id), 'the removal')
     flash(p.co + ' · ' + p.cat + ' removed from the masterlist')
@@ -487,6 +575,9 @@ export function useActions() {
     setReceiptStatus, openLiquidate, saveLiq, pickLiqFile, openReceiptFile,
     askRemoveReceipt, cancelRemoveReceipt, confirmRemoveReceipt,
     openReceiptRow, setRcpE, saveReceiptEdit,
+    openTransfer, closeTransfer, setTel, saveTransfer, updTel,
+    openTransferRow, setTelE, saveTransferEdit,
+    askRemoveTransfer, cancelRemoveTransfer, confirmRemoveTransfer,
     openReceipt, closeReceipt, setRcp, saveReceipt,
     updRec, removeRec, openRecurring, setR, saveRecurring,
     generate, undoGenerate, generatedFor,

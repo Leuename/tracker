@@ -1,9 +1,9 @@
 // Run with: npm test  (node --test, no framework)
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { initialState, MAX_OCC, TODAY } from './data.js'
+import { CSYM, initialState, MAX_OCC, TODAY } from './data.js'
 import {
-  addDays, alphabetical, buildGeneratedRows, dstr, eff, monthKeys, occurrences, openingView, parsePeriod, periodLabel, ruleLabel, visibleRows, windowDays,
+  addDays, alphabetical, buildGeneratedRows, curFmt, dstr, eff, inPesos, monthKeys, occurrences, openingView, parsePeriod, periodLabel, ruleLabel, transferTotals, visibleRows, windowDays,
 } from './logic.js'
 
 const rent = { co: 'GTOI', cat: 'Rental Expense', freq: 'Monthly', desc: 'Warehouse B monthly rent', dueDate: '2026-08-24', amount: 45000 }
@@ -180,4 +180,34 @@ test('the shipped company and category lists are already a–z', () => {
   assert.deepEqual(initialState.categories, alphabetical(initialState.categories))
   assert.equal(initialState.companies.length, 21)
   assert.equal(initialState.categories.length, 13)
+})
+
+test('transfer totals convert to pesos and exclude what is not going anywhere', () => {
+  const rows = [
+    { cur: 'USD', amount: 100, status: 'pending' },     // 5,800
+    { cur: 'PHP', amount: 5000, status: 'pending' },    // 5,000
+    { cur: 'GBP', amount: 100, status: 'released' },    // 7,400
+    { cur: 'USD', amount: 999, status: 'cancelled' },   // excluded
+    { cur: 'EUR', amount: 999, status: 'onhold' },      // excluded
+  ]
+  const t = transferTotals(rows)
+  assert.equal(t.pending, 10800)
+  assert.equal(t.pendingCount, 2)
+  assert.equal(t.released, 7400)
+})
+
+test('transferTotals is safe on an empty ledger', () => {
+  assert.deepEqual(transferTotals([]), { pending: 0, pendingCount: 0, released: 0 })
+  assert.deepEqual(transferTotals(), { pending: 0, pendingCount: 0, released: 0 })
+})
+
+test('an unknown currency falls back to 1:1 rather than dropping the amount', () => {
+  assert.equal(inPesos({ cur: 'ZZZ', amount: 250 }), 250)
+  assert.equal(inPesos({ cur: 'USD', amount: 0 }), 0)
+})
+
+test('a wire prints in its own currency, not in pesos', () => {
+  assert.equal(curFmt('USD', 38200, CSYM), '$38,200')
+  assert.equal(curFmt('PHP', 820000, CSYM), '₱820,000')
+  assert.equal(curFmt('AUD', 14900.4, CSYM), 'A$14,900')
 })

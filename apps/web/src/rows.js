@@ -65,6 +65,21 @@ export const forUpdate = (row) => {
 }
 
 /** The slices that live in the single `app_config` jsonb row. */
+/**
+ * A wire is stored in the currency it is actually sent in, so `amount` is in
+ * `cur` and not in pesos. Nothing here converts; see TRANSFER_RATES in
+ * logic.js for the display-only conversion the totals use.
+ */
+export const toTransfer = (w) => ({
+  id: w.id, co: w.co, name: w.name, cur: w.cur,
+  amount: w.amount, status: w.status, note: ns(w.note),
+})
+
+export const fromTransfer = (r) => ({
+  id: Number(r.id), co: r.co, name: r.name, cur: r.cur,
+  amount: Number(r.amount), status: r.status, note: ns(r.note),
+})
+
 export const CONFIG_KEYS = ['notes', 'companies', 'categories', 'settings']
 
 export const configOf = (s) => Object.fromEntries(CONFIG_KEYS.map((k) => [k, s[k]]))

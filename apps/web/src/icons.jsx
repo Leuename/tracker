@@ -20,6 +20,11 @@ export const IconAck = (p) => svg(p, <>
   <path d="M5 3h14v18l-3.5-2-3.5 2-3.5-2L5 21z" /><path d="M9 8h6" /><path d="M9 12h6" />
 </>)
 
+// The paper-plane the design uses for outbound wires.
+export const IconTelegraphic = (p) => svg(p, <>
+  <path d="M3 11l18-7-7 18-2.5-8z" />
+</>)
+
 export const IconMaster = (p) => svg(p, <>
   <path d="M12 3l9 5-9 5-9-5z" /><path d="M3 13l9 5 9-5" />
 </>)

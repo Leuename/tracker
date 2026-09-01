@@ -189,6 +189,51 @@ write rather than merely lacking a button.
 
 Do not build it before it is asked for. Do not describe the app as having roles until it does.
 
+## D21 — Telegraphic Transfers Are a Fourth Entity
+
+Built on 2026-09-01 from the updated `ERP Prototype.dc.html`. `public.transfers` sits beside
+`txns`, `receipts` and `recurring` under the same shared-workspace rules.
+
+A wire is stored **in the currency it is sent in**. `amount` is in `cur`, never in pesos, so every
+figure on the row itself is exact and nothing is converted on the way into the database.
+
+The design's `+ Add transfer` was a stub that raised a toast. It is a real form now, with an edit
+form on row click for the fields the sheet cannot reach — company, beneficiary, amount — matching
+the Tracker, as asked. Currency, status and note stay editable in place per the design.
+
+**Cancelled and on-hold wires stay on the sheet and drop out of the totals.** A cancelled wire is a
+record, not money moving; deleting one destroys the audit trail, so the delete dialog says so and
+points at Cancelled instead.
+
+## D22 — Cross-Currency Totals Are Indicative, Not Accounting
+
+The design totals across currencies with a fixed table — `{PHP:1, USD:58, GBP:74, EUR:63, AUD:38}`.
+Kept, as `TRANSFER_RATES` in `logic.js`, with three qualifications.
+
+Only the two strip totals convert. Every per-row figure prints in its own currency and is exact.
+The screen says in plain words that the totals are a sense of scale rather than an accounting
+figure. And the design's "Released this month" label was cut to "Released", because the calculation
+it sits above has no month filter and the label claimed something the code did not do.
+
+**The correct fix, when these totals start being used as figures:** store the rate on each transfer
+at the time it is sent. A wire sent last quarter should be valued at last quarter's rate, not at
+whatever constant this file happens to hold. That is a column and a migration, deliberately not
+built before it is asked for.
+
+## D23 — A Column Grant Cannot Carve Out of a Table Grant
+
+`20260901092715_telegraphic_transfers` granted explicit column lists on the new table but did not
+first revoke the table-wide INSERT and UPDATE that Supabase's default privileges on `public` had
+already given `authenticated`. Column grants only add. The table shipped for thirty seconds with
+`created_at` insertable and `id` updatable — the exact hole `lock_server_managed_columns` had
+closed for the other three tables, reopened on a new one.
+
+Caught by querying `role_column_grants` after applying, rather than trusting the migration's
+`{"success": true}`. Fixed by `20260901092751_lock_transfer_server_managed_columns`.
+
+**Any future table repeats this or repeats the bug.** Revoke first, then grant columns, then verify
+against `information_schema.role_column_grants` — the verification is the part that found it.
+
 ## Guideline Basis
 
 - **AGENT-03** ensures adapter workflows stop rather than invent authorization.
