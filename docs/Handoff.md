@@ -821,6 +821,48 @@ on this repository's Node version, and needs nothing until they publish a v5.
 0 residue of any tag, 154 audit rows. 581 local markdown links resolve. `AGENTS.md` byte-identical
 to `CLAUDE.md`.
 
+## 2026-09-01 — Documentation stops redeploying, and the backup is tested as far as it can be
+
+### `docs/` and `handoff/` join `paths-ignore`
+
+This repository doubles as the project's notes, so documentation commits are frequent and produce a
+byte-identical bundle. Building and redeploying an unchanged bundle is waste, and a deployment list
+full of no-op releases makes the one that matters harder to find. `paths-ignore` skips a run only
+when *every* changed path matches, so a commit touching code and notes together still runs the full
+gate.
+
+### The backup workflow, run for the first time since `audit_log` existed
+
+Run `33531626080`, 24 seconds, green — all six tables, `audit_log` at 222 rows. This was a real gap
+rather than a formality: `audit_log` was added to `TABLES` after the last run, and a table missing
+from that list is invisible until a restore. The snapshot commit produced no CI run and no
+deployment, so `[skip ci]` and `paths-ignore` both held.
+
+### The restore, verified as far as it can be without a second project
+
+Against the live database rather than by reading the script:
+
+- Every backup file parses, and every table's column set matches `information_schema` column for
+  column. Nothing in a backup would be rejected on insert, and no live column is missing from one.
+- Counts and money match production exactly — 21 transactions, ₱226,000.00 on both sides.
+
+**The restore itself is still unproven, and the attempt was blocked.** Creating an empty project
+costs nothing, but a Supabase free plan allows two active projects and both slots are held — by
+`baby` and by `zone-offices`. Pausing `zone-offices` to free one is the owner's call, not an
+agent's; the `@zoneoffice.ph` accounts suggest it may be live. Left undone deliberately.
+
+So the honest statement is narrower than "the backup works": the data is *shaped* to go back, and
+nobody has shown the nine migrations replay into an empty project. Those are different claims.
+
+### A cost that is growing faster than D24 said
+
+`audit_log.json` is 226 KB of the folder's 235 KB. At ~1 KB a row, one nightly `verify.yml` run
+adds ~70 rows — ~71 KB a night, ~25 MB of new JSON a year, every version of which git keeps. D24's
+"years away from mattering" is true of the table and false of the backup, because the log is
+rewritten whole into version control every night. Corrected in D24 and written up in
+`backups/README.md`. Not fixed: nothing is broken today, and NDJSON or excluding the log from the
+snapshot are both design choices rather than repairs.
+
 ## Guideline Basis
 
 - **PG-04** requires a continuation record with exact scope, checks, limitations, and unresolved evidence.

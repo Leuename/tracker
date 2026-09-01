@@ -20,12 +20,49 @@ folder is the restore path.
 
 | Path | Holds |
 |---|---|
-| `txns.json`, `receipts.json`, `recurring.json`, `app_config.json` | Every row, in database column shape |
+| `txns.json`, `receipts.json`, `recurring.json`, `transfers.json`, `app_config.json`, `audit_log.json` | Every row, in database column shape |
 | `files/` | Every liquidation document, one file per stored object |
 | `MANIFEST.md` | Row counts, totals and the time the snapshot was taken |
 
 Rows are written in the **database's** column shape — `due_date`, `file_path` — not the
 app's. That is deliberate: the shape here is the shape that inserts straight back.
+
+## What has been verified, and what has not
+
+**Verified on 2026-09-01**, against the live database rather than by reading the script:
+
+- The nightly workflow runs green with all six tables, `audit_log` included — run
+  `33531626080`, 24 seconds. That mattered because `audit_log` was added to `TABLES` after
+  the previous run, and a table missing from that list is invisible until a restore.
+- Every file parses, and every table's column set matches `information_schema` for the live
+  schema, column for column. Nothing in a backup would be rejected on insert, and no live
+  column is absent from a backup.
+- Row counts and money match production exactly: 21 transactions, ₱226,000.00 on both sides.
+
+**Not verified: the restore itself.** Nobody has rebuilt an empty project from this folder.
+Everything above says the data is *shaped* to go back; none of it proves the nine migrations
+replay cleanly into an empty project, which is the other half. Attempted on 2026-09-01 and
+blocked — a Supabase free plan allows two active projects and both slots are taken, by this
+one and by `zone-offices`. Freeing one is the owner's call.
+
+To do it when a slot exists: create an empty project, apply
+[the nine migrations](../supabase/README.md) in version order, insert each JSON file into its
+table, then compare counts and `sum(amount)` against `MANIFEST.md`. Restore `audit_log` last
+— its triggers fire on the other tables, so restoring in the wrong order writes audit rows
+for the restore itself and mixes them with the history being restored.
+
+## A cost that is growing faster than it looks
+
+`audit_log.json` is **226 KB of the folder's 235 KB** and climbing. At roughly 1 KB a row, a
+single nightly `verify.yml` run adds about 70 rows — some 71 KB a night, 25 MB of new JSON a
+year, and git keeps every version of it.
+
+[Decisions](../docs/Decisions.md) D24 records audit retention as unbounded and "years away
+from mattering". That is true of the *table*; it is **not** true of this folder, where the log
+is rewritten whole every night into version control. `git log -p backups/` becomes unreadable
+long before the database notices. Nothing is broken today, and no change is proposed here —
+but the first person to find this folder large should look at `audit_log.json` and not be
+surprised.
 
 ## How it is written
 

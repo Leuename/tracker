@@ -257,6 +257,13 @@ and `pg_cron` 1.6.4 is available on the project if it ever does. The table is in
 `apps/web/scripts/backup.mjs`, so it is in the nightly snapshot; that snapshot therefore grows
 monotonically, which is the intended cost.
 
+**Correction, 2026-09-01.** "Years from mattering" holds for the table and not for the backup. The
+log is rewritten whole into version control every night: `audit_log.json` is already 226 KB of the
+folder's 235 KB, and one nightly `verify.yml` run alone adds ~70 rows, ~71 KB, ~25 MB of new JSON a
+year — every version of which git keeps. The database will not notice for years; `git log -p
+backups/` will be unreadable long before that. Recorded rather than fixed; see
+[backups/README.md](../backups/README.md).
+
 **Any table added later needs its own trigger**, exactly as D23 says it needs its own revoke. Both
 are per-table obligations that a new table silently fails to inherit.
 

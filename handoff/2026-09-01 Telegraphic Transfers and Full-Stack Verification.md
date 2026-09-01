@@ -412,8 +412,12 @@ the database, CI gates production through .github/workflows/ci.yml, self-serve s
 is closed, and both workflows have run green — ci.yml on push and verify.yml by
 dispatch, with 27 e2e specs, 41 security checks and smoke all really executing rather
 than skipping. One thing has still never been exercised: no backup has ever been
-restored, so the restore path remains a claim rather than a fact, and proving it means
-rebuilding an empty project from backups/ and the nine migrations. After that the open
+restored. The data is verified shaped to go back — every file parses, every column set
+matches the live schema, and counts and totals match production exactly — but nobody has
+shown the nine migrations replay into an empty project, which is the other half. The
+attempt was blocked: a Supabase free plan allows two active projects and both slots are
+held, by baby and by zone-offices. Freeing one is the owner's call. Do not pause
+zone-offices without asking; the @zoneoffice.ph accounts suggest it is live. After that the open
 items are the read-only role (D20), the scheduler, last-write-wins on app_config, and
 rotating both the shared five-character password and the tracker-ci Vercel token.
 
