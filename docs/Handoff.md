@@ -459,6 +459,75 @@ was `haveCredentials()` quietly gating `functional.spec.js`. It is not a mystery
 The owner deferred fixing it. It matters the moment anyone treats a suite run as a gate — which is
 exactly what CI would do.
 
+## 2026-09-01 — Full-stack verification pass
+
+Every check in the repository, run repeatedly until the results stopped changing, then the whole
+database audited independently of the app. Two real defects surfaced; both are fixed.
+
+### `npm run smoke` had never actually passed
+
+```
+ReferenceError: first is not defined
+    at src/smoke.mjs:92:42
+```
+
+`const first = await load()` sits inside the `try`; the `finally` block restores the shared config
+from it and cannot see it. The failure only fires once `restoreConfig` becomes true, which is why
+it hid: the guard short-circuits before evaluating the argument on any run that ends earlier.
+
+`first` is hoisted now. The earlier claim that smoke was passing was wrong — it exited non-zero on
+the redundant restore after its assertions had already succeeded.
+
+### The security probe did not know the new table existed
+
+`transfers` shipped without a single security check. Section 1 tested anonymous access to four
+tables and skipped it; section 5 tested column locking on three and skipped it.
+
+Three checks added, taking the probe from 33 to 36. Two of them are a regression test for
+[Decisions](Decisions.md) D23 — a transfer's `created_at` cannot be back-dated, and its primary key
+cannot be rewritten. The second one initially reported a pass without testing anything, because it
+skipped the UPDATE whenever the preceding insert was refused; it inserts a clean row first now and
+gets a real `42501`.
+
+### Database audit, independent of the application
+
+Every table checked directly rather than through the app.
+
+| Check | Result |
+|---|---|
+| Server-managed columns writable by a client | None, on any of the five tables |
+| Row-level security | Enabled on all five |
+| Policies | Present on all five |
+| `anon` privileges | None |
+| Migrations in the repository | 7 of 7, each MD5-identical to what was applied |
+| Supabase security advisors | One: leaked-password protection, Pro-only, deferred |
+| Supabase performance advisors | Three unused-index notices on near-empty tables; expected |
+
+### Results
+
+`npm test` 39/39. `npm run build` green. `npm audit` clean. `npm run e2e` 27/27. `npm run smoke`
+passing, now covering transfers as well. `npm run security` 35 of 36. 506 local markdown links
+resolve. `AGENTS.md` and `CLAUDE.md` byte-identical.
+
+Ledger verified empty of residue afterwards: no `E2E-` tag, no `smoke` row, no `SEC ` row, no probe
+account, no stored file. Config intact at 21 companies and 13 categories with `ackRequirePhoto`
+still off. The only rows present are the owner's own transaction and receipt.
+
+### The one failure, and why it is expected
+
+```
+FAIL  self-serve sign-up is refused — HTTP 200
+```
+
+Sign-up is enabled on the Supabase project. Because every policy is `using (true)`, being signed in
+is the authorization, so anyone who reaches the public URL can register and hold full delete rights
+over real financial data. It is one dashboard toggle.
+
+**Deferred by the owner on 2026-09-01**, on timing rather than on the merits. Until it is off, 35 of
+36 is the clean result and this failure must not be read as a code defect. Each probe run mints a
+real `sec-probe-<ts>@zoneoffice.ph` account that outlives the run; delete it afterwards or they
+accumulate.
+
 ## Guideline Basis
 
 - **PG-04** requires a continuation record with exact scope, checks, limitations, and unresolved evidence.

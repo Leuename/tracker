@@ -32,11 +32,16 @@ if (error) {
 }
 step('signed in as ' + email + ' (' + auth.user.id + ')')
 
-const created = { txns: [], receipts: [] }
+const created = { txns: [], receipts: [], transfers: [] }
 let restoreConfig = false
+// Declared out here on purpose: the finally block restores the shared config
+// from it, and a `const` inside the try is not in scope there. It threw
+// `ReferenceError: first is not defined` on every run that got as far as
+// touching the category list, which masked the script's real result.
+let first = null
 
 try {
-  const first = await load()
+  first = await load()
   step('loaded ' + first.txns.length + ' transactions, ' + first.receipts.length + ' receipts, ' + first.recurring.length + ' recurring')
 
   // Everything below works on a row this script creates. It used to edit a
@@ -55,9 +60,15 @@ try {
   const liq = { ...receipt, status: 'liquidated', date: '2026-09-01', actual: 999 }
   await db.updateReceipt(liq)
 
+  const wire = { id: Date.now() + 2, co: 'ZON', name: 'smoke beneficiary', cur: 'GBP', amount: 3400, status: 'pending', note: 'smoke wire' }
+  await db.insertTransfer(wire)
+  created.transfers.push(wire.id)
+  const released = { ...wire, status: 'released', note: 'smoke wire released' }
+  await db.updateTransfer(released)
+
   await db.saveConfig({ ...first, categories: [...first.categories, 'Smoke Category'] })
   restoreConfig = true
-  step('wrote a payment, an insert, a liquidation and a config change')
+  step('wrote a payment, an insert, a liquidation, a wire and a config change')
 
   const again = await load()
   const back = again.txns.find((t) => t.id === paid.id)
@@ -73,12 +84,20 @@ try {
   assert.equal(backLiq.status, 'liquidated')
   assert.equal(backLiq.actual, 999)
 
+  const backWire = again.transfers.find((w) => w.id === wire.id)
+  assert.ok(backWire, 'the transfer must reach the database')
+  assert.equal(backWire.status, 'released')
+  assert.equal(backWire.cur, 'GBP', 'a wire keeps the currency it was sent in')
+  assert.equal(backWire.amount, 3400, 'the amount is stored unconverted')
+  assert.equal(backWire.note, 'smoke wire released')
+
   assert.ok(again.categories.includes('Smoke Category'), 'config must persist')
   step('every write read back correctly')
 
   // Leave the shared category list as it was found.
   await db.saveConfig(first)
 
+  await db.deleteTransfer(wire.id)
   await db.deleteTxn(added.id)
   const third = await load()
   assert.equal(third.txns.find((t) => t.id === added.id), undefined, 'delete must stick')
@@ -88,8 +107,9 @@ try {
   // Runs whether the assertions passed or threw.
   if (created.txns.length) await supabase.from('txns').delete().in('id', created.txns)
   if (created.receipts.length) await supabase.from('receipts').delete().in('id', created.receipts)
+  if (created.transfers.length) await supabase.from('transfers').delete().in('id', created.transfers)
   // The category list is shared configuration, not a row this script owns.
-  if (restoreConfig) await db.saveConfig(first)
+  if (restoreConfig && first) await db.saveConfig(first)
 }
 
 console.log('smoke passed')

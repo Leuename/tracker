@@ -27,7 +27,7 @@ const rest = (path, init = {}) =>
   fetch(URL_ + '/rest/v1/' + path, { ...init, headers: { apikey: KEY, ...(init.headers || {}) } })
 
 console.log('\n== 1. Anonymous access ==')
-for (const table of ['txns', 'receipts', 'recurring', 'app_config']) {
+for (const table of ['txns', 'receipts', 'recurring', 'transfers', 'app_config']) {
   const r = await rest(table + '?select=*')
   const body = await r.text()
   check(`anon cannot read ${table}`, r.status === 401 || r.status === 403,
@@ -124,6 +124,32 @@ const c = await (async () => signedIn)()
   check('created_at cannot be back-dated by the client', !spoofed,
     error ? 'insert rejected: ' + error.code : 'stored ' + (data && data.created_at))
   await c.from('txns').delete().eq('id', id)
+}
+{
+  // transfers shipped briefly with a table-wide INSERT/UPDATE grant still in
+  // place behind its column lists, so created_at was settable and id was
+  // rewritable — Decisions D23. These two checks are the regression test, and
+  // any future table needs its own pair.
+  const id = Date.now() + 7
+  const { error: insErr } = await c.from('transfers').insert({
+    id, co: 'GTOI', name: 'SEC transfer probe', cur: 'USD', amount: 1,
+    created_at: '1999-01-01T00:00:00Z',
+  })
+  const { data: made } = await c.from('transfers').select('created_at').eq('id', id).maybeSingle()
+  const backdated = made && String(made.created_at).startsWith('1999')
+  check('a transfer created_at cannot be back-dated', !backdated,
+    insErr ? 'insert rejected: ' + insErr.code : 'stored ' + (made && made.created_at))
+
+  // Insert a clean row so the id check actually exercises UPDATE. Skipping it
+  // when the back-dated insert was refused would have reported a pass without
+  // testing anything.
+  const id2 = id + 100
+  await c.from('transfers').insert({ id: id2, co: 'GTOI', name: 'SEC transfer probe', cur: 'USD', amount: 1 })
+  const { error: updErr } = await c.from('transfers').update({ id: id2 + 1 }).eq('id', id2)
+  const { data: moved } = await c.from('transfers').select('id').eq('id', id2 + 1).maybeSingle()
+  check('a transfer primary key cannot be rewritten', !!updErr && !moved,
+    updErr ? 'update rejected: ' + updErr.code : 'UPDATE SUCCEEDED')
+  await c.from('transfers').delete().in('id', [id, id2, id2 + 1])
 }
 {
   // The config row is a singleton; a client must not be able to add a second.
