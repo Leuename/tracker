@@ -1,0 +1,59 @@
+[
+  {
+    "data": {
+      "categories": [
+        "Accounting Services",
+        "Legal Services",
+        "Rental Expense",
+        "Withholding Taxes",
+        "Alan Expense",
+        "Jack Expense",
+        "Salary & Wages",
+        "Petty Cash Fund",
+        "General Expense",
+        "Credit card",
+        "Consultancy Fee",
+        "Advertising Expense",
+        "Other"
+      ],
+      "companies": [
+        "GTOI",
+        "VAR",
+        "VER",
+        "ANG",
+        "DNN",
+        "ZON",
+        "WDO",
+        "BSC",
+        "HAL",
+        "VNQ",
+        "OPT",
+        "FEPA",
+        "SHK",
+        "TOR",
+        "ZSM",
+        "GZZ",
+        "MIC",
+        "CUPA",
+        "BAR",
+        "MCR",
+        "ZPH"
+      ],
+      "notes": [],
+      "settings": {
+        "ackDefaultStatus": "Pending",
+        "ackRequirePhoto": false,
+        "dashDefaultScope": "All companies",
+        "dashShowNotes": true,
+        "dashWindow": "Next 30 days",
+        "mlDefaultFreq": "Monthly",
+        "trkGroupDefault": "Company",
+        "trkOverdueRed": true,
+        "trkShowGrandTotal": true,
+        "warnDuplicate": true
+      }
+    },
+    "id": true,
+    "updated_at": "2026-08-31T18:41:24.434025+00:00"
+  }
+]
