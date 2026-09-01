@@ -22,7 +22,8 @@ This is the agent-agnostic entry point. It describes where facts live, how instr
 - **observed-in:** [Repository Evidence](Repository%20Evidence.md) records what is present, absent, generated, or externally loaded.
 - **decided-by:** [Decisions](Decisions.md) records current boundaries and activation gates.
 - **continued-by:** [Handoff](Handoff.md) records completed documentation work and unresolved source gaps.
-- **resumed-by:** [Repository Restructure and Data Clear](../handoff/2026-09-01%20Repository%20Restructure%20and%20Data%20Clear.md) is the current entry point for a fresh session. It supersedes [Session Continuation Package](../handoff/2026-09-01%20Session%20Continuation%20Package.md) as the place to start, while that note remains the record of how the app was built.
+- **resumed-by:** [Telegraphic Transfers and Full-Stack Verification](../handoff/2026-09-01%20Telegraphic%20Transfers%20and%20Full-Stack%20Verification.md) is the current entry point for a fresh session. It supersedes [Repository Restructure and Data Clear](../handoff/2026-09-01%20Repository%20Restructure%20and%20Data%20Clear.md), which in turn superseded [Session Continuation Package](../handoff/2026-09-01%20Session%20Continuation%20Package.md). All three are live: the newest carries the current facts, the older two remain the record of phases 10 to 13 and 1 to 9 and hold traps 1 to 18.
+- **planned-by:** [Audit Trail Plan](Audit%20Trail%20Plan.md) and [Continuous Integration Plan](Continuous%20Integration%20Plan.md) are designs for the two highest-value unbuilt items. Neither describes anything that exists; build the audit trail first.
 - **archived-in:** [Seeded Data Backup](seeded-data-backup/README.md) holds the demo rows cleared from the ledger on 2026-09-01, with the totals verified against the live database before the delete.
 - **specialized-by:** [Turborepo and Turbopack](Turborepo%20and%20Turbopack.md) governs conditional build-tool adoption.
 
@@ -35,14 +36,20 @@ This is the agent-agnostic entry point. It describes where facts live, how instr
 - Documentation or context work: use `.claude/commands/generate-docs.md` and keep evidence distinct from decisions.
 - Passive artifact review: use `.claude/commands/review.md`; do not execute active HTML without provenance review.
 - UX or accessibility review: use `.claude/commands/ux-reviewer.md` or the matching agent, with manual checks only when authorized.
-- Resuming a session, or picking up work someone else left: start at [Session Continuation Package 2026-09-01](../handoff/2026-09-01%20Session%20Continuation%20Package.md).
+- Resuming a session, or picking up work someone else left: start at [Telegraphic Transfers and Full-Stack Verification](../handoff/2026-09-01%20Telegraphic%20Transfers%20and%20Full-Stack%20Verification.md) and use its `## Resume prompts`.
 - Run or test the authored tracker with the evidence-backed commands in [Repository Evidence](Repository%20Evidence.md). For further feature, refactor, migration, deployment, release, or rollback work, consult [Decisions](Decisions.md) and stop when its activation gate is unmet.
 
 ## Current State
 
-`apps/web/` is a running React + Vite application backed by Supabase Postgres, deployed to Vercel and used by three accounts sharing one ledger. It has a package manifest, a build, three test commands and a security probe. The rest of the checkout is unchanged: `company_tracker/` remains a static Design Component export, `construction_tracker/construction.csv` remains a requirements sheet, and `apps/api/` is still empty.
+`apps/web/` is a running React + Vite application backed by Supabase Postgres, deployed to Vercel and used by **four** accounts sharing one ledger, all administrator-equivalent. Five screens: Dashboard, Tracker, AckRec, **Telegraphic** and Masterlist, plus Settings. Five tables: `txns`, `receipts`, `recurring`, `transfers` and `app_config`. It has a package manifest, a build, four test commands and a security probe, and it holds real financial data.
 
-Still absent: CI, an audit trail, checked-in migrations, conflict detection between concurrent editors, and any backup of either the database or these notes. Each is recorded, with its reason, in [Session Continuation Package 2026-09-01](../handoff/2026-09-01%20Session%20Continuation%20Package.md).
+The schema is now versioned in [supabase/migrations/](../supabase/README.md), seven files each MD5-verified against what was applied. A nightly GitHub Actions workflow snapshots the whole workspace into [backups/](../backups/README.md). Releases are annotated tags, `v0.2.0` through `v0.4.1`.
+
+The rest of the checkout is unchanged: `company_tracker/` remains a static Design Component export, `construction_tracker/construction.csv` remains a requirements sheet parked by decision, and `apps/api/` is still empty.
+
+Still absent: CI, an audit trail, a scheduler, conflict detection between concurrent editors, and a per-wire exchange rate. Each is recorded with its reason in [Decisions](Decisions.md); the first two have designs at [Audit Trail Plan](Audit%20Trail%20Plan.md) and [Continuous Integration Plan](Continuous%20Integration%20Plan.md).
+
+**One live security gap:** self-serve sign-up is enabled on the Supabase project, deferred by the owner on 2026-09-01. It is why `npm run security` reports 35 of 36 and must not be read as a code defect.
 
 ## Guideline Basis
 

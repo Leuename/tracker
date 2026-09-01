@@ -23,17 +23,29 @@ This note separates observed repository facts from future assumptions.
 
 ## Absent Prerequisites
 
-No workspace declaration, `dc-runtime` source, CI workflow, deployment configuration, API implementation, or backend service exists in this checkout. A database schema does now exist, but **outside** it: Supabase project `baby` (`jusifpditdigqdjiwdaj`) holds it, and no migration file is checked in here. The embedded `cd dc-runtime && bun run build` text is export provenance, not a runnable command here.
+No workspace declaration, `dc-runtime` source, CI workflow, API implementation, or backend service exists in this checkout. The embedded `cd dc-runtime && bun run build` text is export provenance, not a runnable command here.
+
+The database schema **is** checked in as of 2026-09-01. `supabase/migrations/` holds seven files, read back out of `supabase_migrations.schema_migrations` in Supabase project `baby` (`jusifpditdigqdjiwdaj`) and each verified byte-for-byte by MD5 against the stored statement. They are a faithful record of what was applied, **not** a rebuild anyone has replayed against an empty project. The Supabase CLI is not installed and the folder is not CLI-managed — see [supabase/README.md](../supabase/README.md).
+
+`.github/workflows/backup.yml` exists and runs nightly, but it is **not CI**: it snapshots the database into `backups/` and gates nothing. A design for real CI is at [Continuous Integration Plan](Continuous%20Integration%20Plan.md); it is not built.
 
 `apps/api/` is an empty directory. It declares an intended boundary, not an implementation.
 
 PostgREST answers an expired token with `{"code":"PGRST303","message":"JWT expired"}` and status 401, confirmed by `curl` on 2026-08-31 against a token past its expiry; because `anon` is revoked, a request with no usable token returns `42501 permission denied` as 401 rather than an empty result. Both are handled by `apps/web/src/errors.js` and the `retryOnce` wrapper in `db.js`.
 
-`apps/web/package.json` and `apps/web/package-lock.json` were added on 2026-08-31 and do supply working `dev`, `build`, `preview`, `test`, `e2e`, and `smoke` commands — **for that directory only**. There is still no repository-root manifest, workspace, or task runner, so no command is reproducible from the repository root.
+`apps/web/package.json` and `apps/web/package-lock.json` were added on 2026-08-31 and supply working `dev`, `build`, `preview`, `test`, `e2e`, `security`, `smoke` and `backup` commands — **for that directory only**. It declares `engines: { node: ">=22" }`, recorded on 2026-09-01 after a CI run on Node 20 died at import with `Error: Node.js detected but native WebSocket not found`: `supabase-js` reaches for a native WebSocket while constructing its realtime client. There is still no repository-root manifest, workspace, or task runner, so no command is reproducible from the repository root.
 
-`apps/web/` is also a Git repository as of 2026-08-31, remote `Leuename/tracker` (private), deployed by Vercel to `https://tracker-six-flax.vercel.app` on every push to `main`. Nothing outside `apps/web/` is under version control, and no CI workflow exists — Vercel builds what is pushed, unchecked.
+The **repository root is the project root** as of 2026-09-01; it was `apps/web/` alone until the re-root. Remote `Leuename/tracker` (private, GitHub Pro), deployed by Vercel to `https://tracker-six-flax.vercel.app` on every push to `main`. Everything except what `.gitignore` names is versioned. No CI workflow exists — Vercel builds what is pushed, unchecked.
 
-`apps/web` will not start without `apps/web/.env.local`, which is git-ignored and therefore absent from any fresh checkout. `apps/web/.env.example` records which two variables it needs.
+`apps/web/vercel.json` carries `"ignoreCommand": "git diff --quiet HEAD^ HEAD -- ."`, added 2026-09-01 so the nightly backup commit does not redeploy the site. A skipped build appears in the deployment list as `CANCELED`. The `[skip ci]` marker in those commit subjects is kept for CI added later; **Vercel ignores it**, confirmed against the deployment list on 2026-09-01.
+
+Releases are annotated tags, `v0.2.0` through `v0.4.1`, matching `apps/web/package.json` on the same commit.
+
+`apps/web` will not start without `apps/web/.env.local`, which is git-ignored and therefore absent from any fresh checkout. `apps/web/.env.example` records the two variables the application itself needs; the file also carries `E2E_EMAIL`, `E2E_PASSWORD`, `SMOKE_EMAIL` and `SMOKE_PASSWORD`, which the test commands read. **`npm run e2e` reports its specs skipped and exits 0 when those are absent** — a pass that ran nothing.
+
+Five tables exist in the database as of 2026-09-01: `txns`, `receipts`, `recurring`, `transfers` and `app_config`. Row-level security is enabled on all five, each has one `for all to authenticated using (true)` policy, and `anon` holds no privilege on any of them. No server-managed column is writable by a client on any table, verified directly against `information_schema.role_column_grants`.
+
+**Self-serve sign-up is enabled on the Supabase project**, observed 2026-09-01 and deferred by the owner. Because authorization is "being signed in", this is a live path from the public URL to full write access. It is the single failing check in `npm run security`.
 
 ## Interpretation Boundary
 
