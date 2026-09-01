@@ -420,13 +420,6 @@ Hold these while you work:
 - Read the full Traps sections of all three handoffs before touching migrations, Vercel or
   the test suites. cleanupOrphanFiles() deletes any stored file no receipt row points at.
 
-FIRST, TWO CLEANUPS THE LAST SESSION LEFT BEHIND, both dashboard-only because no
-MCP tool deletes or unpauses a project. The Supabase project zone-offices
-(lasycakyudaawrydetnm) was PAUSED on 2026-09-01 to free a free-tier slot and needs
-restoring if anything depends on it. And tracker-restore-test (kfuhuphgiwdkeafhixeg)
-was created for the restore test, still holds a copy of the ledger, and should be
-deleted. Raise both with me before assuming either is safe to leave.
-
 Everything held back is built and released as v0.5.0: the audit trail is live, CI
 gates production through .github/workflows/ci.yml, self-serve sign-up is closed, both
 workflows have run green with 27 e2e specs and 41 security checks really executing

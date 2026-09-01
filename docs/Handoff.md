@@ -922,11 +922,17 @@ restored as an **18-row stratified sample** — every operation, every table, bo
 153 KB through a chat session proves nothing the sample does not. Restoring `files/` is still
 untested: there are no stored documents.
 
-### Left for the owner
+### Cleaned up
 
-`tracker-restore-test` (`kfuhuphgiwdkeafhixeg`) still exists and holds a copy of the ledger; the MCP
-server has no delete tool, so it has to go from the dashboard. `zone-offices` is paused and needs
-restoring. Both are named in the resume prompt.
+The owner deleted `tracker-restore-test` and restored `zone-offices` the same day; both were
+dashboard jobs, since no MCP tool deletes or unpauses a project. Verified against
+`list_projects`: the test project is gone, and with it the copy of the ledger it held — which was
+the part worth hurrying, a throwaway project holding real financial data with sign-up open by
+default.
+
+The free-tier limit is the durable lesson. Two active projects is the ceiling, so **a restore test
+costs an active project and someone has to give one up first**. Anyone planning the next one should
+agree that trade before creating anything, not after.
 
 ## Guideline Basis
 
