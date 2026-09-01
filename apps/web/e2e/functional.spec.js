@@ -88,6 +88,12 @@ test('adding a transaction stores every field it collected', async ({ page }) =>
   await page.locator('.modal').getByLabel('Notes', { exact: false }).fill('note from the add form')
   await saveAddForm(page)
 
+  // Writes are optimistic — the dialog closes on the reducer, and the row is
+  // sent after — so poll for it rather than reading once and calling a race a
+  // defect. Every other spec here polls; this one did not, and failed on a
+  // slow round trip while the code was working correctly.
+  await expect.poll(async () => (await D.txnsTagged()).length, { timeout: 10_000 }).toBe(1)
+
   const [row] = await D.txnsTagged()
   expect(row, 'the new transaction must reach Postgres').toBeTruthy()
   expect(row.co).toBe('GTOI')
@@ -636,4 +642,44 @@ test('deleting a receipt asks first, then removes the row from the database', as
   await go(page, 'AckRec')
   await expect(page.getByText(receipt.name), 'the deletion must survive a reload').toHaveCount(0)
   expect(problems, 'no console error or failed request during a receipt delete').toEqual([])
+})
+
+test('a receipt can be edited in place, the way a transaction can', async ({ page }) => {
+  const receipt = await D.makeReceipt()
+  const problems = watch(page)
+  await signIn(page)
+  await go(page, 'AckRec')
+
+  // Click the name cell, not the row. A row click lands on its centre, which
+  // is the status select — and that deliberately stops propagation, or every
+  // status change would open a form on top of the change being made.
+  const row = page.locator('.sheet-row', { hasText: receipt.name })
+  await row.getByText(receipt.name, { exact: true }).click()
+  const modal = page.getByRole('dialog')
+  await expect(modal.getByRole('heading', { name: 'Receipt details' })).toBeVisible()
+
+  const renamed = receipt.name + ' edited'
+  await modal.getByLabel('Released to').fill(renamed)
+  await modal.getByLabel('Amount released').fill('7250')
+  await modal.getByRole('button', { name: 'Save' }).click()
+  await expect(modal).toBeHidden()
+
+  await expect.poll(async () => {
+    const row = await D.receiptById(receipt.id)
+    return row && [row.name, Number(row.amount)]
+  }, { timeout: 10_000 }).toEqual([renamed, 7250])
+
+  // A liquidated receipt without its figures is not a state the form may save.
+  await page.locator('.sheet-row', { hasText: renamed }).getByText(renamed, { exact: true }).click()
+  await page.getByRole('dialog').getByLabel('Status').selectOption('liquidated')
+  await page.getByRole('dialog').getByLabel('Actual amount').fill('')
+  await page.getByRole('dialog').getByRole('button', { name: 'Save' }).click()
+  await expect(page.getByText('A liquidated receipt needs both the date and the actual amount.')).toBeVisible()
+  await page.getByRole('dialog').getByRole('button', { name: 'Cancel' }).click()
+
+  const stillOpen = await D.receiptById(receipt.id)
+  expect(stillOpen.status, 'a rejected edit must not have been written').toBe('released')
+
+  expect(problems, 'no console error or failed request while editing a receipt').toEqual([])
+  await D.cleanup()
 })

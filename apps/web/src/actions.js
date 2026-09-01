@@ -289,6 +289,57 @@ export function useActions() {
     flash('Receipt liquidated')
   }
 
+  // ---- editing a receipt ----------------------------------------------
+  // The Tracker has always opened a row into a form; the AckRec sheet only
+  // ever let you change the status and liquidate. Every other field — who the
+  // cash went to, what it was for, how much — was fixed at the moment it was
+  // typed, and a typo meant deleting the row and starting again.
+  const RCP_EMPTY = { co: '', name: '', desc: '', amount: '', status: 'pending', date: '', actual: '' }
+
+  const openReceiptRow = (r) => () => {
+    const e = {
+      co: r.co, name: r.name, desc: r.desc, amount: String(r.amount), status: r.status,
+      date: r.date || '', actual: r.actual == null ? '' : String(r.actual),
+    }
+    set({ rcpEditOpen: true, rcpEditId: r.id, rcpEdit: e, rcpEditOrig: e, rcpEditError: '' })
+  }
+
+  const setRcpE = (k) => (ev) => {
+    const v = ev.target.value
+    set((s) => ({ rcpEdit: { ...(s.rcpEdit || RCP_EMPTY), [k]: v }, rcpEditError: '' }))
+  }
+
+  const saveReceiptEdit = () => {
+    const e = state.rcpEdit || RCP_EMPTY
+    const id = state.rcpEditId
+    const amt = amountOf(e.amount)
+    if (!e.co || !e.name.trim() || !amt) {
+      set({ rcpEditError: 'Company, who received the cash, and amount are required.' })
+      return
+    }
+
+    // Liquidated is the one status that carries figures with it. Letting a row
+    // claim it without a date and an actual amount would put a receipt in the
+    // settled column with nothing to reconcile against.
+    const liquidated = e.status === 'liquidated'
+    const actual = amountOf(e.actual)
+    if (liquidated && (!e.date || !actual)) {
+      set({ rcpEditError: 'A liquidated receipt needs both the date and the actual amount.' })
+      return
+    }
+
+    const next = {
+      ...state.receipts.find((r) => r.id === id),
+      co: e.co, name: e.name.trim(), desc: e.desc.trim() || 'Cash advance', amount: amt,
+      status: e.status,
+      date: liquidated ? e.date : '',
+      actual: liquidated ? actual : null,
+    }
+    set((s) => ({ receipts: s.receipts.map((r) => r.id === id ? next : r), rcpEditOpen: false, rcpEditError: '' }))
+    save(db.updateReceipt(next), 'the receipt')
+    flash('Receipt updated')
+  }
+
   // ---- deleting a receipt ---------------------------------------------
   // Unlike a masterlist row, a receipt can carry money already released and a
   // scanned document that exists nowhere else, so this one asks first.
@@ -435,6 +486,7 @@ export function useActions() {
     openPeriod, applyPeriod,
     setReceiptStatus, openLiquidate, saveLiq, pickLiqFile, openReceiptFile,
     askRemoveReceipt, cancelRemoveReceipt, confirmRemoveReceipt,
+    openReceiptRow, setRcpE, saveReceiptEdit,
     openReceipt, closeReceipt, setRcp, saveReceipt,
     updRec, removeRec, openRecurring, setR, saveRecurring,
     generate, undoGenerate, generatedFor,

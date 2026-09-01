@@ -14,6 +14,7 @@ import Liquidate from './modals/Liquidate.jsx'
 import AddRecurring from './modals/AddRecurring.jsx'
 import AddReceipt from './modals/AddReceipt.jsx'
 import DeleteReceipt from './modals/DeleteReceipt.jsx'
+import EditReceipt from './modals/EditReceipt.jsx'
 import Filters from './modals/Filters.jsx'
 
 const NAV = [
@@ -79,6 +80,7 @@ export default function App() {
       {state.recOpen ? <AddRecurring /> : null}
       {state.rcpOpen ? <AddReceipt /> : null}
       {state.delRcpId ? <DeleteReceipt /> : null}
+      {state.rcpEditOpen ? <EditReceipt /> : null}
       {state.toast ? <div className="toast" role="status">{state.toast}</div> : null}
     </div>
   )

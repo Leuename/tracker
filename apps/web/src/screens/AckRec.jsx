@@ -12,7 +12,7 @@ const STATUSES = [
 ]
 
 export default function AckRec() {
-  const { state, setReceiptStatus, openLiquidate, openReceipt, openReceiptFile, askRemoveReceipt } = useActions()
+  const { state, setReceiptStatus, openLiquidate, openReceipt, openReceiptFile, askRemoveReceipt, openReceiptRow } = useActions()
 
   const open = state.receipts.filter((r) => r.status !== 'liquidated')
   const liquidated = state.receipts.filter((r) => r.status === 'liquidated')
@@ -54,13 +54,18 @@ export default function AckRec() {
             const diff = r.actual == null ? null : r.amount - r.actual
             const tag = TAG[r.status]
             return (
-              <div key={r.id} className="sheet-row" style={{ gridTemplateColumns: COLS, columnGap: 14, padding: '13px 28px' }}>
+              <div key={r.id} className="sheet-row clickable" role="button" tabIndex={0}
+                   aria-label={'Open the receipt for ' + r.name}
+                   style={{ gridTemplateColumns: COLS, columnGap: 14, padding: '13px 28px' }}
+                   onClick={openReceiptRow(r)}
+                   onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); openReceiptRow(r)() } }}>
                 <div className="bold">{r.co}</div>
                 <div>{r.name}</div>
                 <div style={{ paddingRight: 14, color: 'var(--ink-mid)' }}>{r.desc}</div>
                 <div className="right bold">{fmt(r.amount)}</div>
                 <div style={{ display: 'flex', justifyContent: 'center' }}>
                   <select value={r.status} onChange={setReceiptStatus(r)} aria-label={'Status for ' + r.name}
+                          onClick={(ev) => ev.stopPropagation()}
                           style={{
                             width: 104, textAlign: 'center', textAlignLast: 'center',
                             border: '1px solid var(--border)', borderRadius: 'var(--radius-md)',
@@ -79,13 +84,16 @@ export default function AckRec() {
                 </div>
                 <div className="right" style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
                   {r.filePath ? (
-                    <button type="button" className="link" onClick={openReceiptFile(r)}
+                    <button type="button" className="link"
+                            onClick={(ev) => { ev.stopPropagation(); openReceiptFile(r)() }}
                             title="Open the stored receipt">File</button>
                   ) : null}
                   {r.status !== 'liquidated' ? (
-                    <button type="button" className="btn sm" onClick={openLiquidate(r)}>Liquidate</button>
+                    <button type="button" className="btn sm"
+                            onClick={(ev) => { ev.stopPropagation(); openLiquidate(r)() }}>Liquidate</button>
                   ) : null}
-                  <button type="button" className="remove" onClick={askRemoveReceipt(r)}
+                  <button type="button" className="remove"
+                          onClick={(ev) => { ev.stopPropagation(); askRemoveReceipt(r)() }}
                           aria-label={'Delete the receipt for ' + r.name}>Remove</button>
                 </div>
               </div>
@@ -95,8 +103,8 @@ export default function AckRec() {
       </div>
 
       <div style={{ flex: 'none', padding: '16px 28px', borderTop: '1px solid var(--border)', background: 'var(--sunken)', fontSize: 12.5, color: 'var(--muted)' }}>
-        Setting a receipt to <strong style={{ color: 'var(--ink)' }}>Liquidated</strong> opens two required fields — date
-        liquidated and actual amount. The difference is worked out for you.
+        Click any row to edit it. Setting a receipt to <strong style={{ color: 'var(--ink)' }}>Liquidated</strong> opens
+        two required fields — date liquidated and actual amount. The difference is worked out for you.
       </div>
     </div>
   )
