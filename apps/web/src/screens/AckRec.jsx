@@ -2,7 +2,7 @@ import { useActions } from '../actions.js'
 import { TAG } from '../data.js'
 import { dstr, fmt } from '../logic.js'
 
-const COLS = '60px 128px minmax(160px,1fr) 104px 116px 104px 112px 104px 92px'
+const COLS = '60px 128px minmax(160px,1fr) 104px 116px 104px 112px 104px 190px'
 
 const STATUSES = [
   { v: 'pending', label: 'Pending' },
@@ -12,7 +12,7 @@ const STATUSES = [
 ]
 
 export default function AckRec() {
-  const { state, setReceiptStatus, openLiquidate, openReceipt, openReceiptFile } = useActions()
+  const { state, setReceiptStatus, openLiquidate, openReceipt, openReceiptFile, askRemoveReceipt } = useActions()
 
   const open = state.receipts.filter((r) => r.status !== 'liquidated')
   const liquidated = state.receipts.filter((r) => r.status === 'liquidated')
@@ -43,7 +43,7 @@ export default function AckRec() {
       </div>
 
       <div className="sheet" style={{ background: 'var(--surface)' }}>
-        <div style={{ minWidth: 1160 }}>
+        <div style={{ minWidth: 1258 }}>
           <div className="sheet-head plain" style={{ gridTemplateColumns: COLS, columnGap: 14 }}>
             <div>Company</div><div>Name</div><div>Description</div>
             <div className="right">Amount</div><div className="center">Status</div>
@@ -85,6 +85,8 @@ export default function AckRec() {
                   {r.status !== 'liquidated' ? (
                     <button type="button" className="btn sm" onClick={openLiquidate(r)}>Liquidate</button>
                   ) : null}
+                  <button type="button" className="remove" onClick={askRemoveReceipt(r)}
+                          aria-label={'Delete the receipt for ' + r.name}>Remove</button>
                 </div>
               </div>
             )

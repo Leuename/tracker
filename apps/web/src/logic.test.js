@@ -3,7 +3,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { initialState, MAX_OCC, TODAY } from './data.js'
 import {
-  addDays, buildGeneratedRows, dstr, eff, monthKeys, occurrences, openingView, parsePeriod, periodLabel, ruleLabel, visibleRows, windowDays,
+  addDays, alphabetical, buildGeneratedRows, dstr, eff, monthKeys, occurrences, openingView, parsePeriod, periodLabel, ruleLabel, visibleRows, windowDays,
 } from './logic.js'
 
 const rent = { co: 'GTOI', cat: 'Rental Expense', freq: 'Monthly', desc: 'Warehouse B monthly rent', dueDate: '2026-08-24', amount: 45000 }
@@ -164,4 +164,20 @@ test('addDays does not drift with the machine timezone', () => {
   assert.equal(addDays('2026-01-01', 0), '2026-01-01')
   assert.equal(addDays('2026-03-01', -1), '2026-02-28')
   assert.equal(addDays('2028-03-01', -1), '2028-02-29') // leap year
+})
+
+test('alphabetical sorts a–z, copies rather than mutating, and tolerates nothing', () => {
+  const codes = ['ZON', 'ANG', 'GTOI']
+  assert.deepEqual(alphabetical(codes), ['ANG', 'GTOI', 'ZON'])
+  assert.deepEqual(codes, ['ZON', 'ANG', 'GTOI'], 'the caller’s array must be untouched')
+  assert.deepEqual(alphabetical(['Other', 'Credit card', 'Alan Expense']),
+    ['Alan Expense', 'Credit card', 'Other'])
+  assert.deepEqual(alphabetical(undefined), [])
+})
+
+test('the shipped company and category lists are already a–z', () => {
+  assert.deepEqual(initialState.companies, alphabetical(initialState.companies))
+  assert.deepEqual(initialState.categories, alphabetical(initialState.categories))
+  assert.equal(initialState.companies.length, 21)
+  assert.equal(initialState.categories.length, 13)
 })

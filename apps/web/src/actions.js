@@ -1,7 +1,7 @@
 import { useStore } from './store.jsx'
 import { TODAY, blankForm } from './data.js'
 import { db } from './db.js'
-import { amountOf, buildGeneratedRows, isMonthKey, longDate, monthLabel, parsePeriod, periodLabel } from './logic.js'
+import { alphabetical, amountOf, buildGeneratedRows, isMonthKey, longDate, monthLabel, parsePeriod, periodLabel } from './logic.js'
 
 // The masterlist edits in place, so its description and amount fields fire on
 // every keystroke. One pending write per row, coalesced, instead of one per
@@ -289,6 +289,32 @@ export function useActions() {
     flash('Receipt liquidated')
   }
 
+  // ---- deleting a receipt ---------------------------------------------
+  // Unlike a masterlist row, a receipt can carry money already released and a
+  // scanned document that exists nowhere else, so this one asks first.
+  const askRemoveReceipt = (r) => () => set({ delRcpId: r.id })
+  const cancelRemoveReceipt = () => set({ delRcpId: null })
+
+  const confirmRemoveReceipt = () => {
+    const id = state.delRcpId
+    const r = state.receipts.find((x) => x.id === id)
+    if (!r) { set({ delRcpId: null }); return }
+
+    set((s) => ({ receipts: s.receipts.filter((x) => x.id !== id), delRcpId: null }))
+    save(db.deleteReceipt(id), 'the deletion')
+
+    // The row goes first and the file after it. The other order risks a row
+    // left pointing at a document that is no longer there, which breaks its
+    // File button; this order can at worst orphan a file nothing references.
+    if (r.filePath) {
+      db.removeReceiptFile(r.filePath).catch((e) => {
+        console.error('[supabase] the receipt file', e)
+        flash('Receipt deleted, but its file is still stored — ' + (e.message || 'unknown error'))
+      })
+    }
+    flash(r.co + ' \u00b7 ' + r.name + ' — receipt deleted')
+  }
+
   /** Open a stored document through a short-lived signed link. */
   const openReceiptFile = (r) => async () => {
     try {
@@ -377,12 +403,12 @@ export function useActions() {
   const addCompany = () => {
     const v = state.coDraft.trim()
     if (!v) return
-    set((s) => ({ companies: [...s.companies, v.toUpperCase()], coDraft: '' }))
+    set((s) => ({ companies: alphabetical([...s.companies, v.toUpperCase()]), coDraft: '' }))
   }
   const addCategory = () => {
     const v = state.catDraft.trim()
     if (!v) return
-    set((s) => ({ categories: [...s.categories, v], catDraft: '' }))
+    set((s) => ({ categories: alphabetical([...s.categories, v]), catDraft: '' }))
   }
   const removeCompany = (c) => () => set((s) => ({ companies: s.companies.filter((x) => x !== c) }))
   const removeCategory = (c) => () => set((s) => ({ categories: s.categories.filter((x) => x !== c) }))
@@ -408,6 +434,7 @@ export function useActions() {
     openPay, confirmPay, cancelPay,
     openPeriod, applyPeriod,
     setReceiptStatus, openLiquidate, saveLiq, pickLiqFile, openReceiptFile,
+    askRemoveReceipt, cancelRemoveReceipt, confirmRemoveReceipt,
     openReceipt, closeReceipt, setRcp, saveReceipt,
     updRec, removeRec, openRecurring, setR, saveRecurring,
     generate, undoGenerate, generatedFor,

@@ -230,3 +230,12 @@ export const longDate = (d) => {
   const p = d.split('-')
   return p[2] + ' ' + cap(MON[+p[1] - 1]) + ' ' + p[0]
 }
+
+/**
+ * Companies and categories are shown a–z, so sort them at the two points they
+ * enter state: the config row on load, and the Masterlist's add buttons.
+ *
+ * Copies rather than sorting in place — the arrays it is handed come straight
+ * out of the reducer, and Array.prototype.sort mutates.
+ */
+export const alphabetical = (list) => [...(list || [])].sort((a, b) => String(a).localeCompare(String(b)))

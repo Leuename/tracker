@@ -605,3 +605,35 @@ test('the deadline window setting actually narrows the list', async ({ page }) =
     await D.restoreConfig(beforeConfig)
   }
 })
+
+test('deleting a receipt asks first, then removes the row from the database', async ({ page }) => {
+  // Created before signIn: the app reads its data once at mount, so a row
+  // written afterwards is invisible to the page that is already loaded.
+  const receipt = await D.makeReceipt()
+  const problems = watch(page)
+  await signIn(page)
+  await go(page, 'AckRec')
+
+  const row = page.locator('.sheet-row', { hasText: receipt.name })
+  await expect(row).toHaveCount(1)
+
+  // Cancelling has to leave the row alone — that is the whole point of asking.
+  await row.getByRole('button', { name: 'Delete the receipt for ' + receipt.name }).click()
+  const dialog = page.getByRole('dialog')
+  await expect(dialog.getByRole('heading', { name: 'Delete this receipt?' })).toBeVisible()
+  await dialog.getByRole('button', { name: 'Cancel' }).click()
+  await expect(dialog).toBeHidden()
+  expect(await D.receiptById(receipt.id), 'cancelling must not delete anything').toBeTruthy()
+
+  await row.getByRole('button', { name: 'Delete the receipt for ' + receipt.name }).click()
+  await page.getByRole('dialog').getByRole('button', { name: 'Delete receipt' }).click()
+
+  await expect(page.locator('.sheet-row', { hasText: receipt.name })).toHaveCount(0)
+  await expect.poll(async () => await D.receiptById(receipt.id), { timeout: 10_000 }).toBeFalsy()
+
+  await page.reload()
+  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible({ timeout: 25_000 })
+  await go(page, 'AckRec')
+  await expect(page.getByText(receipt.name), 'the deletion must survive a reload').toHaveCount(0)
+  expect(problems, 'no console error or failed request during a receipt delete').toEqual([])
+})

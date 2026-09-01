@@ -1,6 +1,7 @@
 import { supabase } from './supabase.js'
 import { initialState } from './data.js'
 import { isAuthError, sessionExpired } from './errors.js'
+import { alphabetical } from './logic.js'
 import {
   configOf, forUpdate, fromReceipt, fromRecurring, fromTxn, toReceipt, toRecurring, toTxn,
 } from './rows.js'
@@ -71,8 +72,10 @@ async function read() {
     receipts: receipts.map(fromReceipt),
     recurring: recurring.map(fromRecurring),
     notes: cfg.notes || initialState.notes,
-    companies: cfg.companies || initialState.companies,
-    categories: cfg.categories || initialState.categories,
+    // Held a–z on the way in, so a row written before the lists were sorted
+    // still displays in order without needing a migration to rewrite it.
+    companies: alphabetical(cfg.companies || initialState.companies),
+    categories: alphabetical(cfg.categories || initialState.categories),
     // Spread over the defaults so a setting added after this row was written
     // still has a value instead of arriving undefined.
     settings: { ...initialState.settings, ...(cfg.settings || {}) },
@@ -98,6 +101,16 @@ export const uploadReceiptFile = retryOnce(async (receiptId, file) => {
   return path
 })
 
+/**
+ * Drop a stored document. Deleting a receipt has to take its file with it —
+ * the object key lives only on the row, so a row removed without this leaves
+ * a file in the bucket that nothing can ever name again.
+ */
+export const removeReceiptFile = retryOnce(async (path) => {
+  const { error } = await supabase.storage.from(BUCKET).remove([path])
+  if (error) throw error
+})
+
 /** A link that works for an hour, for opening a stored document. */
 export const signedReceiptUrl = retryOnce(async (path) => {
   const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(path, 3600)
@@ -114,6 +127,7 @@ const queries = {
 
   insertReceipt: (r) => supabase.from('receipts').insert(toReceipt(r)).then(ok),
   updateReceipt: (r) => supabase.from('receipts').update(forUpdate(toReceipt(r))).eq('id', r.id).then(ok),
+  deleteReceipt: (id) => supabase.from('receipts').delete().eq('id', id).then(ok),
 
   insertRecurring: (p) => supabase.from('recurring').insert(toRecurring(p)).then(ok),
   updateRecurring: (p) => supabase.from('recurring').update(forUpdate(toRecurring(p))).eq('id', p.id).then(ok),
@@ -142,4 +156,5 @@ export const db = {
   // Already wrapped where they are defined, since they are not plain queries.
   uploadReceiptFile,
   signedReceiptUrl,
+  removeReceiptFile,
 }

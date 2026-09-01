@@ -6,13 +6,26 @@ Avoid inventing repository history while defining reviewable future changes.
 
 ## Requirements
 
-`apps/web/` is a Git repository as of 2026-08-31, remote `Leuename/tracker` (private), branch `main`. Everything outside it is still untracked. Use focused changes and concise imperative subjects; PRs should cite affected paths, checks, source gaps, issues, and screenshots for visual work.
+The **repository root** is the project root as of 2026-09-01, remote `Leuename/tracker` (private), branch `main`. It was `apps/web/` alone until the re-root; nothing is untracked now except what `.gitignore` names. Use focused changes and concise imperative subjects; PRs should cite affected paths, checks, source gaps, issues, and screenshots for visual work.
 
 **A push to `main` deploys to production.** There is no staging branch and no CI gate, so `npm test`, `npm run e2e`, and `npm run build` are the checks that have to pass before pushing, not after.
 
+### Release tags
+
+Every deploy worth naming gets an annotated tag, so a version has a name that is not a commit hash and a rollback has something to point at.
+
+```bash
+git tag -a v0.2.0 -m "What changed, in a sentence or two"
+git push origin v0.2.0
+```
+
+`vMAJOR.MINOR.PATCH`, matching `apps/web/package.json`. Bump the minor for a feature, the patch for a fix, and keep the manifest and the tag on the same commit. Tags are cut by hand: there is no release automation and inventing one before a real cadence exists would be scaffolding for later.
+
+**Rolling back is a revert, not a tag.** Vercel keeps every successful deployment and can promote an earlier one from its dashboard, which is the fastest way to stop a bad release. Git is the durable record: `git revert <commit>` and push, so `main` and production agree again. Never move a tag that has been pushed — a version that means two different things is worse than an ugly version number.
+
 ## Repository Evidence
 
-No CI checks or release automation exist. Vercel deploys `main` automatically; there is no other pipeline.
+No CI checks or release automation exist. Vercel deploys `main` automatically; there is no other pipeline. Tags are created by hand. `.github/workflows/backup.yml` is a scheduled snapshot job, not a gate — it checks nothing and blocks nothing.
 
 ## Stop or Escalate
 

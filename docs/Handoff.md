@@ -389,6 +389,76 @@ has not reproduced in five consecutive runs since and no cause was established. 
 check whether `playwright.config.js` loaded `.env.local`: `haveCredentials()` skips the entire
 functional file when it did not, and that skip is quiet.
 
+## 2026-09-01 — Backups, schema versioning, receipt deletion, sorted lists
+
+The owner worked the open-items list and decided six things in one pass, recorded as
+[Decisions](Decisions.md) D13 to D18. This is what was built for them.
+
+### The ledger stopped being empty
+
+A verification run found one row in `receipts` that no earlier note accounts for: `EUNICE`,
+`GTOI`, "Cash advance", ₱1,000, pending, created 2026-09-01 04:08 UTC. It carries no `E2E-` tag,
+is not `smoke holder`, and has no probe note, so it is not test residue. The owner confirmed it is
+real and it was left untouched.
+
+That single row changed the priority of everything else: backups stopped being a theoretical item.
+
+### Backups
+
+`apps/web/scripts/backup.mjs` and `.github/workflows/backup.yml`, nightly at 18:00 UTC, committing
+to `backups/`. The reasoning behind reading through RLS, keeping one overwritten snapshot, and
+carrying a timestamp in the manifest is in D13 and in [backups/README.md](../backups/README.md).
+
+**Cost was checked before building, as instructed.** The repository is private, so Actions minutes
+are metered: GitHub Free includes 2,000 a month, the repository had no workflows and therefore no
+usage, and a nightly job of one to two minutes costs 30 to 60. It fits roughly thirty times over,
+so nothing is charged. The account's exact plan could not be read — the `gh` token lacks the `user`
+scope — but Free is the floor and Free covers it.
+
+### The schema is in the repository
+
+All five migrations pulled out of `supabase_migrations.schema_migrations` into
+`supabase/migrations/` and verified byte-for-byte by MD5 against the stored statements. Note that
+Postgres `length()` counts characters while `wc -c` counts bytes, so the em dashes in
+`shared_workspace_two_users` make the file five bytes longer than its character count; the MD5 is
+the check that matters.
+
+### Receipt deletion
+
+A Remove button on each AckRec row, a confirmation dialog, `db.deleteReceipt` and
+`db.removeReceiptFile`. No migration was needed: `authenticated` already held table `DELETE`, an
+`ALL` policy on `receipts`, and a storage `DELETE` policy. Checked before writing the UI rather
+than after it failed.
+
+### Sorted lists
+
+`alphabetical` in `logic.js`, applied in `db.js read()` and in the two add actions, with the
+shipped constants in `data.js` re-ordered to match. Sorting on load is what avoids a migration for
+the live config row. The e2e spec that touches the company list asserts with `.includes`, so
+ordering does not disturb it.
+
+### Validation
+
+`npm test` 35 of 35, up from 33 — two new cases cover `alphabetical` and assert the shipped lists
+are sorted and still 21 and 13 long. `npm run build` green. `npm audit` clean. Production returns
+200 with every security header intact. The Supabase project is `ACTIVE_HEALTHY`, not paused.
+
+**Not run: `npm run e2e`, `npm run security`, `npm run smoke`, and the backup script's own
+happy path.** All four need credentials that are not on this machine — see the gap below. The new
+delete spec brings the suite to 25 and is listed by Playwright, but has never been executed.
+
+### A hole worth naming
+
+`npm run e2e` with no `E2E_EMAIL` and `E2E_PASSWORD` reports `24 skipped` and **exits 0**. It looks
+green while running nothing. `npm run security` at least fails loudly, at 5 checks of 33, with
+`cannot sign in: missing email or phone`.
+
+This is also the "one unexplained observation" from the previous pass: a run reporting `6 passed`
+was `haveCredentials()` quietly gating `functional.spec.js`. It is not a mystery any more.
+
+The owner deferred fixing it. It matters the moment anyone treats a suite run as a gate — which is
+exactly what CI would do.
+
 ## Guideline Basis
 
 - **PG-04** requires a continuation record with exact scope, checks, limitations, and unresolved evidence.

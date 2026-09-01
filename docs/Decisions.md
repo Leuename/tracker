@@ -86,6 +86,90 @@ Tests may no longer assume the ledger contains anything. A spec that needs a rec
 creates it, tagged, and the sweep removes it. This is why `e2e/db.js` grew `makeReceipt` and
 `makeRecurring`.
 
+## D13 — Backups Are a Committed Snapshot, Taken Nightly
+
+The Supabase free plan takes backups and will not let you download them, and it pauses a project
+after seven quiet days. Real payables arrived in the ledger on 2026-09-01, so there was live data
+with no restore path.
+
+`.github/workflows/backup.yml` runs `apps/web/scripts/backup.mjs` nightly and commits the result
+to [backups/](../backups/README.md). Three choices inside that are deliberate.
+
+It signs in as an **ordinary account** and reads through RLS rather than using a `service_role`
+key. A backup is not worth storing a full-access credential in GitHub for; this credential can do
+nothing the three people cannot already do by hand.
+
+It keeps **one snapshot, overwritten**, because Git is already a history. `git log -p backups/`
+is every state the workspace has been in.
+
+Its manifest carries the **run timestamp**, so every night produces a real commit. GitHub disables
+a scheduled workflow after 60 days without one, and a backup that stops silently is worse than no
+backup at all.
+
+Not yet proven: nobody has restored from this into an empty project. Until somebody has, it is a
+backup that is believed to work.
+
+## D14 — The Schema Is Versioned in the Repository
+
+The five migrations existed only inside the hosted project, so losing it lost the shape of the
+data as well as the data. They are now in [supabase/migrations/](../supabase/README.md), read back
+out of `supabase_migrations.schema_migrations` and verified byte-for-byte by MD5.
+
+They are a **record**, not a tested rebuild. The Supabase CLI is not installed and the folder is
+not CLI-managed. A schema change applied through the dashboard must be copied here afterwards, or
+the repository is back where it started.
+
+## D15 — Company Codes and Categories Are Real, and Held A–Z
+
+The 21 company codes and 13 expense categories are the owner's own, confirmed on 2026-09-01 — not
+prototype placeholders, and not to be replaced. They are sorted alphabetically instead.
+
+`alphabetical` in `logic.js` is applied at the two points a list enters state: the config row on
+load, and the Masterlist's add buttons. Sorting on load means the stored row needed no migration.
+Note that `Other` therefore sits between `Legal Services` and `Petty Cash Fund` rather than last;
+a–z was the instruction.
+
+## D16 — Receipts Can Be Deleted, and Ask First
+
+Transactions could always be deleted; receipts could not, anywhere. They can now, from the AckRec
+row.
+
+This is the one deletion in the app that asks for confirmation. A receipt can carry cash already
+released and a scanned document that exists nowhere else, and the storage object goes with the
+row. The row is deleted first and the file after it: the other order risks a row pointing at a
+document that is gone, which breaks its File button, where this order can at worst orphan a file
+nothing references.
+
+No schema change was needed — `authenticated` already held table `DELETE`, an `ALL` policy, and a
+storage `DELETE` policy.
+
+## D17 — `ackRequirePhoto` Stays Off
+
+Confirmed off on 2026-09-01, on the grounds that most payables and transactions have no receipt to
+attach. The control genuinely blocks liquidation without a file when it is on (D10), which is
+exactly why it stays off.
+
+## D18 — The Construction Tracker Is Parked
+
+`construction_tracker/construction.csv` specifies a separate tracker alongside this web app, not a
+part of it. Parked by the owner on 2026-09-01, to be started only on an explicit instruction. Do
+not scope, design, or build any of its screens before then.
+
+## D19 — Releases Are Hand-Cut Annotated Tags
+
+`main` deploys to production on push and nothing else marks a version, so a release had no name
+but a commit hash and a rollback had nothing to point at.
+
+Releases are annotated tags, `vMAJOR.MINOR.PATCH`, matching `apps/web/package.json` on the same
+commit. Cut by hand: there is no cadence yet, and release automation before a cadence is
+scaffolding for later.
+
+Rolling back is a `git revert` and a push, or promoting an earlier deployment from the Vercel
+dashboard when speed matters — Vercel keeps every successful build. A pushed tag is never moved.
+A version that means two different things is worse than an ugly version number.
+
+`v0.2.0` is the first, covering D13 to D19.
+
 ## Guideline Basis
 
 - **AGENT-03** ensures adapter workflows stop rather than invent authorization.

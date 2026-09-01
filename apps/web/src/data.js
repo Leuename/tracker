@@ -27,9 +27,11 @@ export const TODAY = localToday()
 /** The date the seed rows were written around, so the demo still reads sensibly. */
 export const SEED_TODAY = '2026-08-30'
 
-export const CO = ['GTOI', 'VAR', 'VER', 'ANG', 'DNN', 'ZON', 'WDO', 'BSC', 'HAL', 'VNQ', 'OPT', 'FEPA', 'SHK', 'TOR', 'ZSM', 'GZZ', 'MIC', 'CUPA', 'BAR', 'MCR', 'ZPH']
+// The owner's real company codes and expense categories, held a–z. `alphabetical`
+// in logic.js keeps them that way when one is added at runtime.
+export const CO = ['ANG', 'BAR', 'BSC', 'CUPA', 'DNN', 'FEPA', 'GTOI', 'GZZ', 'HAL', 'MCR', 'MIC', 'OPT', 'SHK', 'TOR', 'VAR', 'VER', 'VNQ', 'WDO', 'ZON', 'ZPH', 'ZSM']
 
-export const CAT = ['Accounting Services', 'Legal Services', 'Rental Expense', 'Withholding Taxes', 'Alan Expense', 'Jack Expense', 'Salary & Wages', 'Petty Cash Fund', 'General Expense', 'Credit card', 'Consultancy Fee', 'Advertising Expense', 'Other']
+export const CAT = ['Accounting Services', 'Advertising Expense', 'Alan Expense', 'Consultancy Fee', 'Credit card', 'General Expense', 'Jack Expense', 'Legal Services', 'Other', 'Petty Cash Fund', 'Rental Expense', 'Salary & Wages', 'Withholding Taxes']
 
 export const TAG = {
   completed: { bg: '#DFF0E6', fg: '#5C8F72', label: 'Completed' },
@@ -176,6 +178,7 @@ export const initialState = {
   liqFile: null,       // the File chosen in the dialog, before it is uploaded
   liqBusy: false,
   rcpOpen: false,
+  delRcpId: null,
   rcp: { co: '', name: '', desc: '', amount: '', status: 'pending' },
   rcpError: '',
   recOpen: false,

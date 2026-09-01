@@ -1,7 +1,7 @@
 {
   "name": "@puge/web",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -10,7 +10,8 @@
     "test": "node --test src/logic.test.js src/rows.test.js src/errors.test.js",
     "smoke": "node --env-file=.env.local src/smoke.mjs",
     "e2e": "playwright test",
-    "security": "node --env-file=.env.local security/probe.mjs"
+    "security": "node --env-file=.env.local security/probe.mjs",
+    "backup": "node --env-file=.env.local scripts/backup.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.4",

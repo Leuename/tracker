@@ -45,7 +45,9 @@ Write short, imperative, path-specific guidance. Distinguish evidence (“file X
 
 ## Reviews, Commits, and Pull Requests
 
-`apps/web/` has Git history as of 2026-08-31; the rest of this checkout has none. Inside `apps/web/`, use a concise imperative subject, and remember that a push to `main` deploys to production. A review or PR description must identify affected artifacts, cite exact evidence paths, list checks, disclose source gaps, and include screenshots for authorized visual changes.
+The whole checkout has Git history as of 2026-09-01, when the repository was re-rooted here from `apps/web/`. Use a concise imperative subject, and remember that a push to `main` deploys to production. A review or PR description must identify affected artifacts, cite exact evidence paths, list checks, disclose source gaps, and include screenshots for authorized visual changes.
+
+Releases are annotated tags cut by hand, `vMAJOR.MINOR.PATCH`, matching `apps/web/package.json` on the same commit: `git tag -a v0.2.0 -m "…" && git push origin v0.2.0`. Rolling back is a `git revert` plus a push, or promoting an earlier deployment in Vercel; never move a tag that has been pushed. See [git-workflow](.claude/rules/git-workflow.md).
 
 ## External Guidance
 
