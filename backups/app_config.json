@@ -3,41 +3,41 @@
     "data": {
       "categories": [
         "Accounting Services",
-        "Legal Services",
-        "Rental Expense",
-        "Withholding Taxes",
-        "Alan Expense",
-        "Jack Expense",
-        "Salary & Wages",
-        "Petty Cash Fund",
-        "General Expense",
-        "Credit card",
-        "Consultancy Fee",
         "Advertising Expense",
-        "Other"
+        "Alan Expense",
+        "Consultancy Fee",
+        "Credit card",
+        "General Expense",
+        "Jack Expense",
+        "Legal Services",
+        "Other",
+        "Petty Cash Fund",
+        "Rental Expense",
+        "Salary & Wages",
+        "Withholding Taxes"
       ],
       "companies": [
-        "GTOI",
-        "VAR",
-        "VER",
         "ANG",
-        "DNN",
-        "ZON",
-        "WDO",
+        "BAR",
         "BSC",
-        "HAL",
-        "VNQ",
-        "OPT",
+        "CUPA",
+        "DNN",
         "FEPA",
+        "GTOI",
+        "GZZ",
+        "HAL",
+        "MCR",
+        "MIC",
+        "OPT",
         "SHK",
         "TOR",
-        "ZSM",
-        "GZZ",
-        "MIC",
-        "CUPA",
-        "BAR",
-        "MCR",
-        "ZPH"
+        "VAR",
+        "VER",
+        "VNQ",
+        "WDO",
+        "ZON",
+        "ZPH",
+        "ZSM"
       ],
       "notes": [],
       "settings": {
@@ -54,6 +54,6 @@
       }
     },
     "id": true,
-    "updated_at": "2026-08-31T18:41:24.434025+00:00"
+    "updated_at": "2026-09-01T09:54:42.088542+00:00"
   }
 ]
