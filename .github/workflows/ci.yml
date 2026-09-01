@@ -21,11 +21,22 @@ name: CI
 on:
   push:
     branches: [main]
-    # The nightly backup commits to main. Its message carries `[skip ci]`, which
-    # GitHub Actions honours even though Vercel never did, and this is the
-    # second lock on the same door: a snapshot must never redeploy production.
+    # Skipped only when EVERY changed path matches, so a commit touching code
+    # and notes together still runs the full gate.
+    #
+    # backups/: the nightly snapshot commits to main. Its message carries
+    # `[skip ci]`, which GitHub Actions honours even though Vercel never did,
+    # and this is the second lock on the same door — a snapshot must never
+    # redeploy production.
+    #
+    # docs/ and handoff/: this repository doubles as the project's notes, so
+    # documentation commits are frequent and produce a byte-identical bundle.
+    # Building and redeploying an unchanged bundle is waste, and a deployment
+    # list full of no-op releases makes the one that matters harder to find.
     paths-ignore:
       - 'backups/**'
+      - 'docs/**'
+      - 'handoff/**'
   pull_request:
     branches: [main]
   workflow_dispatch:
