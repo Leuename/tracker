@@ -48,6 +48,240 @@
     "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
     "actor_email": "millaveemmanuel15@gmail.com",
     "after": {
+      "amount": 7000,
+      "cat": "Accounting Services",
+      "co": "BSC",
+      "created_at": "2026-09-01T16:06:48.511661+00:00",
+      "description": "E2E-mtiv0h6k quarterly audit",
+      "due_date": "2026-09-02",
+      "freq": "Monthly",
+      "id": 1788278808390
+    },
+    "at": "2026-09-01T16:06:48.511661+00:00",
+    "before": null,
+    "id": 100,
+    "op": "INSERT",
+    "row_id": 1788278808390,
+    "tbl": "recurring"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "amount": 8250,
+      "cat": "Accounting Services",
+      "co": "BSC",
+      "created_at": "2026-09-01T16:06:48.511661+00:00",
+      "description": "E2E-mtiv0h6k quarterly audit",
+      "due_date": "2026-09-02",
+      "freq": "Monthly",
+      "id": 1788278808390
+    },
+    "at": "2026-09-01T16:06:49.414311+00:00",
+    "before": {
+      "amount": 7000,
+      "cat": "Accounting Services",
+      "co": "BSC",
+      "created_at": "2026-09-01T16:06:48.511661+00:00",
+      "description": "E2E-mtiv0h6k quarterly audit",
+      "due_date": "2026-09-02",
+      "freq": "Monthly",
+      "id": 1788278808390
+    },
+    "id": 101,
+    "op": "UPDATE",
+    "row_id": 1788278808390,
+    "tbl": "recurring"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": null,
+    "at": "2026-09-01T16:06:50.021932+00:00",
+    "before": {
+      "amount": 8250,
+      "cat": "Accounting Services",
+      "co": "BSC",
+      "created_at": "2026-09-01T16:06:48.511661+00:00",
+      "description": "E2E-mtiv0h6k quarterly audit",
+      "due_date": "2026-09-02",
+      "freq": "Monthly",
+      "id": 1788278808390
+    },
+    "id": 102,
+    "op": "DELETE",
+    "row_id": 1788278808390,
+    "tbl": "recurring"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "amount": 1000,
+      "cat": "Rental Expense",
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:06:52.013662+00:00",
+      "description": "E2E-mtiv0h6k-2 monthly rule",
+      "due_date": "2026-12-15",
+      "freq": "Monthly",
+      "id": 1788278812652
+    },
+    "at": "2026-09-01T16:06:52.013662+00:00",
+    "before": null,
+    "id": 103,
+    "op": "INSERT",
+    "row_id": 1788278812652,
+    "tbl": "recurring"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "amount": 1000,
+      "cat": "Rental Expense",
+      "check_no": null,
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:06:53.224377+00:00",
+      "description": "E2E-mtiv0h6k-2 monthly rule",
+      "done": null,
+      "due": "2026-12-15",
+      "id": 1788278813087,
+      "notes": null,
+      "pay_type": null,
+      "period": "Dec 2026",
+      "status": "pending"
+    },
+    "at": "2026-09-01T16:06:53.224377+00:00",
+    "before": null,
+    "id": 104,
+    "op": "INSERT",
+    "row_id": 1788278813087,
+    "tbl": "txns"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": null,
+    "at": "2026-09-01T16:06:54.349093+00:00",
+    "before": {
+      "amount": 1000,
+      "cat": "Rental Expense",
+      "check_no": null,
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:06:53.224377+00:00",
+      "description": "E2E-mtiv0h6k-2 monthly rule",
+      "done": null,
+      "due": "2026-12-15",
+      "id": 1788278813087,
+      "notes": null,
+      "pay_type": null,
+      "period": "Dec 2026",
+      "status": "pending"
+    },
+    "id": 105,
+    "op": "DELETE",
+    "row_id": 1788278813087,
+    "tbl": "txns"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "amount": 1000,
+      "cat": "Rental Expense",
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:06:56.324938+00:00",
+      "description": "E2E-mtiv0h6k-3 monthly rule",
+      "due_date": "2026-11-15",
+      "freq": "Monthly",
+      "id": 1788278816374
+    },
+    "at": "2026-09-01T16:06:56.324938+00:00",
+    "before": null,
+    "id": 106,
+    "op": "INSERT",
+    "row_id": 1788278816374,
+    "tbl": "recurring"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "amount": 1000,
+      "cat": "Rental Expense",
+      "check_no": null,
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:06:57.420302+00:00",
+      "description": "E2E-mtiv0h6k-2 monthly rule",
+      "done": null,
+      "due": "2026-11-15",
+      "id": 1788278817296,
+      "notes": null,
+      "pay_type": null,
+      "period": "Nov 2026",
+      "status": "pending"
+    },
+    "at": "2026-09-01T16:06:57.420302+00:00",
+    "before": null,
+    "id": 107,
+    "op": "INSERT",
+    "row_id": 1788278817296,
+    "tbl": "txns"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "amount": 1000,
+      "cat": "Rental Expense",
+      "check_no": null,
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:06:57.420302+00:00",
+      "description": "E2E-mtiv0h6k-3 monthly rule",
+      "done": null,
+      "due": "2026-11-15",
+      "id": 1788278817297,
+      "notes": null,
+      "pay_type": null,
+      "period": "Nov 2026",
+      "status": "pending"
+    },
+    "at": "2026-09-01T16:06:57.420302+00:00",
+    "before": null,
+    "id": 108,
+    "op": "INSERT",
+    "row_id": 1788278817297,
+    "tbl": "txns"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": null,
+    "at": "2026-09-01T16:06:57.500933+00:00",
+    "before": {
+      "amount": 1000,
+      "cat": "Rental Expense",
+      "check_no": null,
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:06:57.420302+00:00",
+      "description": "E2E-mtiv0h6k-2 monthly rule",
+      "done": null,
+      "due": "2026-11-15",
+      "id": 1788278817296,
+      "notes": null,
+      "pay_type": null,
+      "period": "Nov 2026",
+      "status": "pending"
+    },
+    "id": 109,
+    "op": "DELETE",
+    "row_id": 1788278817296,
+    "tbl": "txns"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
       "amount": 12345.67,
       "cat": "Rental Expense",
       "check_no": null,
@@ -68,6 +302,598 @@
     "op": "INSERT",
     "row_id": 1788275208028,
     "tbl": "txns"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": null,
+    "at": "2026-09-01T16:06:57.500933+00:00",
+    "before": {
+      "amount": 1000,
+      "cat": "Rental Expense",
+      "check_no": null,
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:06:57.420302+00:00",
+      "description": "E2E-mtiv0h6k-3 monthly rule",
+      "done": null,
+      "due": "2026-11-15",
+      "id": 1788278817297,
+      "notes": null,
+      "pay_type": null,
+      "period": "Nov 2026",
+      "status": "pending"
+    },
+    "id": 110,
+    "op": "DELETE",
+    "row_id": 1788278817297,
+    "tbl": "txns"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "data": {
+        "categories": [
+          "Accounting Services",
+          "Advertising Expense",
+          "Alan Expense",
+          "Consultancy Fee",
+          "Credit card",
+          "General Expense",
+          "Jack Expense",
+          "Legal Services",
+          "Other",
+          "Petty Cash Fund",
+          "Rental Expense",
+          "Salary & Wages",
+          "Withholding Taxes"
+        ],
+        "companies": [
+          "ANG",
+          "BAR",
+          "BSC",
+          "CUPA",
+          "DNN",
+          "E2E380",
+          "FEPA",
+          "GTOI",
+          "GZZ",
+          "HAL",
+          "MCR",
+          "MIC",
+          "OPT",
+          "SHK",
+          "TOR",
+          "VAR",
+          "VER",
+          "VNQ",
+          "WDO",
+          "ZON",
+          "ZPH",
+          "ZSM"
+        ],
+        "notes": [
+          {
+            "done": false,
+            "linked": false,
+            "t": "File Gov't Contributio Payments"
+          }
+        ],
+        "settings": {
+          "ackDefaultStatus": "Pending",
+          "ackRequirePhoto": false,
+          "dashDefaultScope": "All companies",
+          "dashShowNotes": true,
+          "dashWindow": "Next 30 days",
+          "mlDefaultFreq": "Monthly",
+          "trkGroupDefault": "Company",
+          "trkOverdueRed": true,
+          "trkShowGrandTotal": true,
+          "warnDuplicate": true
+        }
+      },
+      "id": true,
+      "updated_at": "2026-09-01T16:07:00.784337+00:00"
+    },
+    "at": "2026-09-01T16:07:00.784337+00:00",
+    "before": {
+      "data": {
+        "categories": [
+          "Accounting Services",
+          "Advertising Expense",
+          "Alan Expense",
+          "Consultancy Fee",
+          "Credit card",
+          "General Expense",
+          "Jack Expense",
+          "Legal Services",
+          "Other",
+          "Petty Cash Fund",
+          "Rental Expense",
+          "Salary & Wages",
+          "Withholding Taxes"
+        ],
+        "companies": [
+          "ANG",
+          "BAR",
+          "BSC",
+          "CUPA",
+          "DNN",
+          "FEPA",
+          "GTOI",
+          "GZZ",
+          "HAL",
+          "MCR",
+          "MIC",
+          "OPT",
+          "SHK",
+          "TOR",
+          "VAR",
+          "VER",
+          "VNQ",
+          "WDO",
+          "ZON",
+          "ZPH",
+          "ZSM"
+        ],
+        "notes": [
+          {
+            "done": false,
+            "linked": false,
+            "t": "File Gov't Contributio Payments"
+          }
+        ],
+        "settings": {
+          "ackDefaultStatus": "Pending",
+          "ackRequirePhoto": false,
+          "dashDefaultScope": "All companies",
+          "dashShowNotes": true,
+          "dashWindow": "Next 30 days",
+          "mlDefaultFreq": "Monthly",
+          "trkGroupDefault": "Company",
+          "trkOverdueRed": true,
+          "trkShowGrandTotal": true,
+          "warnDuplicate": true
+        }
+      },
+      "id": true,
+      "updated_at": "2026-09-01T15:08:09.516384+00:00"
+    },
+    "id": 111,
+    "op": "UPDATE",
+    "row_id": null,
+    "tbl": "app_config"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "data": {
+        "categories": [
+          "Accounting Services",
+          "Advertising Expense",
+          "Alan Expense",
+          "Consultancy Fee",
+          "Credit card",
+          "General Expense",
+          "Jack Expense",
+          "Legal Services",
+          "Other",
+          "Petty Cash Fund",
+          "Rental Expense",
+          "Salary & Wages",
+          "Withholding Taxes"
+        ],
+        "companies": [
+          "ANG",
+          "BAR",
+          "BSC",
+          "CUPA",
+          "DNN",
+          "FEPA",
+          "GTOI",
+          "GZZ",
+          "HAL",
+          "MCR",
+          "MIC",
+          "OPT",
+          "SHK",
+          "TOR",
+          "VAR",
+          "VER",
+          "VNQ",
+          "WDO",
+          "ZON",
+          "ZPH",
+          "ZSM"
+        ],
+        "notes": [
+          {
+            "done": false,
+            "linked": false,
+            "t": "File Gov't Contributio Payments"
+          }
+        ],
+        "settings": {
+          "ackDefaultStatus": "Pending",
+          "ackRequirePhoto": false,
+          "dashDefaultScope": "All companies",
+          "dashShowNotes": true,
+          "dashWindow": "Next 30 days",
+          "mlDefaultFreq": "Monthly",
+          "trkGroupDefault": "Company",
+          "trkOverdueRed": true,
+          "trkShowGrandTotal": true,
+          "warnDuplicate": true
+        }
+      },
+      "id": true,
+      "updated_at": "2026-09-01T16:07:02.111255+00:00"
+    },
+    "at": "2026-09-01T16:07:02.111255+00:00",
+    "before": {
+      "data": {
+        "categories": [
+          "Accounting Services",
+          "Advertising Expense",
+          "Alan Expense",
+          "Consultancy Fee",
+          "Credit card",
+          "General Expense",
+          "Jack Expense",
+          "Legal Services",
+          "Other",
+          "Petty Cash Fund",
+          "Rental Expense",
+          "Salary & Wages",
+          "Withholding Taxes"
+        ],
+        "companies": [
+          "ANG",
+          "BAR",
+          "BSC",
+          "CUPA",
+          "DNN",
+          "E2E380",
+          "FEPA",
+          "GTOI",
+          "GZZ",
+          "HAL",
+          "MCR",
+          "MIC",
+          "OPT",
+          "SHK",
+          "TOR",
+          "VAR",
+          "VER",
+          "VNQ",
+          "WDO",
+          "ZON",
+          "ZPH",
+          "ZSM"
+        ],
+        "notes": [
+          {
+            "done": false,
+            "linked": false,
+            "t": "File Gov't Contributio Payments"
+          }
+        ],
+        "settings": {
+          "ackDefaultStatus": "Pending",
+          "ackRequirePhoto": false,
+          "dashDefaultScope": "All companies",
+          "dashShowNotes": true,
+          "dashWindow": "Next 30 days",
+          "mlDefaultFreq": "Monthly",
+          "trkGroupDefault": "Company",
+          "trkOverdueRed": true,
+          "trkShowGrandTotal": true,
+          "warnDuplicate": true
+        }
+      },
+      "id": true,
+      "updated_at": "2026-09-01T16:07:00.784337+00:00"
+    },
+    "id": 112,
+    "op": "UPDATE",
+    "row_id": null,
+    "tbl": "app_config"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "amount": 1,
+      "cat": "Other",
+      "check_no": null,
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:07:04.299947+00:00",
+      "description": "E2E-mtiv0h6k <img src=x onerror=window.__xssFired()><script>window.__xssFired()</script>",
+      "done": null,
+      "due": "2026-09-02",
+      "id": 1788278824165,
+      "notes": null,
+      "pay_type": null,
+      "period": "Sep 2026",
+      "status": "pending"
+    },
+    "at": "2026-09-01T16:07:04.299947+00:00",
+    "before": null,
+    "id": 113,
+    "op": "INSERT",
+    "row_id": 1788278824165,
+    "tbl": "txns"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": null,
+    "at": "2026-09-01T16:07:05.257927+00:00",
+    "before": {
+      "amount": 1,
+      "cat": "Other",
+      "check_no": null,
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:07:04.299947+00:00",
+      "description": "E2E-mtiv0h6k <img src=x onerror=window.__xssFired()><script>window.__xssFired()</script>",
+      "done": null,
+      "due": "2026-09-02",
+      "id": 1788278824165,
+      "notes": null,
+      "pay_type": null,
+      "period": "Sep 2026",
+      "status": "pending"
+    },
+    "id": 114,
+    "op": "DELETE",
+    "row_id": 1788278824165,
+    "tbl": "txns"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "actual": null,
+      "amount": 4000,
+      "co": "VAR",
+      "created_at": "2026-09-01T16:07:07.002778+00:00",
+      "date": null,
+      "description": "E2E-mtiv0h6k-4 cash advance",
+      "file_path": null,
+      "id": 1788278827800,
+      "name": "E2E-mtiv0h6k-4 holder",
+      "status": "released"
+    },
+    "at": "2026-09-01T16:07:07.002778+00:00",
+    "before": null,
+    "id": 115,
+    "op": "INSERT",
+    "row_id": 1788278827800,
+    "tbl": "receipts"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "actual": 2500,
+      "amount": 4000,
+      "co": "VAR",
+      "created_at": "2026-09-01T16:07:07.002778+00:00",
+      "date": "2026-09-02",
+      "description": "E2E-mtiv0h6k-4 cash advance",
+      "file_path": "1788278827800/1788278828032.pdf",
+      "id": 1788278827800,
+      "name": "E2E-mtiv0h6k-4 holder",
+      "status": "liquidated"
+    },
+    "at": "2026-09-01T16:07:08.310913+00:00",
+    "before": {
+      "actual": null,
+      "amount": 4000,
+      "co": "VAR",
+      "created_at": "2026-09-01T16:07:07.002778+00:00",
+      "date": null,
+      "description": "E2E-mtiv0h6k-4 cash advance",
+      "file_path": null,
+      "id": 1788278827800,
+      "name": "E2E-mtiv0h6k-4 holder",
+      "status": "released"
+    },
+    "id": 116,
+    "op": "UPDATE",
+    "row_id": 1788278827800,
+    "tbl": "receipts"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "actual": null,
+      "amount": 4000,
+      "co": "VAR",
+      "created_at": "2026-09-01T16:07:07.002778+00:00",
+      "date": null,
+      "description": "E2E-mtiv0h6k-4 cash advance",
+      "file_path": "1788278827800/1788278828032.pdf",
+      "id": 1788278827800,
+      "name": "E2E-mtiv0h6k-4 holder",
+      "status": "released"
+    },
+    "at": "2026-09-01T16:07:10.045578+00:00",
+    "before": {
+      "actual": 2500,
+      "amount": 4000,
+      "co": "VAR",
+      "created_at": "2026-09-01T16:07:07.002778+00:00",
+      "date": "2026-09-02",
+      "description": "E2E-mtiv0h6k-4 cash advance",
+      "file_path": "1788278827800/1788278828032.pdf",
+      "id": 1788278827800,
+      "name": "E2E-mtiv0h6k-4 holder",
+      "status": "liquidated"
+    },
+    "id": 117,
+    "op": "UPDATE",
+    "row_id": 1788278827800,
+    "tbl": "receipts"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "actual": null,
+      "amount": 3000,
+      "co": "VAR",
+      "created_at": "2026-09-01T16:07:10.315514+00:00",
+      "date": null,
+      "description": "E2E-mtiv0h6k-5 cash advance",
+      "file_path": null,
+      "id": 1788278831111,
+      "name": "E2E-mtiv0h6k-5 holder",
+      "status": "released"
+    },
+    "at": "2026-09-01T16:07:10.315514+00:00",
+    "before": null,
+    "id": 118,
+    "op": "INSERT",
+    "row_id": 1788278831111,
+    "tbl": "receipts"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "data": {
+        "categories": [
+          "Accounting Services",
+          "Advertising Expense",
+          "Alan Expense",
+          "Consultancy Fee",
+          "Credit card",
+          "General Expense",
+          "Jack Expense",
+          "Legal Services",
+          "Other",
+          "Petty Cash Fund",
+          "Rental Expense",
+          "Salary & Wages",
+          "Withholding Taxes"
+        ],
+        "companies": [
+          "ANG",
+          "BAR",
+          "BSC",
+          "CUPA",
+          "DNN",
+          "FEPA",
+          "GTOI",
+          "GZZ",
+          "HAL",
+          "MCR",
+          "MIC",
+          "OPT",
+          "SHK",
+          "TOR",
+          "VAR",
+          "VER",
+          "VNQ",
+          "WDO",
+          "ZON",
+          "ZPH",
+          "ZSM"
+        ],
+        "notes": [
+          {
+            "done": false,
+            "linked": false,
+            "t": "File Gov't Contributio Payments"
+          }
+        ],
+        "settings": {
+          "ackDefaultStatus": "Pending",
+          "ackRequirePhoto": true,
+          "dashDefaultScope": "All companies",
+          "dashShowNotes": true,
+          "dashWindow": "Next 30 days",
+          "mlDefaultFreq": "Monthly",
+          "trkGroupDefault": "Company",
+          "trkOverdueRed": true,
+          "trkShowGrandTotal": true,
+          "warnDuplicate": true
+        }
+      },
+      "id": true,
+      "updated_at": "2026-09-01T16:07:12.890559+00:00"
+    },
+    "at": "2026-09-01T16:07:12.890559+00:00",
+    "before": {
+      "data": {
+        "categories": [
+          "Accounting Services",
+          "Advertising Expense",
+          "Alan Expense",
+          "Consultancy Fee",
+          "Credit card",
+          "General Expense",
+          "Jack Expense",
+          "Legal Services",
+          "Other",
+          "Petty Cash Fund",
+          "Rental Expense",
+          "Salary & Wages",
+          "Withholding Taxes"
+        ],
+        "companies": [
+          "ANG",
+          "BAR",
+          "BSC",
+          "CUPA",
+          "DNN",
+          "FEPA",
+          "GTOI",
+          "GZZ",
+          "HAL",
+          "MCR",
+          "MIC",
+          "OPT",
+          "SHK",
+          "TOR",
+          "VAR",
+          "VER",
+          "VNQ",
+          "WDO",
+          "ZON",
+          "ZPH",
+          "ZSM"
+        ],
+        "notes": [
+          {
+            "done": false,
+            "linked": false,
+            "t": "File Gov't Contributio Payments"
+          }
+        ],
+        "settings": {
+          "ackDefaultStatus": "Pending",
+          "ackRequirePhoto": false,
+          "dashDefaultScope": "All companies",
+          "dashShowNotes": true,
+          "dashWindow": "Next 30 days",
+          "mlDefaultFreq": "Monthly",
+          "trkGroupDefault": "Company",
+          "trkOverdueRed": true,
+          "trkShowGrandTotal": true,
+          "warnDuplicate": true
+        }
+      },
+      "id": true,
+      "updated_at": "2026-09-01T16:07:02.111255+00:00"
+    },
+    "id": 119,
+    "op": "UPDATE",
+    "row_id": null,
+    "tbl": "app_config"
   },
   {
     "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
@@ -112,6 +938,460 @@
     "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
     "actor_email": "millaveemmanuel15@gmail.com",
     "after": {
+      "data": {
+        "categories": [
+          "Accounting Services",
+          "Advertising Expense",
+          "Alan Expense",
+          "Consultancy Fee",
+          "Credit card",
+          "General Expense",
+          "Jack Expense",
+          "Legal Services",
+          "Other",
+          "Petty Cash Fund",
+          "Rental Expense",
+          "Salary & Wages",
+          "Withholding Taxes"
+        ],
+        "companies": [
+          "ANG",
+          "BAR",
+          "BSC",
+          "CUPA",
+          "DNN",
+          "FEPA",
+          "GTOI",
+          "GZZ",
+          "HAL",
+          "MCR",
+          "MIC",
+          "OPT",
+          "SHK",
+          "TOR",
+          "VAR",
+          "VER",
+          "VNQ",
+          "WDO",
+          "ZON",
+          "ZPH",
+          "ZSM"
+        ],
+        "notes": [
+          {
+            "done": false,
+            "linked": false,
+            "t": "File Gov't Contributio Payments"
+          }
+        ],
+        "settings": {
+          "ackDefaultStatus": "Pending",
+          "ackRequirePhoto": false,
+          "dashDefaultScope": "All companies",
+          "dashShowNotes": true,
+          "dashWindow": "Next 30 days",
+          "mlDefaultFreq": "Monthly",
+          "trkGroupDefault": "Company",
+          "trkOverdueRed": true,
+          "trkShowGrandTotal": true,
+          "warnDuplicate": true
+        }
+      },
+      "id": true,
+      "updated_at": "2026-09-01T16:07:13.885972+00:00"
+    },
+    "at": "2026-09-01T16:07:13.885972+00:00",
+    "before": {
+      "data": {
+        "categories": [
+          "Accounting Services",
+          "Advertising Expense",
+          "Alan Expense",
+          "Consultancy Fee",
+          "Credit card",
+          "General Expense",
+          "Jack Expense",
+          "Legal Services",
+          "Other",
+          "Petty Cash Fund",
+          "Rental Expense",
+          "Salary & Wages",
+          "Withholding Taxes"
+        ],
+        "companies": [
+          "ANG",
+          "BAR",
+          "BSC",
+          "CUPA",
+          "DNN",
+          "FEPA",
+          "GTOI",
+          "GZZ",
+          "HAL",
+          "MCR",
+          "MIC",
+          "OPT",
+          "SHK",
+          "TOR",
+          "VAR",
+          "VER",
+          "VNQ",
+          "WDO",
+          "ZON",
+          "ZPH",
+          "ZSM"
+        ],
+        "notes": [
+          {
+            "done": false,
+            "linked": false,
+            "t": "File Gov't Contributio Payments"
+          }
+        ],
+        "settings": {
+          "ackDefaultStatus": "Pending",
+          "ackRequirePhoto": true,
+          "dashDefaultScope": "All companies",
+          "dashShowNotes": true,
+          "dashWindow": "Next 30 days",
+          "mlDefaultFreq": "Monthly",
+          "trkGroupDefault": "Company",
+          "trkOverdueRed": true,
+          "trkShowGrandTotal": true,
+          "warnDuplicate": true
+        }
+      },
+      "id": true,
+      "updated_at": "2026-09-01T16:07:12.890559+00:00"
+    },
+    "id": 120,
+    "op": "UPDATE",
+    "row_id": null,
+    "tbl": "app_config"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "data": {
+        "categories": [
+          "Accounting Services",
+          "Advertising Expense",
+          "Alan Expense",
+          "Consultancy Fee",
+          "Credit card",
+          "General Expense",
+          "Jack Expense",
+          "Legal Services",
+          "Other",
+          "Petty Cash Fund",
+          "Rental Expense",
+          "Salary & Wages",
+          "Withholding Taxes"
+        ],
+        "companies": [
+          "ANG",
+          "BAR",
+          "BSC",
+          "CUPA",
+          "DNN",
+          "FEPA",
+          "GTOI",
+          "GZZ",
+          "HAL",
+          "MCR",
+          "MIC",
+          "OPT",
+          "SHK",
+          "TOR",
+          "VAR",
+          "VER",
+          "VNQ",
+          "WDO",
+          "ZON",
+          "ZPH",
+          "ZSM"
+        ],
+        "notes": [
+          {
+            "done": false,
+            "linked": false,
+            "t": "File Gov't Contributio Payments"
+          }
+        ],
+        "settings": {
+          "ackDefaultStatus": "Pending",
+          "ackRequirePhoto": false,
+          "dashDefaultScope": "All companies",
+          "dashShowNotes": true,
+          "dashWindow": "Next 30 days",
+          "mlDefaultFreq": "Monthly",
+          "trkGroupDefault": "Company",
+          "trkOverdueRed": true,
+          "trkShowGrandTotal": true,
+          "warnDuplicate": true
+        }
+      },
+      "id": true,
+      "updated_at": "2026-09-01T16:07:16.024569+00:00"
+    },
+    "at": "2026-09-01T16:07:16.024569+00:00",
+    "before": {
+      "data": {
+        "categories": [
+          "Accounting Services",
+          "Advertising Expense",
+          "Alan Expense",
+          "Consultancy Fee",
+          "Credit card",
+          "General Expense",
+          "Jack Expense",
+          "Legal Services",
+          "Other",
+          "Petty Cash Fund",
+          "Rental Expense",
+          "Salary & Wages",
+          "Withholding Taxes"
+        ],
+        "companies": [
+          "ANG",
+          "BAR",
+          "BSC",
+          "CUPA",
+          "DNN",
+          "FEPA",
+          "GTOI",
+          "GZZ",
+          "HAL",
+          "MCR",
+          "MIC",
+          "OPT",
+          "SHK",
+          "TOR",
+          "VAR",
+          "VER",
+          "VNQ",
+          "WDO",
+          "ZON",
+          "ZPH",
+          "ZSM"
+        ],
+        "notes": [
+          {
+            "done": false,
+            "linked": false,
+            "t": "File Gov't Contributio Payments"
+          }
+        ],
+        "settings": {
+          "ackDefaultStatus": "Pending",
+          "ackRequirePhoto": false,
+          "dashDefaultScope": "All companies",
+          "dashShowNotes": true,
+          "dashWindow": "Next 30 days",
+          "mlDefaultFreq": "Monthly",
+          "trkGroupDefault": "Company",
+          "trkOverdueRed": true,
+          "trkShowGrandTotal": true,
+          "warnDuplicate": true
+        }
+      },
+      "id": true,
+      "updated_at": "2026-09-01T16:07:13.885972+00:00"
+    },
+    "id": 121,
+    "op": "UPDATE",
+    "row_id": null,
+    "tbl": "app_config"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "amount": 100,
+      "cat": "Legal Services",
+      "check_no": null,
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:07:16.112508+00:00",
+      "description": "E2E-mtiv0h6k-dup the original",
+      "done": null,
+      "due": null,
+      "id": 1788278835913,
+      "notes": null,
+      "pay_type": null,
+      "period": "Sep 2026",
+      "status": "pending"
+    },
+    "at": "2026-09-01T16:07:16.112508+00:00",
+    "before": null,
+    "id": 122,
+    "op": "INSERT",
+    "row_id": 1788278835913,
+    "tbl": "txns"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "amount": 10,
+      "cat": "Legal Services",
+      "check_no": null,
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:07:17.323808+00:00",
+      "description": "E2E-mtiv0h6k-dup the duplicate",
+      "done": null,
+      "due": "2026-09-02",
+      "id": 1788278837198,
+      "notes": null,
+      "pay_type": null,
+      "period": "Sep 2026",
+      "status": "pending"
+    },
+    "at": "2026-09-01T16:07:17.323808+00:00",
+    "before": null,
+    "id": 123,
+    "op": "INSERT",
+    "row_id": 1788278837198,
+    "tbl": "txns"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": null,
+    "at": "2026-09-01T16:07:17.586095+00:00",
+    "before": {
+      "amount": 100,
+      "cat": "Legal Services",
+      "check_no": null,
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:07:16.112508+00:00",
+      "description": "E2E-mtiv0h6k-dup the original",
+      "done": null,
+      "due": null,
+      "id": 1788278835913,
+      "notes": null,
+      "pay_type": null,
+      "period": "Sep 2026",
+      "status": "pending"
+    },
+    "id": 124,
+    "op": "DELETE",
+    "row_id": 1788278835913,
+    "tbl": "txns"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": null,
+    "at": "2026-09-01T16:07:17.586095+00:00",
+    "before": {
+      "amount": 10,
+      "cat": "Legal Services",
+      "check_no": null,
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:07:17.323808+00:00",
+      "description": "E2E-mtiv0h6k-dup the duplicate",
+      "done": null,
+      "due": "2026-09-02",
+      "id": 1788278837198,
+      "notes": null,
+      "pay_type": null,
+      "period": "Sep 2026",
+      "status": "pending"
+    },
+    "id": 125,
+    "op": "DELETE",
+    "row_id": 1788278837198,
+    "tbl": "txns"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": null,
+    "at": "2026-09-01T16:07:18.02063+00:00",
+    "before": {
+      "amount": 1000,
+      "cat": "Rental Expense",
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:06:52.013662+00:00",
+      "description": "E2E-mtiv0h6k-2 monthly rule",
+      "due_date": "2026-12-15",
+      "freq": "Monthly",
+      "id": 1788278812652
+    },
+    "id": 126,
+    "op": "DELETE",
+    "row_id": 1788278812652,
+    "tbl": "recurring"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": null,
+    "at": "2026-09-01T16:07:18.02063+00:00",
+    "before": {
+      "amount": 1000,
+      "cat": "Rental Expense",
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:06:56.324938+00:00",
+      "description": "E2E-mtiv0h6k-3 monthly rule",
+      "due_date": "2026-11-15",
+      "freq": "Monthly",
+      "id": 1788278816374
+    },
+    "id": 127,
+    "op": "DELETE",
+    "row_id": 1788278816374,
+    "tbl": "recurring"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": null,
+    "at": "2026-09-01T16:07:18.081231+00:00",
+    "before": {
+      "actual": null,
+      "amount": 5000,
+      "co": "VAR",
+      "created_at": "2026-09-01T16:06:44.013882+00:00",
+      "date": null,
+      "description": "E2E-mtiv0h6k-1 cash advance",
+      "file_path": null,
+      "id": 1788278804637,
+      "name": "E2E-mtiv0h6k-1 holder",
+      "status": "released"
+    },
+    "id": 128,
+    "op": "DELETE",
+    "row_id": 1788278804637,
+    "tbl": "receipts"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": null,
+    "at": "2026-09-01T16:07:18.081231+00:00",
+    "before": {
+      "actual": null,
+      "amount": 4000,
+      "co": "VAR",
+      "created_at": "2026-09-01T16:07:07.002778+00:00",
+      "date": null,
+      "description": "E2E-mtiv0h6k-4 cash advance",
+      "file_path": "1788278827800/1788278828032.pdf",
+      "id": 1788278827800,
+      "name": "E2E-mtiv0h6k-4 holder",
+      "status": "released"
+    },
+    "id": 129,
+    "op": "DELETE",
+    "row_id": 1788278827800,
+    "tbl": "receipts"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
       "amount": 999.5,
       "cat": "Rental Expense",
       "check_no": "004821",
@@ -151,6 +1431,574 @@
     "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
     "actor_email": "millaveemmanuel15@gmail.com",
     "after": null,
+    "at": "2026-09-01T16:07:18.081231+00:00",
+    "before": {
+      "actual": null,
+      "amount": 3000,
+      "co": "VAR",
+      "created_at": "2026-09-01T16:07:10.315514+00:00",
+      "date": null,
+      "description": "E2E-mtiv0h6k-5 cash advance",
+      "file_path": null,
+      "id": 1788278831111,
+      "name": "E2E-mtiv0h6k-5 holder",
+      "status": "released"
+    },
+    "id": 130,
+    "op": "DELETE",
+    "row_id": 1788278831111,
+    "tbl": "receipts"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "data": {
+        "categories": [
+          "Accounting Services",
+          "Advertising Expense",
+          "Alan Expense",
+          "Consultancy Fee",
+          "Credit card",
+          "General Expense",
+          "Jack Expense",
+          "Legal Services",
+          "Other",
+          "Petty Cash Fund",
+          "Rental Expense",
+          "Salary & Wages",
+          "Withholding Taxes"
+        ],
+        "companies": [
+          "ANG",
+          "BAR",
+          "BSC",
+          "CUPA",
+          "DNN",
+          "FEPA",
+          "GTOI",
+          "GZZ",
+          "HAL",
+          "MCR",
+          "MIC",
+          "OPT",
+          "SHK",
+          "TOR",
+          "VAR",
+          "VER",
+          "VNQ",
+          "WDO",
+          "ZON",
+          "ZPH",
+          "ZSM"
+        ],
+        "notes": [
+          {
+            "done": false,
+            "linked": false,
+            "t": "File Gov't Contributio Payments"
+          }
+        ],
+        "settings": {
+          "ackDefaultStatus": "Pending",
+          "ackRequirePhoto": false,
+          "dashDefaultScope": "All companies",
+          "dashShowNotes": true,
+          "dashWindow": "Next 30 days",
+          "mlDefaultFreq": "Monthly",
+          "trkGroupDefault": "Company",
+          "trkOverdueRed": true,
+          "trkShowGrandTotal": true,
+          "warnDuplicate": true
+        }
+      },
+      "id": true,
+      "updated_at": "2026-09-01T16:07:18.469038+00:00"
+    },
+    "at": "2026-09-01T16:07:18.469038+00:00",
+    "before": {
+      "data": {
+        "categories": [
+          "Accounting Services",
+          "Advertising Expense",
+          "Alan Expense",
+          "Consultancy Fee",
+          "Credit card",
+          "General Expense",
+          "Jack Expense",
+          "Legal Services",
+          "Other",
+          "Petty Cash Fund",
+          "Rental Expense",
+          "Salary & Wages",
+          "Withholding Taxes"
+        ],
+        "companies": [
+          "ANG",
+          "BAR",
+          "BSC",
+          "CUPA",
+          "DNN",
+          "FEPA",
+          "GTOI",
+          "GZZ",
+          "HAL",
+          "MCR",
+          "MIC",
+          "OPT",
+          "SHK",
+          "TOR",
+          "VAR",
+          "VER",
+          "VNQ",
+          "WDO",
+          "ZON",
+          "ZPH",
+          "ZSM"
+        ],
+        "notes": [
+          {
+            "done": false,
+            "linked": false,
+            "t": "File Gov't Contributio Payments"
+          }
+        ],
+        "settings": {
+          "ackDefaultStatus": "Pending",
+          "ackRequirePhoto": false,
+          "dashDefaultScope": "All companies",
+          "dashShowNotes": true,
+          "dashWindow": "Next 30 days",
+          "mlDefaultFreq": "Monthly",
+          "trkGroupDefault": "Company",
+          "trkOverdueRed": true,
+          "trkShowGrandTotal": true,
+          "warnDuplicate": true
+        }
+      },
+      "id": true,
+      "updated_at": "2026-09-01T16:07:16.024569+00:00"
+    },
+    "id": 131,
+    "op": "UPDATE",
+    "row_id": null,
+    "tbl": "app_config"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "data": {
+        "categories": [
+          "Accounting Services",
+          "Advertising Expense",
+          "Alan Expense",
+          "Consultancy Fee",
+          "Credit card",
+          "General Expense",
+          "Jack Expense",
+          "Legal Services",
+          "Other",
+          "Petty Cash Fund",
+          "Rental Expense",
+          "Salary & Wages",
+          "Withholding Taxes"
+        ],
+        "companies": [
+          "ANG",
+          "BAR",
+          "BSC",
+          "CUPA",
+          "DNN",
+          "FEPA",
+          "GTOI",
+          "GZZ",
+          "HAL",
+          "MCR",
+          "MIC",
+          "OPT",
+          "SHK",
+          "TOR",
+          "VAR",
+          "VER",
+          "VNQ",
+          "WDO",
+          "ZON",
+          "ZPH",
+          "ZSM"
+        ],
+        "notes": [
+          {
+            "done": false,
+            "linked": false,
+            "t": "File Gov't Contributio Payments"
+          }
+        ],
+        "settings": {
+          "ackDefaultStatus": "Pending",
+          "ackRequirePhoto": false,
+          "dashDefaultScope": "All companies",
+          "dashShowNotes": true,
+          "dashWindow": "Next 90 days",
+          "mlDefaultFreq": "Monthly",
+          "trkGroupDefault": "Company",
+          "trkOverdueRed": true,
+          "trkShowGrandTotal": true,
+          "warnDuplicate": true
+        }
+      },
+      "id": true,
+      "updated_at": "2026-09-01T16:07:21.261068+00:00"
+    },
+    "at": "2026-09-01T16:07:21.261068+00:00",
+    "before": {
+      "data": {
+        "categories": [
+          "Accounting Services",
+          "Advertising Expense",
+          "Alan Expense",
+          "Consultancy Fee",
+          "Credit card",
+          "General Expense",
+          "Jack Expense",
+          "Legal Services",
+          "Other",
+          "Petty Cash Fund",
+          "Rental Expense",
+          "Salary & Wages",
+          "Withholding Taxes"
+        ],
+        "companies": [
+          "ANG",
+          "BAR",
+          "BSC",
+          "CUPA",
+          "DNN",
+          "FEPA",
+          "GTOI",
+          "GZZ",
+          "HAL",
+          "MCR",
+          "MIC",
+          "OPT",
+          "SHK",
+          "TOR",
+          "VAR",
+          "VER",
+          "VNQ",
+          "WDO",
+          "ZON",
+          "ZPH",
+          "ZSM"
+        ],
+        "notes": [
+          {
+            "done": false,
+            "linked": false,
+            "t": "File Gov't Contributio Payments"
+          }
+        ],
+        "settings": {
+          "ackDefaultStatus": "Pending",
+          "ackRequirePhoto": false,
+          "dashDefaultScope": "All companies",
+          "dashShowNotes": true,
+          "dashWindow": "Next 30 days",
+          "mlDefaultFreq": "Monthly",
+          "trkGroupDefault": "Company",
+          "trkOverdueRed": true,
+          "trkShowGrandTotal": true,
+          "warnDuplicate": true
+        }
+      },
+      "id": true,
+      "updated_at": "2026-09-01T16:07:18.469038+00:00"
+    },
+    "id": 132,
+    "op": "UPDATE",
+    "row_id": null,
+    "tbl": "app_config"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "data": {
+        "categories": [
+          "Accounting Services",
+          "Advertising Expense",
+          "Alan Expense",
+          "Consultancy Fee",
+          "Credit card",
+          "General Expense",
+          "Jack Expense",
+          "Legal Services",
+          "Other",
+          "Petty Cash Fund",
+          "Rental Expense",
+          "Salary & Wages",
+          "Withholding Taxes"
+        ],
+        "companies": [
+          "ANG",
+          "BAR",
+          "BSC",
+          "CUPA",
+          "DNN",
+          "FEPA",
+          "GTOI",
+          "GZZ",
+          "HAL",
+          "MCR",
+          "MIC",
+          "OPT",
+          "SHK",
+          "TOR",
+          "VAR",
+          "VER",
+          "VNQ",
+          "WDO",
+          "ZON",
+          "ZPH",
+          "ZSM"
+        ],
+        "notes": [
+          {
+            "done": false,
+            "linked": false,
+            "t": "File Gov't Contributio Payments"
+          }
+        ],
+        "settings": {
+          "ackDefaultStatus": "Pending",
+          "ackRequirePhoto": false,
+          "dashDefaultScope": "All companies",
+          "dashShowNotes": true,
+          "dashWindow": "Next 30 days",
+          "mlDefaultFreq": "Monthly",
+          "trkGroupDefault": "Company",
+          "trkOverdueRed": true,
+          "trkShowGrandTotal": true,
+          "warnDuplicate": true
+        }
+      },
+      "id": true,
+      "updated_at": "2026-09-01T16:07:22.117627+00:00"
+    },
+    "at": "2026-09-01T16:07:22.117627+00:00",
+    "before": {
+      "data": {
+        "categories": [
+          "Accounting Services",
+          "Advertising Expense",
+          "Alan Expense",
+          "Consultancy Fee",
+          "Credit card",
+          "General Expense",
+          "Jack Expense",
+          "Legal Services",
+          "Other",
+          "Petty Cash Fund",
+          "Rental Expense",
+          "Salary & Wages",
+          "Withholding Taxes"
+        ],
+        "companies": [
+          "ANG",
+          "BAR",
+          "BSC",
+          "CUPA",
+          "DNN",
+          "FEPA",
+          "GTOI",
+          "GZZ",
+          "HAL",
+          "MCR",
+          "MIC",
+          "OPT",
+          "SHK",
+          "TOR",
+          "VAR",
+          "VER",
+          "VNQ",
+          "WDO",
+          "ZON",
+          "ZPH",
+          "ZSM"
+        ],
+        "notes": [
+          {
+            "done": false,
+            "linked": false,
+            "t": "File Gov't Contributio Payments"
+          }
+        ],
+        "settings": {
+          "ackDefaultStatus": "Pending",
+          "ackRequirePhoto": false,
+          "dashDefaultScope": "All companies",
+          "dashShowNotes": true,
+          "dashWindow": "Next 90 days",
+          "mlDefaultFreq": "Monthly",
+          "trkGroupDefault": "Company",
+          "trkOverdueRed": true,
+          "trkShowGrandTotal": true,
+          "warnDuplicate": true
+        }
+      },
+      "id": true,
+      "updated_at": "2026-09-01T16:07:21.261068+00:00"
+    },
+    "id": 133,
+    "op": "UPDATE",
+    "row_id": null,
+    "tbl": "app_config"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "actual": null,
+      "amount": 5000,
+      "co": "VAR",
+      "created_at": "2026-09-01T16:07:22.372848+00:00",
+      "date": null,
+      "description": "E2E-mtiv0h6k-6 cash advance",
+      "file_path": null,
+      "id": 1788278842537,
+      "name": "E2E-mtiv0h6k-6 holder",
+      "status": "released"
+    },
+    "at": "2026-09-01T16:07:22.372848+00:00",
+    "before": null,
+    "id": 134,
+    "op": "INSERT",
+    "row_id": 1788278842537,
+    "tbl": "receipts"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": null,
+    "at": "2026-09-01T16:07:24.762706+00:00",
+    "before": {
+      "actual": null,
+      "amount": 5000,
+      "co": "VAR",
+      "created_at": "2026-09-01T16:07:22.372848+00:00",
+      "date": null,
+      "description": "E2E-mtiv0h6k-6 cash advance",
+      "file_path": null,
+      "id": 1788278842537,
+      "name": "E2E-mtiv0h6k-6 holder",
+      "status": "released"
+    },
+    "id": 135,
+    "op": "DELETE",
+    "row_id": 1788278842537,
+    "tbl": "receipts"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "actual": null,
+      "amount": 5000,
+      "co": "VAR",
+      "created_at": "2026-09-01T16:07:25.583397+00:00",
+      "date": null,
+      "description": "E2E-mtiv0h6k-7 cash advance",
+      "file_path": null,
+      "id": 1788278845568,
+      "name": "E2E-mtiv0h6k-7 holder",
+      "status": "released"
+    },
+    "at": "2026-09-01T16:07:25.583397+00:00",
+    "before": null,
+    "id": 136,
+    "op": "INSERT",
+    "row_id": 1788278845568,
+    "tbl": "receipts"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "actual": null,
+      "amount": 7250,
+      "co": "VAR",
+      "created_at": "2026-09-01T16:07:25.583397+00:00",
+      "date": null,
+      "description": "E2E-mtiv0h6k-7 cash advance",
+      "file_path": null,
+      "id": 1788278845568,
+      "name": "E2E-mtiv0h6k-7 holder edited",
+      "status": "released"
+    },
+    "at": "2026-09-01T16:07:27.593671+00:00",
+    "before": {
+      "actual": null,
+      "amount": 5000,
+      "co": "VAR",
+      "created_at": "2026-09-01T16:07:25.583397+00:00",
+      "date": null,
+      "description": "E2E-mtiv0h6k-7 cash advance",
+      "file_path": null,
+      "id": 1788278845568,
+      "name": "E2E-mtiv0h6k-7 holder",
+      "status": "released"
+    },
+    "id": 137,
+    "op": "UPDATE",
+    "row_id": 1788278845568,
+    "tbl": "receipts"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": null,
+    "at": "2026-09-01T16:07:28.47024+00:00",
+    "before": {
+      "actual": null,
+      "amount": 7250,
+      "co": "VAR",
+      "created_at": "2026-09-01T16:07:25.583397+00:00",
+      "date": null,
+      "description": "E2E-mtiv0h6k-7 cash advance",
+      "file_path": null,
+      "id": 1788278845568,
+      "name": "E2E-mtiv0h6k-7 holder edited",
+      "status": "released"
+    },
+    "id": 138,
+    "op": "DELETE",
+    "row_id": 1788278845568,
+    "tbl": "receipts"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "amount": 38200,
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:07:31.357269+00:00",
+      "cur": "GBP",
+      "id": 1788278851235,
+      "name": "E2E-mtiv0h6k Sumitomo Metals",
+      "note": "E2E-mtiv0h6k steel order",
+      "status": "pending"
+    },
+    "at": "2026-09-01T16:07:31.357269+00:00",
+    "before": null,
+    "id": 139,
+    "op": "INSERT",
+    "row_id": 1788278851235,
+    "tbl": "transfers"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": null,
     "at": "2026-09-01T15:07:03.522897+00:00",
     "before": {
       "amount": 999.5,
@@ -176,6 +2024,388 @@
     "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
     "actor_email": "millaveemmanuel15@gmail.com",
     "after": {
+      "amount": 38200,
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:07:31.357269+00:00",
+      "cur": "GBP",
+      "id": 1788278851235,
+      "name": "E2E-mtiv0h6k Sumitomo Metals",
+      "note": "E2E-mtiv0h6k steel order",
+      "status": "released"
+    },
+    "at": "2026-09-01T16:07:32.011413+00:00",
+    "before": {
+      "amount": 38200,
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:07:31.357269+00:00",
+      "cur": "GBP",
+      "id": 1788278851235,
+      "name": "E2E-mtiv0h6k Sumitomo Metals",
+      "note": "E2E-mtiv0h6k steel order",
+      "status": "pending"
+    },
+    "id": 140,
+    "op": "UPDATE",
+    "row_id": 1788278851235,
+    "tbl": "transfers"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "amount": 41000,
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:07:31.357269+00:00",
+      "cur": "GBP",
+      "id": 1788278851235,
+      "name": "E2E-mtiv0h6k Sumitomo Metals",
+      "note": "E2E-mtiv0h6k steel order",
+      "status": "released"
+    },
+    "at": "2026-09-01T16:07:33.04969+00:00",
+    "before": {
+      "amount": 38200,
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:07:31.357269+00:00",
+      "cur": "GBP",
+      "id": 1788278851235,
+      "name": "E2E-mtiv0h6k Sumitomo Metals",
+      "note": "E2E-mtiv0h6k steel order",
+      "status": "released"
+    },
+    "id": 141,
+    "op": "UPDATE",
+    "row_id": 1788278851235,
+    "tbl": "transfers"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": null,
+    "at": "2026-09-01T16:07:34.494654+00:00",
+    "before": {
+      "amount": 41000,
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:07:31.357269+00:00",
+      "cur": "GBP",
+      "id": 1788278851235,
+      "name": "E2E-mtiv0h6k Sumitomo Metals",
+      "note": "E2E-mtiv0h6k steel order",
+      "status": "released"
+    },
+    "id": 142,
+    "op": "DELETE",
+    "row_id": 1788278851235,
+    "tbl": "transfers"
+  },
+  {
+    "actor": "02155e68-eb65-4089-989e-9a0485100ada",
+    "actor_email": "millaveemmanuel@gmail.com",
+    "after": {
+      "amount": 1234.5,
+      "cat": "Other",
+      "check_no": null,
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:07:37.775673+00:00",
+      "description": "smoke row",
+      "done": null,
+      "due": "2026-09-30",
+      "id": 1788278857672,
+      "notes": null,
+      "pay_type": null,
+      "period": "Sep 2026",
+      "status": "pending"
+    },
+    "at": "2026-09-01T16:07:37.775673+00:00",
+    "before": null,
+    "id": 143,
+    "op": "INSERT",
+    "row_id": 1788278857672,
+    "tbl": "txns"
+  },
+  {
+    "actor": "02155e68-eb65-4089-989e-9a0485100ada",
+    "actor_email": "millaveemmanuel@gmail.com",
+    "after": {
+      "amount": 1234.5,
+      "cat": "Other",
+      "check_no": "004182",
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:07:37.775673+00:00",
+      "description": "smoke row",
+      "done": "2026-09-01",
+      "due": "2026-09-30",
+      "id": 1788278857672,
+      "notes": null,
+      "pay_type": "Check",
+      "period": "Sep 2026",
+      "status": "completed"
+    },
+    "at": "2026-09-01T16:07:37.844813+00:00",
+    "before": {
+      "amount": 1234.5,
+      "cat": "Other",
+      "check_no": null,
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:07:37.775673+00:00",
+      "description": "smoke row",
+      "done": null,
+      "due": "2026-09-30",
+      "id": 1788278857672,
+      "notes": null,
+      "pay_type": null,
+      "period": "Sep 2026",
+      "status": "pending"
+    },
+    "id": 144,
+    "op": "UPDATE",
+    "row_id": 1788278857672,
+    "tbl": "txns"
+  },
+  {
+    "actor": "02155e68-eb65-4089-989e-9a0485100ada",
+    "actor_email": "millaveemmanuel@gmail.com",
+    "after": {
+      "actual": null,
+      "amount": 2000,
+      "co": "VAR",
+      "created_at": "2026-09-01T16:07:37.906968+00:00",
+      "date": null,
+      "description": "smoke advance",
+      "file_path": null,
+      "id": 1788278857804,
+      "name": "smoke holder",
+      "status": "released"
+    },
+    "at": "2026-09-01T16:07:37.906968+00:00",
+    "before": null,
+    "id": 145,
+    "op": "INSERT",
+    "row_id": 1788278857804,
+    "tbl": "receipts"
+  },
+  {
+    "actor": "02155e68-eb65-4089-989e-9a0485100ada",
+    "actor_email": "millaveemmanuel@gmail.com",
+    "after": {
+      "actual": 999,
+      "amount": 2000,
+      "co": "VAR",
+      "created_at": "2026-09-01T16:07:37.906968+00:00",
+      "date": "2026-09-01",
+      "description": "smoke advance",
+      "file_path": null,
+      "id": 1788278857804,
+      "name": "smoke holder",
+      "status": "liquidated"
+    },
+    "at": "2026-09-01T16:07:38.003704+00:00",
+    "before": {
+      "actual": null,
+      "amount": 2000,
+      "co": "VAR",
+      "created_at": "2026-09-01T16:07:37.906968+00:00",
+      "date": null,
+      "description": "smoke advance",
+      "file_path": null,
+      "id": 1788278857804,
+      "name": "smoke holder",
+      "status": "released"
+    },
+    "id": 146,
+    "op": "UPDATE",
+    "row_id": 1788278857804,
+    "tbl": "receipts"
+  },
+  {
+    "actor": "02155e68-eb65-4089-989e-9a0485100ada",
+    "actor_email": "millaveemmanuel@gmail.com",
+    "after": {
+      "amount": 3400,
+      "co": "ZON",
+      "created_at": "2026-09-01T16:07:38.105511+00:00",
+      "cur": "GBP",
+      "id": 1788278857962,
+      "name": "smoke beneficiary",
+      "note": "smoke wire",
+      "status": "pending"
+    },
+    "at": "2026-09-01T16:07:38.105511+00:00",
+    "before": null,
+    "id": 147,
+    "op": "INSERT",
+    "row_id": 1788278857962,
+    "tbl": "transfers"
+  },
+  {
+    "actor": "02155e68-eb65-4089-989e-9a0485100ada",
+    "actor_email": "millaveemmanuel@gmail.com",
+    "after": {
+      "amount": 3400,
+      "co": "ZON",
+      "created_at": "2026-09-01T16:07:38.105511+00:00",
+      "cur": "GBP",
+      "id": 1788278857962,
+      "name": "smoke beneficiary",
+      "note": "smoke wire released",
+      "status": "released"
+    },
+    "at": "2026-09-01T16:07:38.18495+00:00",
+    "before": {
+      "amount": 3400,
+      "co": "ZON",
+      "created_at": "2026-09-01T16:07:38.105511+00:00",
+      "cur": "GBP",
+      "id": 1788278857962,
+      "name": "smoke beneficiary",
+      "note": "smoke wire",
+      "status": "pending"
+    },
+    "id": 148,
+    "op": "UPDATE",
+    "row_id": 1788278857962,
+    "tbl": "transfers"
+  },
+  {
+    "actor": "02155e68-eb65-4089-989e-9a0485100ada",
+    "actor_email": "millaveemmanuel@gmail.com",
+    "after": {
+      "data": {
+        "categories": [
+          "Accounting Services",
+          "Advertising Expense",
+          "Alan Expense",
+          "Consultancy Fee",
+          "Credit card",
+          "General Expense",
+          "Jack Expense",
+          "Legal Services",
+          "Other",
+          "Petty Cash Fund",
+          "Rental Expense",
+          "Salary & Wages",
+          "Withholding Taxes",
+          "Smoke Category"
+        ],
+        "companies": [
+          "ANG",
+          "BAR",
+          "BSC",
+          "CUPA",
+          "DNN",
+          "FEPA",
+          "GTOI",
+          "GZZ",
+          "HAL",
+          "MCR",
+          "MIC",
+          "OPT",
+          "SHK",
+          "TOR",
+          "VAR",
+          "VER",
+          "VNQ",
+          "WDO",
+          "ZON",
+          "ZPH",
+          "ZSM"
+        ],
+        "notes": [
+          {
+            "done": false,
+            "linked": false,
+            "t": "File Gov't Contributio Payments"
+          }
+        ],
+        "settings": {
+          "ackDefaultStatus": "Pending",
+          "ackRequirePhoto": false,
+          "dashDefaultScope": "All companies",
+          "dashShowNotes": true,
+          "dashWindow": "Next 30 days",
+          "mlDefaultFreq": "Monthly",
+          "trkGroupDefault": "Company",
+          "trkOverdueRed": true,
+          "trkShowGrandTotal": true,
+          "warnDuplicate": true
+        }
+      },
+      "id": true,
+      "updated_at": "2026-09-01T16:07:38.244878+00:00"
+    },
+    "at": "2026-09-01T16:07:38.244878+00:00",
+    "before": {
+      "data": {
+        "categories": [
+          "Accounting Services",
+          "Advertising Expense",
+          "Alan Expense",
+          "Consultancy Fee",
+          "Credit card",
+          "General Expense",
+          "Jack Expense",
+          "Legal Services",
+          "Other",
+          "Petty Cash Fund",
+          "Rental Expense",
+          "Salary & Wages",
+          "Withholding Taxes"
+        ],
+        "companies": [
+          "ANG",
+          "BAR",
+          "BSC",
+          "CUPA",
+          "DNN",
+          "FEPA",
+          "GTOI",
+          "GZZ",
+          "HAL",
+          "MCR",
+          "MIC",
+          "OPT",
+          "SHK",
+          "TOR",
+          "VAR",
+          "VER",
+          "VNQ",
+          "WDO",
+          "ZON",
+          "ZPH",
+          "ZSM"
+        ],
+        "notes": [
+          {
+            "done": false,
+            "linked": false,
+            "t": "File Gov't Contributio Payments"
+          }
+        ],
+        "settings": {
+          "ackDefaultStatus": "Pending",
+          "ackRequirePhoto": false,
+          "dashDefaultScope": "All companies",
+          "dashShowNotes": true,
+          "dashWindow": "Next 30 days",
+          "mlDefaultFreq": "Monthly",
+          "trkGroupDefault": "Company",
+          "trkOverdueRed": true,
+          "trkShowGrandTotal": true,
+          "warnDuplicate": true
+        }
+      },
+      "id": true,
+      "updated_at": "2026-09-01T16:07:22.117627+00:00"
+    },
+    "id": 149,
+    "op": "UPDATE",
+    "row_id": null,
+    "tbl": "app_config"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
       "actual": null,
       "amount": 4500,
       "co": "VAR",
@@ -192,6 +2422,494 @@
     "id": 15,
     "op": "INSERT",
     "row_id": 1788275226589,
+    "tbl": "receipts"
+  },
+  {
+    "actor": "02155e68-eb65-4089-989e-9a0485100ada",
+    "actor_email": "millaveemmanuel@gmail.com",
+    "after": {
+      "data": {
+        "categories": [
+          "Accounting Services",
+          "Advertising Expense",
+          "Alan Expense",
+          "Consultancy Fee",
+          "Credit card",
+          "General Expense",
+          "Jack Expense",
+          "Legal Services",
+          "Other",
+          "Petty Cash Fund",
+          "Rental Expense",
+          "Salary & Wages",
+          "Withholding Taxes"
+        ],
+        "companies": [
+          "ANG",
+          "BAR",
+          "BSC",
+          "CUPA",
+          "DNN",
+          "FEPA",
+          "GTOI",
+          "GZZ",
+          "HAL",
+          "MCR",
+          "MIC",
+          "OPT",
+          "SHK",
+          "TOR",
+          "VAR",
+          "VER",
+          "VNQ",
+          "WDO",
+          "ZON",
+          "ZPH",
+          "ZSM"
+        ],
+        "notes": [
+          {
+            "done": false,
+            "linked": false,
+            "t": "File Gov't Contributio Payments"
+          }
+        ],
+        "settings": {
+          "ackDefaultStatus": "Pending",
+          "ackRequirePhoto": false,
+          "dashDefaultScope": "All companies",
+          "dashShowNotes": true,
+          "dashWindow": "Next 30 days",
+          "mlDefaultFreq": "Monthly",
+          "trkGroupDefault": "Company",
+          "trkOverdueRed": true,
+          "trkShowGrandTotal": true,
+          "warnDuplicate": true
+        }
+      },
+      "id": true,
+      "updated_at": "2026-09-01T16:07:38.414643+00:00"
+    },
+    "at": "2026-09-01T16:07:38.414643+00:00",
+    "before": {
+      "data": {
+        "categories": [
+          "Accounting Services",
+          "Advertising Expense",
+          "Alan Expense",
+          "Consultancy Fee",
+          "Credit card",
+          "General Expense",
+          "Jack Expense",
+          "Legal Services",
+          "Other",
+          "Petty Cash Fund",
+          "Rental Expense",
+          "Salary & Wages",
+          "Withholding Taxes",
+          "Smoke Category"
+        ],
+        "companies": [
+          "ANG",
+          "BAR",
+          "BSC",
+          "CUPA",
+          "DNN",
+          "FEPA",
+          "GTOI",
+          "GZZ",
+          "HAL",
+          "MCR",
+          "MIC",
+          "OPT",
+          "SHK",
+          "TOR",
+          "VAR",
+          "VER",
+          "VNQ",
+          "WDO",
+          "ZON",
+          "ZPH",
+          "ZSM"
+        ],
+        "notes": [
+          {
+            "done": false,
+            "linked": false,
+            "t": "File Gov't Contributio Payments"
+          }
+        ],
+        "settings": {
+          "ackDefaultStatus": "Pending",
+          "ackRequirePhoto": false,
+          "dashDefaultScope": "All companies",
+          "dashShowNotes": true,
+          "dashWindow": "Next 30 days",
+          "mlDefaultFreq": "Monthly",
+          "trkGroupDefault": "Company",
+          "trkOverdueRed": true,
+          "trkShowGrandTotal": true,
+          "warnDuplicate": true
+        }
+      },
+      "id": true,
+      "updated_at": "2026-09-01T16:07:38.244878+00:00"
+    },
+    "id": 150,
+    "op": "UPDATE",
+    "row_id": null,
+    "tbl": "app_config"
+  },
+  {
+    "actor": "02155e68-eb65-4089-989e-9a0485100ada",
+    "actor_email": "millaveemmanuel@gmail.com",
+    "after": null,
+    "at": "2026-09-01T16:07:38.477687+00:00",
+    "before": {
+      "amount": 3400,
+      "co": "ZON",
+      "created_at": "2026-09-01T16:07:38.105511+00:00",
+      "cur": "GBP",
+      "id": 1788278857962,
+      "name": "smoke beneficiary",
+      "note": "smoke wire released",
+      "status": "released"
+    },
+    "id": 151,
+    "op": "DELETE",
+    "row_id": 1788278857962,
+    "tbl": "transfers"
+  },
+  {
+    "actor": "02155e68-eb65-4089-989e-9a0485100ada",
+    "actor_email": "millaveemmanuel@gmail.com",
+    "after": null,
+    "at": "2026-09-01T16:07:38.541683+00:00",
+    "before": {
+      "amount": 1234.5,
+      "cat": "Other",
+      "check_no": "004182",
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:07:37.775673+00:00",
+      "description": "smoke row",
+      "done": "2026-09-01",
+      "due": "2026-09-30",
+      "id": 1788278857672,
+      "notes": null,
+      "pay_type": "Check",
+      "period": "Sep 2026",
+      "status": "completed"
+    },
+    "id": 152,
+    "op": "DELETE",
+    "row_id": 1788278857672,
+    "tbl": "txns"
+  },
+  {
+    "actor": "02155e68-eb65-4089-989e-9a0485100ada",
+    "actor_email": "millaveemmanuel@gmail.com",
+    "after": null,
+    "at": "2026-09-01T16:07:38.761846+00:00",
+    "before": {
+      "actual": 999,
+      "amount": 2000,
+      "co": "VAR",
+      "created_at": "2026-09-01T16:07:37.906968+00:00",
+      "date": "2026-09-01",
+      "description": "smoke advance",
+      "file_path": null,
+      "id": 1788278857804,
+      "name": "smoke holder",
+      "status": "liquidated"
+    },
+    "id": 153,
+    "op": "DELETE",
+    "row_id": 1788278857804,
+    "tbl": "receipts"
+  },
+  {
+    "actor": "02155e68-eb65-4089-989e-9a0485100ada",
+    "actor_email": "millaveemmanuel@gmail.com",
+    "after": {
+      "data": {
+        "categories": [
+          "Accounting Services",
+          "Advertising Expense",
+          "Alan Expense",
+          "Consultancy Fee",
+          "Credit card",
+          "General Expense",
+          "Jack Expense",
+          "Legal Services",
+          "Other",
+          "Petty Cash Fund",
+          "Rental Expense",
+          "Salary & Wages",
+          "Withholding Taxes"
+        ],
+        "companies": [
+          "ANG",
+          "BAR",
+          "BSC",
+          "CUPA",
+          "DNN",
+          "FEPA",
+          "GTOI",
+          "GZZ",
+          "HAL",
+          "MCR",
+          "MIC",
+          "OPT",
+          "SHK",
+          "TOR",
+          "VAR",
+          "VER",
+          "VNQ",
+          "WDO",
+          "ZON",
+          "ZPH",
+          "ZSM"
+        ],
+        "notes": [
+          {
+            "done": false,
+            "linked": false,
+            "t": "File Gov't Contributio Payments"
+          }
+        ],
+        "settings": {
+          "ackDefaultStatus": "Pending",
+          "ackRequirePhoto": false,
+          "dashDefaultScope": "All companies",
+          "dashShowNotes": true,
+          "dashWindow": "Next 30 days",
+          "mlDefaultFreq": "Monthly",
+          "trkGroupDefault": "Company",
+          "trkOverdueRed": true,
+          "trkShowGrandTotal": true,
+          "warnDuplicate": true
+        }
+      },
+      "id": true,
+      "updated_at": "2026-09-01T16:07:38.883668+00:00"
+    },
+    "at": "2026-09-01T16:07:38.883668+00:00",
+    "before": {
+      "data": {
+        "categories": [
+          "Accounting Services",
+          "Advertising Expense",
+          "Alan Expense",
+          "Consultancy Fee",
+          "Credit card",
+          "General Expense",
+          "Jack Expense",
+          "Legal Services",
+          "Other",
+          "Petty Cash Fund",
+          "Rental Expense",
+          "Salary & Wages",
+          "Withholding Taxes"
+        ],
+        "companies": [
+          "ANG",
+          "BAR",
+          "BSC",
+          "CUPA",
+          "DNN",
+          "FEPA",
+          "GTOI",
+          "GZZ",
+          "HAL",
+          "MCR",
+          "MIC",
+          "OPT",
+          "SHK",
+          "TOR",
+          "VAR",
+          "VER",
+          "VNQ",
+          "WDO",
+          "ZON",
+          "ZPH",
+          "ZSM"
+        ],
+        "notes": [
+          {
+            "done": false,
+            "linked": false,
+            "t": "File Gov't Contributio Payments"
+          }
+        ],
+        "settings": {
+          "ackDefaultStatus": "Pending",
+          "ackRequirePhoto": false,
+          "dashDefaultScope": "All companies",
+          "dashShowNotes": true,
+          "dashWindow": "Next 30 days",
+          "mlDefaultFreq": "Monthly",
+          "trkGroupDefault": "Company",
+          "trkOverdueRed": true,
+          "trkShowGrandTotal": true,
+          "warnDuplicate": true
+        }
+      },
+      "id": true,
+      "updated_at": "2026-09-01T16:07:38.414643+00:00"
+    },
+    "id": 154,
+    "op": "UPDATE",
+    "row_id": null,
+    "tbl": "app_config"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "amount": 12345.67,
+      "cat": "Rental Expense",
+      "check_no": null,
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:18:48.028462+00:00",
+      "description": "E2E-mtivg05d warehouse rent",
+      "done": null,
+      "due": "2026-09-01",
+      "id": 1788279527390,
+      "notes": "note from the add form",
+      "pay_type": null,
+      "period": "Sep 2026",
+      "status": "pending"
+    },
+    "at": "2026-09-01T16:18:48.028462+00:00",
+    "before": null,
+    "id": 155,
+    "op": "INSERT",
+    "row_id": 1788279527390,
+    "tbl": "txns"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "amount": 999.5,
+      "cat": "Rental Expense",
+      "check_no": null,
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:18:48.028462+00:00",
+      "description": "E2E-mtivg05d warehouse rent",
+      "done": null,
+      "due": "2026-09-01",
+      "id": 1788279527390,
+      "notes": "edited note",
+      "pay_type": null,
+      "period": "Sep 2026",
+      "status": "pending"
+    },
+    "at": "2026-09-01T16:18:57.173667+00:00",
+    "before": {
+      "amount": 12345.67,
+      "cat": "Rental Expense",
+      "check_no": null,
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:18:48.028462+00:00",
+      "description": "E2E-mtivg05d warehouse rent",
+      "done": null,
+      "due": "2026-09-01",
+      "id": 1788279527390,
+      "notes": "note from the add form",
+      "pay_type": null,
+      "period": "Sep 2026",
+      "status": "pending"
+    },
+    "id": 156,
+    "op": "UPDATE",
+    "row_id": 1788279527390,
+    "tbl": "txns"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "amount": 999.5,
+      "cat": "Rental Expense",
+      "check_no": "004821",
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:18:48.028462+00:00",
+      "description": "E2E-mtivg05d warehouse rent",
+      "done": "2026-09-01",
+      "due": "2026-09-01",
+      "id": 1788279527390,
+      "notes": "edited note",
+      "pay_type": "Check",
+      "period": "Sep 2026",
+      "status": "completed"
+    },
+    "at": "2026-09-01T16:19:00.833051+00:00",
+    "before": {
+      "amount": 999.5,
+      "cat": "Rental Expense",
+      "check_no": null,
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:18:48.028462+00:00",
+      "description": "E2E-mtivg05d warehouse rent",
+      "done": null,
+      "due": "2026-09-01",
+      "id": 1788279527390,
+      "notes": "edited note",
+      "pay_type": null,
+      "period": "Sep 2026",
+      "status": "pending"
+    },
+    "id": 157,
+    "op": "UPDATE",
+    "row_id": 1788279527390,
+    "tbl": "txns"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": null,
+    "at": "2026-09-01T16:19:10.568465+00:00",
+    "before": {
+      "amount": 999.5,
+      "cat": "Rental Expense",
+      "check_no": "004821",
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:18:48.028462+00:00",
+      "description": "E2E-mtivg05d warehouse rent",
+      "done": "2026-09-01",
+      "due": "2026-09-01",
+      "id": 1788279527390,
+      "notes": "edited note",
+      "pay_type": "Check",
+      "period": "Sep 2026",
+      "status": "completed"
+    },
+    "id": 158,
+    "op": "DELETE",
+    "row_id": 1788279527390,
+    "tbl": "txns"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "actual": null,
+      "amount": 4500,
+      "co": "VAR",
+      "created_at": "2026-09-01T16:19:15.1814+00:00",
+      "date": null,
+      "description": "E2E-mtivg05d permit fees",
+      "file_path": null,
+      "id": 1788279555060,
+      "name": "E2E-mtivg05d Rivera",
+      "status": "pending"
+    },
+    "at": "2026-09-01T16:19:15.1814+00:00",
+    "before": null,
+    "id": 159,
+    "op": "INSERT",
+    "row_id": 1788279555060,
     "tbl": "receipts"
   },
   {
@@ -219,6 +2937,255 @@
   {
     "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
     "actor_email": "millaveemmanuel15@gmail.com",
+    "after": null,
+    "at": "2026-09-01T16:19:17.313264+00:00",
+    "before": {
+      "actual": null,
+      "amount": 4500,
+      "co": "VAR",
+      "created_at": "2026-09-01T16:19:15.1814+00:00",
+      "date": null,
+      "description": "E2E-mtivg05d permit fees",
+      "file_path": null,
+      "id": 1788279555060,
+      "name": "E2E-mtivg05d Rivera",
+      "status": "pending"
+    },
+    "id": 160,
+    "op": "DELETE",
+    "row_id": 1788279555060,
+    "tbl": "receipts"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "actual": null,
+      "amount": 5000,
+      "co": "VAR",
+      "created_at": "2026-09-01T16:19:17.746034+00:00",
+      "date": null,
+      "description": "E2E-mtivg05d-1 cash advance",
+      "file_path": null,
+      "id": 1788279558047,
+      "name": "E2E-mtivg05d-1 holder",
+      "status": "released"
+    },
+    "at": "2026-09-01T16:19:17.746034+00:00",
+    "before": null,
+    "id": 161,
+    "op": "INSERT",
+    "row_id": 1788279558047,
+    "tbl": "receipts"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "actual": 1234,
+      "amount": 5000,
+      "co": "VAR",
+      "created_at": "2026-09-01T16:19:17.746034+00:00",
+      "date": "2026-08-31",
+      "description": "E2E-mtivg05d-1 cash advance",
+      "file_path": null,
+      "id": 1788279558047,
+      "name": "E2E-mtivg05d-1 holder",
+      "status": "liquidated"
+    },
+    "at": "2026-09-01T16:19:20.696273+00:00",
+    "before": {
+      "actual": null,
+      "amount": 5000,
+      "co": "VAR",
+      "created_at": "2026-09-01T16:19:17.746034+00:00",
+      "date": null,
+      "description": "E2E-mtivg05d-1 cash advance",
+      "file_path": null,
+      "id": 1788279558047,
+      "name": "E2E-mtivg05d-1 holder",
+      "status": "released"
+    },
+    "id": 162,
+    "op": "UPDATE",
+    "row_id": 1788279558047,
+    "tbl": "receipts"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "actual": null,
+      "amount": 5000,
+      "co": "VAR",
+      "created_at": "2026-09-01T16:19:17.746034+00:00",
+      "date": null,
+      "description": "E2E-mtivg05d-1 cash advance",
+      "file_path": null,
+      "id": 1788279558047,
+      "name": "E2E-mtivg05d-1 holder",
+      "status": "released"
+    },
+    "at": "2026-09-01T16:19:21.368261+00:00",
+    "before": {
+      "actual": 1234,
+      "amount": 5000,
+      "co": "VAR",
+      "created_at": "2026-09-01T16:19:17.746034+00:00",
+      "date": "2026-08-31",
+      "description": "E2E-mtivg05d-1 cash advance",
+      "file_path": null,
+      "id": 1788279558047,
+      "name": "E2E-mtivg05d-1 holder",
+      "status": "liquidated"
+    },
+    "id": 163,
+    "op": "UPDATE",
+    "row_id": 1788279558047,
+    "tbl": "receipts"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "amount": 7000,
+      "cat": "Accounting Services",
+      "co": "BSC",
+      "created_at": "2026-09-01T16:19:24.263356+00:00",
+      "description": "E2E-mtivg05d quarterly audit",
+      "due_date": "2026-09-01",
+      "freq": "Monthly",
+      "id": 1788279563660
+    },
+    "at": "2026-09-01T16:19:24.263356+00:00",
+    "before": null,
+    "id": 164,
+    "op": "INSERT",
+    "row_id": 1788279563660,
+    "tbl": "recurring"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "amount": 8250,
+      "cat": "Accounting Services",
+      "co": "BSC",
+      "created_at": "2026-09-01T16:19:24.263356+00:00",
+      "description": "E2E-mtivg05d quarterly audit",
+      "due_date": "2026-09-01",
+      "freq": "Monthly",
+      "id": 1788279563660
+    },
+    "at": "2026-09-01T16:19:25.907527+00:00",
+    "before": {
+      "amount": 7000,
+      "cat": "Accounting Services",
+      "co": "BSC",
+      "created_at": "2026-09-01T16:19:24.263356+00:00",
+      "description": "E2E-mtivg05d quarterly audit",
+      "due_date": "2026-09-01",
+      "freq": "Monthly",
+      "id": 1788279563660
+    },
+    "id": 165,
+    "op": "UPDATE",
+    "row_id": 1788279563660,
+    "tbl": "recurring"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": null,
+    "at": "2026-09-01T16:19:26.620329+00:00",
+    "before": {
+      "amount": 8250,
+      "cat": "Accounting Services",
+      "co": "BSC",
+      "created_at": "2026-09-01T16:19:24.263356+00:00",
+      "description": "E2E-mtivg05d quarterly audit",
+      "due_date": "2026-09-01",
+      "freq": "Monthly",
+      "id": 1788279563660
+    },
+    "id": 166,
+    "op": "DELETE",
+    "row_id": 1788279563660,
+    "tbl": "recurring"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "amount": 1000,
+      "cat": "Rental Expense",
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:19:28.954643+00:00",
+      "description": "E2E-mtivg05d-2 monthly rule",
+      "due_date": "2026-12-15",
+      "freq": "Monthly",
+      "id": 1788279569777
+    },
+    "at": "2026-09-01T16:19:28.954643+00:00",
+    "before": null,
+    "id": 167,
+    "op": "INSERT",
+    "row_id": 1788279569777,
+    "tbl": "recurring"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "amount": 1000,
+      "cat": "Rental Expense",
+      "check_no": null,
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:19:31.415422+00:00",
+      "description": "E2E-mtivg05d-2 monthly rule",
+      "done": null,
+      "due": "2026-12-15",
+      "id": 1788279570755,
+      "notes": null,
+      "pay_type": null,
+      "period": "Dec 2026",
+      "status": "pending"
+    },
+    "at": "2026-09-01T16:19:31.415422+00:00",
+    "before": null,
+    "id": 168,
+    "op": "INSERT",
+    "row_id": 1788279570755,
+    "tbl": "txns"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": null,
+    "at": "2026-09-01T16:19:34.283774+00:00",
+    "before": {
+      "amount": 1000,
+      "cat": "Rental Expense",
+      "check_no": null,
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:19:31.415422+00:00",
+      "description": "E2E-mtivg05d-2 monthly rule",
+      "done": null,
+      "due": "2026-12-15",
+      "id": 1788279570755,
+      "notes": null,
+      "pay_type": null,
+      "period": "Dec 2026",
+      "status": "pending"
+    },
+    "id": 169,
+    "op": "DELETE",
+    "row_id": 1788279570755,
+    "tbl": "txns"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
     "after": {
       "actual": null,
       "amount": 5000,
@@ -236,6 +3203,470 @@
     "id": 17,
     "op": "INSERT",
     "row_id": 1788275228493,
+    "tbl": "receipts"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "amount": 1000,
+      "cat": "Rental Expense",
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:19:37.303659+00:00",
+      "description": "E2E-mtivg05d-3 monthly rule",
+      "due_date": "2026-11-15",
+      "freq": "Monthly",
+      "id": 1788279578181
+    },
+    "at": "2026-09-01T16:19:37.303659+00:00",
+    "before": null,
+    "id": 170,
+    "op": "INSERT",
+    "row_id": 1788279578181,
+    "tbl": "recurring"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "amount": 1000,
+      "cat": "Rental Expense",
+      "check_no": null,
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:19:39.194233+00:00",
+      "description": "E2E-mtivg05d-2 monthly rule",
+      "done": null,
+      "due": "2026-11-15",
+      "id": 1788279579087,
+      "notes": null,
+      "pay_type": null,
+      "period": "Nov 2026",
+      "status": "pending"
+    },
+    "at": "2026-09-01T16:19:39.194233+00:00",
+    "before": null,
+    "id": 171,
+    "op": "INSERT",
+    "row_id": 1788279579087,
+    "tbl": "txns"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "amount": 1000,
+      "cat": "Rental Expense",
+      "check_no": null,
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:19:39.194233+00:00",
+      "description": "E2E-mtivg05d-3 monthly rule",
+      "done": null,
+      "due": "2026-11-15",
+      "id": 1788279579088,
+      "notes": null,
+      "pay_type": null,
+      "period": "Nov 2026",
+      "status": "pending"
+    },
+    "at": "2026-09-01T16:19:39.194233+00:00",
+    "before": null,
+    "id": 172,
+    "op": "INSERT",
+    "row_id": 1788279579088,
+    "tbl": "txns"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": null,
+    "at": "2026-09-01T16:19:39.249975+00:00",
+    "before": {
+      "amount": 1000,
+      "cat": "Rental Expense",
+      "check_no": null,
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:19:39.194233+00:00",
+      "description": "E2E-mtivg05d-2 monthly rule",
+      "done": null,
+      "due": "2026-11-15",
+      "id": 1788279579087,
+      "notes": null,
+      "pay_type": null,
+      "period": "Nov 2026",
+      "status": "pending"
+    },
+    "id": 173,
+    "op": "DELETE",
+    "row_id": 1788279579087,
+    "tbl": "txns"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": null,
+    "at": "2026-09-01T16:19:39.249975+00:00",
+    "before": {
+      "amount": 1000,
+      "cat": "Rental Expense",
+      "check_no": null,
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:19:39.194233+00:00",
+      "description": "E2E-mtivg05d-3 monthly rule",
+      "done": null,
+      "due": "2026-11-15",
+      "id": 1788279579088,
+      "notes": null,
+      "pay_type": null,
+      "period": "Nov 2026",
+      "status": "pending"
+    },
+    "id": 174,
+    "op": "DELETE",
+    "row_id": 1788279579088,
+    "tbl": "txns"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "data": {
+        "categories": [
+          "Accounting Services",
+          "Advertising Expense",
+          "Alan Expense",
+          "Consultancy Fee",
+          "Credit card",
+          "General Expense",
+          "Jack Expense",
+          "Legal Services",
+          "Other",
+          "Petty Cash Fund",
+          "Rental Expense",
+          "Salary & Wages",
+          "Withholding Taxes"
+        ],
+        "companies": [
+          "ANG",
+          "BAR",
+          "BSC",
+          "CUPA",
+          "DNN",
+          "E2E268",
+          "FEPA",
+          "GTOI",
+          "GZZ",
+          "HAL",
+          "MCR",
+          "MIC",
+          "OPT",
+          "SHK",
+          "TOR",
+          "VAR",
+          "VER",
+          "VNQ",
+          "WDO",
+          "ZON",
+          "ZPH",
+          "ZSM"
+        ],
+        "notes": [
+          {
+            "done": false,
+            "linked": false,
+            "t": "File Gov't Contributio Payments"
+          }
+        ],
+        "settings": {
+          "ackDefaultStatus": "Pending",
+          "ackRequirePhoto": false,
+          "dashDefaultScope": "All companies",
+          "dashShowNotes": true,
+          "dashWindow": "Next 30 days",
+          "mlDefaultFreq": "Monthly",
+          "trkGroupDefault": "Company",
+          "trkOverdueRed": true,
+          "trkShowGrandTotal": true,
+          "warnDuplicate": true
+        }
+      },
+      "id": true,
+      "updated_at": "2026-09-01T16:19:43.184256+00:00"
+    },
+    "at": "2026-09-01T16:19:43.184256+00:00",
+    "before": {
+      "data": {
+        "categories": [
+          "Accounting Services",
+          "Advertising Expense",
+          "Alan Expense",
+          "Consultancy Fee",
+          "Credit card",
+          "General Expense",
+          "Jack Expense",
+          "Legal Services",
+          "Other",
+          "Petty Cash Fund",
+          "Rental Expense",
+          "Salary & Wages",
+          "Withholding Taxes"
+        ],
+        "companies": [
+          "ANG",
+          "BAR",
+          "BSC",
+          "CUPA",
+          "DNN",
+          "FEPA",
+          "GTOI",
+          "GZZ",
+          "HAL",
+          "MCR",
+          "MIC",
+          "OPT",
+          "SHK",
+          "TOR",
+          "VAR",
+          "VER",
+          "VNQ",
+          "WDO",
+          "ZON",
+          "ZPH",
+          "ZSM"
+        ],
+        "notes": [
+          {
+            "done": false,
+            "linked": false,
+            "t": "File Gov't Contributio Payments"
+          }
+        ],
+        "settings": {
+          "ackDefaultStatus": "Pending",
+          "ackRequirePhoto": false,
+          "dashDefaultScope": "All companies",
+          "dashShowNotes": true,
+          "dashWindow": "Next 30 days",
+          "mlDefaultFreq": "Monthly",
+          "trkGroupDefault": "Company",
+          "trkOverdueRed": true,
+          "trkShowGrandTotal": true,
+          "warnDuplicate": true
+        }
+      },
+      "id": true,
+      "updated_at": "2026-09-01T16:07:38.883668+00:00"
+    },
+    "id": 175,
+    "op": "UPDATE",
+    "row_id": null,
+    "tbl": "app_config"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "data": {
+        "categories": [
+          "Accounting Services",
+          "Advertising Expense",
+          "Alan Expense",
+          "Consultancy Fee",
+          "Credit card",
+          "General Expense",
+          "Jack Expense",
+          "Legal Services",
+          "Other",
+          "Petty Cash Fund",
+          "Rental Expense",
+          "Salary & Wages",
+          "Withholding Taxes"
+        ],
+        "companies": [
+          "ANG",
+          "BAR",
+          "BSC",
+          "CUPA",
+          "DNN",
+          "FEPA",
+          "GTOI",
+          "GZZ",
+          "HAL",
+          "MCR",
+          "MIC",
+          "OPT",
+          "SHK",
+          "TOR",
+          "VAR",
+          "VER",
+          "VNQ",
+          "WDO",
+          "ZON",
+          "ZPH",
+          "ZSM"
+        ],
+        "notes": [
+          {
+            "done": false,
+            "linked": false,
+            "t": "File Gov't Contributio Payments"
+          }
+        ],
+        "settings": {
+          "ackDefaultStatus": "Pending",
+          "ackRequirePhoto": false,
+          "dashDefaultScope": "All companies",
+          "dashShowNotes": true,
+          "dashWindow": "Next 30 days",
+          "mlDefaultFreq": "Monthly",
+          "trkGroupDefault": "Company",
+          "trkOverdueRed": true,
+          "trkShowGrandTotal": true,
+          "warnDuplicate": true
+        }
+      },
+      "id": true,
+      "updated_at": "2026-09-01T16:19:44.643582+00:00"
+    },
+    "at": "2026-09-01T16:19:44.643582+00:00",
+    "before": {
+      "data": {
+        "categories": [
+          "Accounting Services",
+          "Advertising Expense",
+          "Alan Expense",
+          "Consultancy Fee",
+          "Credit card",
+          "General Expense",
+          "Jack Expense",
+          "Legal Services",
+          "Other",
+          "Petty Cash Fund",
+          "Rental Expense",
+          "Salary & Wages",
+          "Withholding Taxes"
+        ],
+        "companies": [
+          "ANG",
+          "BAR",
+          "BSC",
+          "CUPA",
+          "DNN",
+          "E2E268",
+          "FEPA",
+          "GTOI",
+          "GZZ",
+          "HAL",
+          "MCR",
+          "MIC",
+          "OPT",
+          "SHK",
+          "TOR",
+          "VAR",
+          "VER",
+          "VNQ",
+          "WDO",
+          "ZON",
+          "ZPH",
+          "ZSM"
+        ],
+        "notes": [
+          {
+            "done": false,
+            "linked": false,
+            "t": "File Gov't Contributio Payments"
+          }
+        ],
+        "settings": {
+          "ackDefaultStatus": "Pending",
+          "ackRequirePhoto": false,
+          "dashDefaultScope": "All companies",
+          "dashShowNotes": true,
+          "dashWindow": "Next 30 days",
+          "mlDefaultFreq": "Monthly",
+          "trkGroupDefault": "Company",
+          "trkOverdueRed": true,
+          "trkShowGrandTotal": true,
+          "warnDuplicate": true
+        }
+      },
+      "id": true,
+      "updated_at": "2026-09-01T16:19:43.184256+00:00"
+    },
+    "id": 176,
+    "op": "UPDATE",
+    "row_id": null,
+    "tbl": "app_config"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "amount": 1,
+      "cat": "Other",
+      "check_no": null,
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:19:47.224229+00:00",
+      "description": "E2E-mtivg05d <img src=x onerror=window.__xssFired()><script>window.__xssFired()</script>",
+      "done": null,
+      "due": "2026-09-01",
+      "id": 1788279587109,
+      "notes": null,
+      "pay_type": null,
+      "period": "Sep 2026",
+      "status": "pending"
+    },
+    "at": "2026-09-01T16:19:47.224229+00:00",
+    "before": null,
+    "id": 177,
+    "op": "INSERT",
+    "row_id": 1788279587109,
+    "tbl": "txns"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": null,
+    "at": "2026-09-01T16:19:48.934049+00:00",
+    "before": {
+      "amount": 1,
+      "cat": "Other",
+      "check_no": null,
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:19:47.224229+00:00",
+      "description": "E2E-mtivg05d <img src=x onerror=window.__xssFired()><script>window.__xssFired()</script>",
+      "done": null,
+      "due": "2026-09-01",
+      "id": 1788279587109,
+      "notes": null,
+      "pay_type": null,
+      "period": "Sep 2026",
+      "status": "pending"
+    },
+    "id": 178,
+    "op": "DELETE",
+    "row_id": 1788279587109,
+    "tbl": "txns"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "actual": null,
+      "amount": 4000,
+      "co": "VAR",
+      "created_at": "2026-09-01T16:19:50.979616+00:00",
+      "date": null,
+      "description": "E2E-mtivg05d-4 cash advance",
+      "file_path": null,
+      "id": 1788279591372,
+      "name": "E2E-mtivg05d-4 holder",
+      "status": "released"
+    },
+    "at": "2026-09-01T16:19:50.979616+00:00",
+    "before": null,
+    "id": 179,
+    "op": "INSERT",
+    "row_id": 1788279591372,
     "tbl": "receipts"
   },
   {
@@ -275,6 +3706,599 @@
     "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
     "actor_email": "millaveemmanuel15@gmail.com",
     "after": {
+      "actual": 2500,
+      "amount": 4000,
+      "co": "VAR",
+      "created_at": "2026-09-01T16:19:50.979616+00:00",
+      "date": "2026-09-01",
+      "description": "E2E-mtivg05d-4 cash advance",
+      "file_path": "1788279591372/1788279593020.pdf",
+      "id": 1788279591372,
+      "name": "E2E-mtivg05d-4 holder",
+      "status": "liquidated"
+    },
+    "at": "2026-09-01T16:19:53.537162+00:00",
+    "before": {
+      "actual": null,
+      "amount": 4000,
+      "co": "VAR",
+      "created_at": "2026-09-01T16:19:50.979616+00:00",
+      "date": null,
+      "description": "E2E-mtivg05d-4 cash advance",
+      "file_path": null,
+      "id": 1788279591372,
+      "name": "E2E-mtivg05d-4 holder",
+      "status": "released"
+    },
+    "id": 180,
+    "op": "UPDATE",
+    "row_id": 1788279591372,
+    "tbl": "receipts"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "actual": null,
+      "amount": 4000,
+      "co": "VAR",
+      "created_at": "2026-09-01T16:19:50.979616+00:00",
+      "date": null,
+      "description": "E2E-mtivg05d-4 cash advance",
+      "file_path": "1788279591372/1788279593020.pdf",
+      "id": 1788279591372,
+      "name": "E2E-mtivg05d-4 holder",
+      "status": "released"
+    },
+    "at": "2026-09-01T16:19:57.446493+00:00",
+    "before": {
+      "actual": 2500,
+      "amount": 4000,
+      "co": "VAR",
+      "created_at": "2026-09-01T16:19:50.979616+00:00",
+      "date": "2026-09-01",
+      "description": "E2E-mtivg05d-4 cash advance",
+      "file_path": "1788279591372/1788279593020.pdf",
+      "id": 1788279591372,
+      "name": "E2E-mtivg05d-4 holder",
+      "status": "liquidated"
+    },
+    "id": 181,
+    "op": "UPDATE",
+    "row_id": 1788279591372,
+    "tbl": "receipts"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "actual": null,
+      "amount": 3000,
+      "co": "VAR",
+      "created_at": "2026-09-01T16:19:58.7387+00:00",
+      "date": null,
+      "description": "E2E-mtivg05d-5 cash advance",
+      "file_path": null,
+      "id": 1788279599619,
+      "name": "E2E-mtivg05d-5 holder",
+      "status": "released"
+    },
+    "at": "2026-09-01T16:19:58.7387+00:00",
+    "before": null,
+    "id": 182,
+    "op": "INSERT",
+    "row_id": 1788279599619,
+    "tbl": "receipts"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "data": {
+        "categories": [
+          "Accounting Services",
+          "Advertising Expense",
+          "Alan Expense",
+          "Consultancy Fee",
+          "Credit card",
+          "General Expense",
+          "Jack Expense",
+          "Legal Services",
+          "Other",
+          "Petty Cash Fund",
+          "Rental Expense",
+          "Salary & Wages",
+          "Withholding Taxes"
+        ],
+        "companies": [
+          "ANG",
+          "BAR",
+          "BSC",
+          "CUPA",
+          "DNN",
+          "FEPA",
+          "GTOI",
+          "GZZ",
+          "HAL",
+          "MCR",
+          "MIC",
+          "OPT",
+          "SHK",
+          "TOR",
+          "VAR",
+          "VER",
+          "VNQ",
+          "WDO",
+          "ZON",
+          "ZPH",
+          "ZSM"
+        ],
+        "notes": [
+          {
+            "done": false,
+            "linked": false,
+            "t": "File Gov't Contributio Payments"
+          }
+        ],
+        "settings": {
+          "ackDefaultStatus": "Pending",
+          "ackRequirePhoto": true,
+          "dashDefaultScope": "All companies",
+          "dashShowNotes": true,
+          "dashWindow": "Next 30 days",
+          "mlDefaultFreq": "Monthly",
+          "trkGroupDefault": "Company",
+          "trkOverdueRed": true,
+          "trkShowGrandTotal": true,
+          "warnDuplicate": true
+        }
+      },
+      "id": true,
+      "updated_at": "2026-09-01T16:20:01.599532+00:00"
+    },
+    "at": "2026-09-01T16:20:01.599532+00:00",
+    "before": {
+      "data": {
+        "categories": [
+          "Accounting Services",
+          "Advertising Expense",
+          "Alan Expense",
+          "Consultancy Fee",
+          "Credit card",
+          "General Expense",
+          "Jack Expense",
+          "Legal Services",
+          "Other",
+          "Petty Cash Fund",
+          "Rental Expense",
+          "Salary & Wages",
+          "Withholding Taxes"
+        ],
+        "companies": [
+          "ANG",
+          "BAR",
+          "BSC",
+          "CUPA",
+          "DNN",
+          "FEPA",
+          "GTOI",
+          "GZZ",
+          "HAL",
+          "MCR",
+          "MIC",
+          "OPT",
+          "SHK",
+          "TOR",
+          "VAR",
+          "VER",
+          "VNQ",
+          "WDO",
+          "ZON",
+          "ZPH",
+          "ZSM"
+        ],
+        "notes": [
+          {
+            "done": false,
+            "linked": false,
+            "t": "File Gov't Contributio Payments"
+          }
+        ],
+        "settings": {
+          "ackDefaultStatus": "Pending",
+          "ackRequirePhoto": false,
+          "dashDefaultScope": "All companies",
+          "dashShowNotes": true,
+          "dashWindow": "Next 30 days",
+          "mlDefaultFreq": "Monthly",
+          "trkGroupDefault": "Company",
+          "trkOverdueRed": true,
+          "trkShowGrandTotal": true,
+          "warnDuplicate": true
+        }
+      },
+      "id": true,
+      "updated_at": "2026-09-01T16:19:44.643582+00:00"
+    },
+    "id": 183,
+    "op": "UPDATE",
+    "row_id": null,
+    "tbl": "app_config"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "data": {
+        "categories": [
+          "Accounting Services",
+          "Advertising Expense",
+          "Alan Expense",
+          "Consultancy Fee",
+          "Credit card",
+          "General Expense",
+          "Jack Expense",
+          "Legal Services",
+          "Other",
+          "Petty Cash Fund",
+          "Rental Expense",
+          "Salary & Wages",
+          "Withholding Taxes"
+        ],
+        "companies": [
+          "ANG",
+          "BAR",
+          "BSC",
+          "CUPA",
+          "DNN",
+          "FEPA",
+          "GTOI",
+          "GZZ",
+          "HAL",
+          "MCR",
+          "MIC",
+          "OPT",
+          "SHK",
+          "TOR",
+          "VAR",
+          "VER",
+          "VNQ",
+          "WDO",
+          "ZON",
+          "ZPH",
+          "ZSM"
+        ],
+        "notes": [
+          {
+            "done": false,
+            "linked": false,
+            "t": "File Gov't Contributio Payments"
+          }
+        ],
+        "settings": {
+          "ackDefaultStatus": "Pending",
+          "ackRequirePhoto": false,
+          "dashDefaultScope": "All companies",
+          "dashShowNotes": true,
+          "dashWindow": "Next 30 days",
+          "mlDefaultFreq": "Monthly",
+          "trkGroupDefault": "Company",
+          "trkOverdueRed": true,
+          "trkShowGrandTotal": true,
+          "warnDuplicate": true
+        }
+      },
+      "id": true,
+      "updated_at": "2026-09-01T16:20:04.019996+00:00"
+    },
+    "at": "2026-09-01T16:20:04.019996+00:00",
+    "before": {
+      "data": {
+        "categories": [
+          "Accounting Services",
+          "Advertising Expense",
+          "Alan Expense",
+          "Consultancy Fee",
+          "Credit card",
+          "General Expense",
+          "Jack Expense",
+          "Legal Services",
+          "Other",
+          "Petty Cash Fund",
+          "Rental Expense",
+          "Salary & Wages",
+          "Withholding Taxes"
+        ],
+        "companies": [
+          "ANG",
+          "BAR",
+          "BSC",
+          "CUPA",
+          "DNN",
+          "FEPA",
+          "GTOI",
+          "GZZ",
+          "HAL",
+          "MCR",
+          "MIC",
+          "OPT",
+          "SHK",
+          "TOR",
+          "VAR",
+          "VER",
+          "VNQ",
+          "WDO",
+          "ZON",
+          "ZPH",
+          "ZSM"
+        ],
+        "notes": [
+          {
+            "done": false,
+            "linked": false,
+            "t": "File Gov't Contributio Payments"
+          }
+        ],
+        "settings": {
+          "ackDefaultStatus": "Pending",
+          "ackRequirePhoto": true,
+          "dashDefaultScope": "All companies",
+          "dashShowNotes": true,
+          "dashWindow": "Next 30 days",
+          "mlDefaultFreq": "Monthly",
+          "trkGroupDefault": "Company",
+          "trkOverdueRed": true,
+          "trkShowGrandTotal": true,
+          "warnDuplicate": true
+        }
+      },
+      "id": true,
+      "updated_at": "2026-09-01T16:20:01.599532+00:00"
+    },
+    "id": 184,
+    "op": "UPDATE",
+    "row_id": null,
+    "tbl": "app_config"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "data": {
+        "categories": [
+          "Accounting Services",
+          "Advertising Expense",
+          "Alan Expense",
+          "Consultancy Fee",
+          "Credit card",
+          "General Expense",
+          "Jack Expense",
+          "Legal Services",
+          "Other",
+          "Petty Cash Fund",
+          "Rental Expense",
+          "Salary & Wages",
+          "Withholding Taxes"
+        ],
+        "companies": [
+          "ANG",
+          "BAR",
+          "BSC",
+          "CUPA",
+          "DNN",
+          "FEPA",
+          "GTOI",
+          "GZZ",
+          "HAL",
+          "MCR",
+          "MIC",
+          "OPT",
+          "SHK",
+          "TOR",
+          "VAR",
+          "VER",
+          "VNQ",
+          "WDO",
+          "ZON",
+          "ZPH",
+          "ZSM"
+        ],
+        "notes": [
+          {
+            "done": false,
+            "linked": false,
+            "t": "File Gov't Contributio Payments"
+          }
+        ],
+        "settings": {
+          "ackDefaultStatus": "Pending",
+          "ackRequirePhoto": false,
+          "dashDefaultScope": "All companies",
+          "dashShowNotes": true,
+          "dashWindow": "Next 30 days",
+          "mlDefaultFreq": "Monthly",
+          "trkGroupDefault": "Company",
+          "trkOverdueRed": true,
+          "trkShowGrandTotal": true,
+          "warnDuplicate": true
+        }
+      },
+      "id": true,
+      "updated_at": "2026-09-01T16:20:06.685723+00:00"
+    },
+    "at": "2026-09-01T16:20:06.685723+00:00",
+    "before": {
+      "data": {
+        "categories": [
+          "Accounting Services",
+          "Advertising Expense",
+          "Alan Expense",
+          "Consultancy Fee",
+          "Credit card",
+          "General Expense",
+          "Jack Expense",
+          "Legal Services",
+          "Other",
+          "Petty Cash Fund",
+          "Rental Expense",
+          "Salary & Wages",
+          "Withholding Taxes"
+        ],
+        "companies": [
+          "ANG",
+          "BAR",
+          "BSC",
+          "CUPA",
+          "DNN",
+          "FEPA",
+          "GTOI",
+          "GZZ",
+          "HAL",
+          "MCR",
+          "MIC",
+          "OPT",
+          "SHK",
+          "TOR",
+          "VAR",
+          "VER",
+          "VNQ",
+          "WDO",
+          "ZON",
+          "ZPH",
+          "ZSM"
+        ],
+        "notes": [
+          {
+            "done": false,
+            "linked": false,
+            "t": "File Gov't Contributio Payments"
+          }
+        ],
+        "settings": {
+          "ackDefaultStatus": "Pending",
+          "ackRequirePhoto": false,
+          "dashDefaultScope": "All companies",
+          "dashShowNotes": true,
+          "dashWindow": "Next 30 days",
+          "mlDefaultFreq": "Monthly",
+          "trkGroupDefault": "Company",
+          "trkOverdueRed": true,
+          "trkShowGrandTotal": true,
+          "warnDuplicate": true
+        }
+      },
+      "id": true,
+      "updated_at": "2026-09-01T16:20:04.019996+00:00"
+    },
+    "id": 185,
+    "op": "UPDATE",
+    "row_id": null,
+    "tbl": "app_config"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "amount": 100,
+      "cat": "Legal Services",
+      "check_no": null,
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:20:07.015264+00:00",
+      "description": "E2E-mtivg05d-dup the original",
+      "done": null,
+      "due": null,
+      "id": 1788279606574,
+      "notes": null,
+      "pay_type": null,
+      "period": "Sep 2026",
+      "status": "pending"
+    },
+    "at": "2026-09-01T16:20:07.015264+00:00",
+    "before": null,
+    "id": 186,
+    "op": "INSERT",
+    "row_id": 1788279606574,
+    "tbl": "txns"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "amount": 10,
+      "cat": "Legal Services",
+      "check_no": null,
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:20:08.505677+00:00",
+      "description": "E2E-mtivg05d-dup the duplicate",
+      "done": null,
+      "due": "2026-09-01",
+      "id": 1788279608386,
+      "notes": null,
+      "pay_type": null,
+      "period": "Sep 2026",
+      "status": "pending"
+    },
+    "at": "2026-09-01T16:20:08.505677+00:00",
+    "before": null,
+    "id": 187,
+    "op": "INSERT",
+    "row_id": 1788279608386,
+    "tbl": "txns"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": null,
+    "at": "2026-09-01T16:20:09.798579+00:00",
+    "before": {
+      "amount": 100,
+      "cat": "Legal Services",
+      "check_no": null,
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:20:07.015264+00:00",
+      "description": "E2E-mtivg05d-dup the original",
+      "done": null,
+      "due": null,
+      "id": 1788279606574,
+      "notes": null,
+      "pay_type": null,
+      "period": "Sep 2026",
+      "status": "pending"
+    },
+    "id": 188,
+    "op": "DELETE",
+    "row_id": 1788279606574,
+    "tbl": "txns"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": null,
+    "at": "2026-09-01T16:20:09.798579+00:00",
+    "before": {
+      "amount": 10,
+      "cat": "Legal Services",
+      "check_no": null,
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:20:08.505677+00:00",
+      "description": "E2E-mtivg05d-dup the duplicate",
+      "done": null,
+      "due": "2026-09-01",
+      "id": 1788279608386,
+      "notes": null,
+      "pay_type": null,
+      "period": "Sep 2026",
+      "status": "pending"
+    },
+    "id": 189,
+    "op": "DELETE",
+    "row_id": 1788279608386,
+    "tbl": "txns"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
       "actual": null,
       "amount": 5000,
       "co": "VAR",
@@ -302,6 +4326,561 @@
     "id": 19,
     "op": "UPDATE",
     "row_id": 1788275228493,
+    "tbl": "receipts"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": null,
+    "at": "2026-09-01T16:20:13.415413+00:00",
+    "before": {
+      "amount": 1000,
+      "cat": "Rental Expense",
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:19:28.954643+00:00",
+      "description": "E2E-mtivg05d-2 monthly rule",
+      "due_date": "2026-12-15",
+      "freq": "Monthly",
+      "id": 1788279569777
+    },
+    "id": 190,
+    "op": "DELETE",
+    "row_id": 1788279569777,
+    "tbl": "recurring"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": null,
+    "at": "2026-09-01T16:20:13.415413+00:00",
+    "before": {
+      "amount": 1000,
+      "cat": "Rental Expense",
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:19:37.303659+00:00",
+      "description": "E2E-mtivg05d-3 monthly rule",
+      "due_date": "2026-11-15",
+      "freq": "Monthly",
+      "id": 1788279578181
+    },
+    "id": 191,
+    "op": "DELETE",
+    "row_id": 1788279578181,
+    "tbl": "recurring"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": null,
+    "at": "2026-09-01T16:20:13.740827+00:00",
+    "before": {
+      "actual": null,
+      "amount": 5000,
+      "co": "VAR",
+      "created_at": "2026-09-01T16:19:17.746034+00:00",
+      "date": null,
+      "description": "E2E-mtivg05d-1 cash advance",
+      "file_path": null,
+      "id": 1788279558047,
+      "name": "E2E-mtivg05d-1 holder",
+      "status": "released"
+    },
+    "id": 192,
+    "op": "DELETE",
+    "row_id": 1788279558047,
+    "tbl": "receipts"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": null,
+    "at": "2026-09-01T16:20:13.740827+00:00",
+    "before": {
+      "actual": null,
+      "amount": 4000,
+      "co": "VAR",
+      "created_at": "2026-09-01T16:19:50.979616+00:00",
+      "date": null,
+      "description": "E2E-mtivg05d-4 cash advance",
+      "file_path": "1788279591372/1788279593020.pdf",
+      "id": 1788279591372,
+      "name": "E2E-mtivg05d-4 holder",
+      "status": "released"
+    },
+    "id": 193,
+    "op": "DELETE",
+    "row_id": 1788279591372,
+    "tbl": "receipts"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": null,
+    "at": "2026-09-01T16:20:13.740827+00:00",
+    "before": {
+      "actual": null,
+      "amount": 3000,
+      "co": "VAR",
+      "created_at": "2026-09-01T16:19:58.7387+00:00",
+      "date": null,
+      "description": "E2E-mtivg05d-5 cash advance",
+      "file_path": null,
+      "id": 1788279599619,
+      "name": "E2E-mtivg05d-5 holder",
+      "status": "released"
+    },
+    "id": 194,
+    "op": "DELETE",
+    "row_id": 1788279599619,
+    "tbl": "receipts"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "data": {
+        "categories": [
+          "Accounting Services",
+          "Advertising Expense",
+          "Alan Expense",
+          "Consultancy Fee",
+          "Credit card",
+          "General Expense",
+          "Jack Expense",
+          "Legal Services",
+          "Other",
+          "Petty Cash Fund",
+          "Rental Expense",
+          "Salary & Wages",
+          "Withholding Taxes"
+        ],
+        "companies": [
+          "ANG",
+          "BAR",
+          "BSC",
+          "CUPA",
+          "DNN",
+          "FEPA",
+          "GTOI",
+          "GZZ",
+          "HAL",
+          "MCR",
+          "MIC",
+          "OPT",
+          "SHK",
+          "TOR",
+          "VAR",
+          "VER",
+          "VNQ",
+          "WDO",
+          "ZON",
+          "ZPH",
+          "ZSM"
+        ],
+        "notes": [
+          {
+            "done": false,
+            "linked": false,
+            "t": "File Gov't Contributio Payments"
+          }
+        ],
+        "settings": {
+          "ackDefaultStatus": "Pending",
+          "ackRequirePhoto": false,
+          "dashDefaultScope": "All companies",
+          "dashShowNotes": true,
+          "dashWindow": "Next 30 days",
+          "mlDefaultFreq": "Monthly",
+          "trkGroupDefault": "Company",
+          "trkOverdueRed": true,
+          "trkShowGrandTotal": true,
+          "warnDuplicate": true
+        }
+      },
+      "id": true,
+      "updated_at": "2026-09-01T16:20:16.190837+00:00"
+    },
+    "at": "2026-09-01T16:20:16.190837+00:00",
+    "before": {
+      "data": {
+        "categories": [
+          "Accounting Services",
+          "Advertising Expense",
+          "Alan Expense",
+          "Consultancy Fee",
+          "Credit card",
+          "General Expense",
+          "Jack Expense",
+          "Legal Services",
+          "Other",
+          "Petty Cash Fund",
+          "Rental Expense",
+          "Salary & Wages",
+          "Withholding Taxes"
+        ],
+        "companies": [
+          "ANG",
+          "BAR",
+          "BSC",
+          "CUPA",
+          "DNN",
+          "FEPA",
+          "GTOI",
+          "GZZ",
+          "HAL",
+          "MCR",
+          "MIC",
+          "OPT",
+          "SHK",
+          "TOR",
+          "VAR",
+          "VER",
+          "VNQ",
+          "WDO",
+          "ZON",
+          "ZPH",
+          "ZSM"
+        ],
+        "notes": [
+          {
+            "done": false,
+            "linked": false,
+            "t": "File Gov't Contributio Payments"
+          }
+        ],
+        "settings": {
+          "ackDefaultStatus": "Pending",
+          "ackRequirePhoto": false,
+          "dashDefaultScope": "All companies",
+          "dashShowNotes": true,
+          "dashWindow": "Next 30 days",
+          "mlDefaultFreq": "Monthly",
+          "trkGroupDefault": "Company",
+          "trkOverdueRed": true,
+          "trkShowGrandTotal": true,
+          "warnDuplicate": true
+        }
+      },
+      "id": true,
+      "updated_at": "2026-09-01T16:20:06.685723+00:00"
+    },
+    "id": 195,
+    "op": "UPDATE",
+    "row_id": null,
+    "tbl": "app_config"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "data": {
+        "categories": [
+          "Accounting Services",
+          "Advertising Expense",
+          "Alan Expense",
+          "Consultancy Fee",
+          "Credit card",
+          "General Expense",
+          "Jack Expense",
+          "Legal Services",
+          "Other",
+          "Petty Cash Fund",
+          "Rental Expense",
+          "Salary & Wages",
+          "Withholding Taxes"
+        ],
+        "companies": [
+          "ANG",
+          "BAR",
+          "BSC",
+          "CUPA",
+          "DNN",
+          "FEPA",
+          "GTOI",
+          "GZZ",
+          "HAL",
+          "MCR",
+          "MIC",
+          "OPT",
+          "SHK",
+          "TOR",
+          "VAR",
+          "VER",
+          "VNQ",
+          "WDO",
+          "ZON",
+          "ZPH",
+          "ZSM"
+        ],
+        "notes": [
+          {
+            "done": false,
+            "linked": false,
+            "t": "File Gov't Contributio Payments"
+          }
+        ],
+        "settings": {
+          "ackDefaultStatus": "Pending",
+          "ackRequirePhoto": false,
+          "dashDefaultScope": "All companies",
+          "dashShowNotes": true,
+          "dashWindow": "Next 90 days",
+          "mlDefaultFreq": "Monthly",
+          "trkGroupDefault": "Company",
+          "trkOverdueRed": true,
+          "trkShowGrandTotal": true,
+          "warnDuplicate": true
+        }
+      },
+      "id": true,
+      "updated_at": "2026-09-01T16:20:20.013635+00:00"
+    },
+    "at": "2026-09-01T16:20:20.013635+00:00",
+    "before": {
+      "data": {
+        "categories": [
+          "Accounting Services",
+          "Advertising Expense",
+          "Alan Expense",
+          "Consultancy Fee",
+          "Credit card",
+          "General Expense",
+          "Jack Expense",
+          "Legal Services",
+          "Other",
+          "Petty Cash Fund",
+          "Rental Expense",
+          "Salary & Wages",
+          "Withholding Taxes"
+        ],
+        "companies": [
+          "ANG",
+          "BAR",
+          "BSC",
+          "CUPA",
+          "DNN",
+          "FEPA",
+          "GTOI",
+          "GZZ",
+          "HAL",
+          "MCR",
+          "MIC",
+          "OPT",
+          "SHK",
+          "TOR",
+          "VAR",
+          "VER",
+          "VNQ",
+          "WDO",
+          "ZON",
+          "ZPH",
+          "ZSM"
+        ],
+        "notes": [
+          {
+            "done": false,
+            "linked": false,
+            "t": "File Gov't Contributio Payments"
+          }
+        ],
+        "settings": {
+          "ackDefaultStatus": "Pending",
+          "ackRequirePhoto": false,
+          "dashDefaultScope": "All companies",
+          "dashShowNotes": true,
+          "dashWindow": "Next 30 days",
+          "mlDefaultFreq": "Monthly",
+          "trkGroupDefault": "Company",
+          "trkOverdueRed": true,
+          "trkShowGrandTotal": true,
+          "warnDuplicate": true
+        }
+      },
+      "id": true,
+      "updated_at": "2026-09-01T16:20:16.190837+00:00"
+    },
+    "id": 196,
+    "op": "UPDATE",
+    "row_id": null,
+    "tbl": "app_config"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "data": {
+        "categories": [
+          "Accounting Services",
+          "Advertising Expense",
+          "Alan Expense",
+          "Consultancy Fee",
+          "Credit card",
+          "General Expense",
+          "Jack Expense",
+          "Legal Services",
+          "Other",
+          "Petty Cash Fund",
+          "Rental Expense",
+          "Salary & Wages",
+          "Withholding Taxes"
+        ],
+        "companies": [
+          "ANG",
+          "BAR",
+          "BSC",
+          "CUPA",
+          "DNN",
+          "FEPA",
+          "GTOI",
+          "GZZ",
+          "HAL",
+          "MCR",
+          "MIC",
+          "OPT",
+          "SHK",
+          "TOR",
+          "VAR",
+          "VER",
+          "VNQ",
+          "WDO",
+          "ZON",
+          "ZPH",
+          "ZSM"
+        ],
+        "notes": [
+          {
+            "done": false,
+            "linked": false,
+            "t": "File Gov't Contributio Payments"
+          }
+        ],
+        "settings": {
+          "ackDefaultStatus": "Pending",
+          "ackRequirePhoto": false,
+          "dashDefaultScope": "All companies",
+          "dashShowNotes": true,
+          "dashWindow": "Next 30 days",
+          "mlDefaultFreq": "Monthly",
+          "trkGroupDefault": "Company",
+          "trkOverdueRed": true,
+          "trkShowGrandTotal": true,
+          "warnDuplicate": true
+        }
+      },
+      "id": true,
+      "updated_at": "2026-09-01T16:20:21.887143+00:00"
+    },
+    "at": "2026-09-01T16:20:21.887143+00:00",
+    "before": {
+      "data": {
+        "categories": [
+          "Accounting Services",
+          "Advertising Expense",
+          "Alan Expense",
+          "Consultancy Fee",
+          "Credit card",
+          "General Expense",
+          "Jack Expense",
+          "Legal Services",
+          "Other",
+          "Petty Cash Fund",
+          "Rental Expense",
+          "Salary & Wages",
+          "Withholding Taxes"
+        ],
+        "companies": [
+          "ANG",
+          "BAR",
+          "BSC",
+          "CUPA",
+          "DNN",
+          "FEPA",
+          "GTOI",
+          "GZZ",
+          "HAL",
+          "MCR",
+          "MIC",
+          "OPT",
+          "SHK",
+          "TOR",
+          "VAR",
+          "VER",
+          "VNQ",
+          "WDO",
+          "ZON",
+          "ZPH",
+          "ZSM"
+        ],
+        "notes": [
+          {
+            "done": false,
+            "linked": false,
+            "t": "File Gov't Contributio Payments"
+          }
+        ],
+        "settings": {
+          "ackDefaultStatus": "Pending",
+          "ackRequirePhoto": false,
+          "dashDefaultScope": "All companies",
+          "dashShowNotes": true,
+          "dashWindow": "Next 90 days",
+          "mlDefaultFreq": "Monthly",
+          "trkGroupDefault": "Company",
+          "trkOverdueRed": true,
+          "trkShowGrandTotal": true,
+          "warnDuplicate": true
+        }
+      },
+      "id": true,
+      "updated_at": "2026-09-01T16:20:20.013635+00:00"
+    },
+    "id": 197,
+    "op": "UPDATE",
+    "row_id": null,
+    "tbl": "app_config"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "actual": null,
+      "amount": 5000,
+      "co": "VAR",
+      "created_at": "2026-09-01T16:20:22.324613+00:00",
+      "date": null,
+      "description": "E2E-mtivg05d-6 cash advance",
+      "file_path": null,
+      "id": 1788279622307,
+      "name": "E2E-mtivg05d-6 holder",
+      "status": "released"
+    },
+    "at": "2026-09-01T16:20:22.324613+00:00",
+    "before": null,
+    "id": 198,
+    "op": "INSERT",
+    "row_id": 1788279622307,
+    "tbl": "receipts"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": null,
+    "at": "2026-09-01T16:20:25.157645+00:00",
+    "before": {
+      "actual": null,
+      "amount": 5000,
+      "co": "VAR",
+      "created_at": "2026-09-01T16:20:22.324613+00:00",
+      "date": null,
+      "description": "E2E-mtivg05d-6 cash advance",
+      "file_path": null,
+      "id": 1788279622307,
+      "name": "E2E-mtivg05d-6 holder",
+      "status": "released"
+    },
+    "id": 199,
+    "op": "DELETE",
+    "row_id": 1788279622307,
     "tbl": "receipts"
   },
   {
@@ -348,6 +4927,246 @@
     "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
     "actor_email": "millaveemmanuel15@gmail.com",
     "after": {
+      "actual": null,
+      "amount": 5000,
+      "co": "VAR",
+      "created_at": "2026-09-01T16:20:27.078484+00:00",
+      "date": null,
+      "description": "E2E-mtivg05d-7 cash advance",
+      "file_path": null,
+      "id": 1788279627505,
+      "name": "E2E-mtivg05d-7 holder",
+      "status": "released"
+    },
+    "at": "2026-09-01T16:20:27.078484+00:00",
+    "before": null,
+    "id": 200,
+    "op": "INSERT",
+    "row_id": 1788279627505,
+    "tbl": "receipts"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "actual": null,
+      "amount": 7250,
+      "co": "VAR",
+      "created_at": "2026-09-01T16:20:27.078484+00:00",
+      "date": null,
+      "description": "E2E-mtivg05d-7 cash advance",
+      "file_path": null,
+      "id": 1788279627505,
+      "name": "E2E-mtivg05d-7 holder edited",
+      "status": "released"
+    },
+    "at": "2026-09-01T16:20:29.456973+00:00",
+    "before": {
+      "actual": null,
+      "amount": 5000,
+      "co": "VAR",
+      "created_at": "2026-09-01T16:20:27.078484+00:00",
+      "date": null,
+      "description": "E2E-mtivg05d-7 cash advance",
+      "file_path": null,
+      "id": 1788279627505,
+      "name": "E2E-mtivg05d-7 holder",
+      "status": "released"
+    },
+    "id": 201,
+    "op": "UPDATE",
+    "row_id": 1788279627505,
+    "tbl": "receipts"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": null,
+    "at": "2026-09-01T16:20:31.966524+00:00",
+    "before": {
+      "actual": null,
+      "amount": 7250,
+      "co": "VAR",
+      "created_at": "2026-09-01T16:20:27.078484+00:00",
+      "date": null,
+      "description": "E2E-mtivg05d-7 cash advance",
+      "file_path": null,
+      "id": 1788279627505,
+      "name": "E2E-mtivg05d-7 holder edited",
+      "status": "released"
+    },
+    "id": 202,
+    "op": "DELETE",
+    "row_id": 1788279627505,
+    "tbl": "receipts"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "amount": 38200,
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:20:39.778697+00:00",
+      "cur": "GBP",
+      "id": 1788279639657,
+      "name": "E2E-mtivg05d Sumitomo Metals",
+      "note": "E2E-mtivg05d steel order",
+      "status": "pending"
+    },
+    "at": "2026-09-01T16:20:39.778697+00:00",
+    "before": null,
+    "id": 203,
+    "op": "INSERT",
+    "row_id": 1788279639657,
+    "tbl": "transfers"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "amount": 38200,
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:20:39.778697+00:00",
+      "cur": "GBP",
+      "id": 1788279639657,
+      "name": "E2E-mtivg05d Sumitomo Metals",
+      "note": "E2E-mtivg05d steel order",
+      "status": "released"
+    },
+    "at": "2026-09-01T16:20:41.484989+00:00",
+    "before": {
+      "amount": 38200,
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:20:39.778697+00:00",
+      "cur": "GBP",
+      "id": 1788279639657,
+      "name": "E2E-mtivg05d Sumitomo Metals",
+      "note": "E2E-mtivg05d steel order",
+      "status": "pending"
+    },
+    "id": 204,
+    "op": "UPDATE",
+    "row_id": 1788279639657,
+    "tbl": "transfers"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "amount": 41000,
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:20:39.778697+00:00",
+      "cur": "GBP",
+      "id": 1788279639657,
+      "name": "E2E-mtivg05d Sumitomo Metals",
+      "note": "E2E-mtivg05d steel order",
+      "status": "released"
+    },
+    "at": "2026-09-01T16:20:42.496108+00:00",
+    "before": {
+      "amount": 38200,
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:20:39.778697+00:00",
+      "cur": "GBP",
+      "id": 1788279639657,
+      "name": "E2E-mtivg05d Sumitomo Metals",
+      "note": "E2E-mtivg05d steel order",
+      "status": "released"
+    },
+    "id": 205,
+    "op": "UPDATE",
+    "row_id": 1788279639657,
+    "tbl": "transfers"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": null,
+    "at": "2026-09-01T16:20:45.370124+00:00",
+    "before": {
+      "amount": 41000,
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:20:39.778697+00:00",
+      "cur": "GBP",
+      "id": 1788279639657,
+      "name": "E2E-mtivg05d Sumitomo Metals",
+      "note": "E2E-mtivg05d steel order",
+      "status": "released"
+    },
+    "id": 206,
+    "op": "DELETE",
+    "row_id": 1788279639657,
+    "tbl": "transfers"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "amount": 1,
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:21:02.1338+00:00",
+      "cur": "USD",
+      "id": 1788279661540,
+      "name": "SEC transfer probe",
+      "note": "",
+      "status": "pending"
+    },
+    "at": "2026-09-01T16:21:02.1338+00:00",
+    "before": null,
+    "id": 207,
+    "op": "INSERT",
+    "row_id": 1788279661540,
+    "tbl": "transfers"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": null,
+    "at": "2026-09-01T16:21:03.593167+00:00",
+    "before": {
+      "amount": 1,
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:21:02.1338+00:00",
+      "cur": "USD",
+      "id": 1788279661540,
+      "name": "SEC transfer probe",
+      "note": "",
+      "status": "pending"
+    },
+    "id": 208,
+    "op": "DELETE",
+    "row_id": 1788279661540,
+    "tbl": "transfers"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "amount": 1,
+      "cat": "Other",
+      "check_no": null,
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:21:04.786033+00:00",
+      "description": "SEC audit probe",
+      "done": null,
+      "due": null,
+      "id": 1788279664683,
+      "notes": null,
+      "pay_type": null,
+      "period": "",
+      "status": "pending"
+    },
+    "at": "2026-09-01T16:21:04.786033+00:00",
+    "before": null,
+    "id": 209,
+    "op": "INSERT",
+    "row_id": 1788279664683,
+    "tbl": "txns"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
       "amount": 8250,
       "cat": "Accounting Services",
       "co": "BSC",
@@ -377,6 +5196,491 @@
     "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
     "actor_email": "millaveemmanuel15@gmail.com",
     "after": null,
+    "at": "2026-09-01T16:21:05.114326+00:00",
+    "before": {
+      "amount": 1,
+      "cat": "Other",
+      "check_no": null,
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:21:04.786033+00:00",
+      "description": "SEC audit probe",
+      "done": null,
+      "due": null,
+      "id": 1788279664683,
+      "notes": null,
+      "pay_type": null,
+      "period": "",
+      "status": "pending"
+    },
+    "id": 210,
+    "op": "DELETE",
+    "row_id": 1788279664683,
+    "tbl": "txns"
+  },
+  {
+    "actor": "02155e68-eb65-4089-989e-9a0485100ada",
+    "actor_email": "millaveemmanuel@gmail.com",
+    "after": {
+      "amount": 1234.5,
+      "cat": "Other",
+      "check_no": null,
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:21:12.584812+00:00",
+      "description": "smoke row",
+      "done": null,
+      "due": "2026-09-30",
+      "id": 1788279672458,
+      "notes": null,
+      "pay_type": null,
+      "period": "Sep 2026",
+      "status": "pending"
+    },
+    "at": "2026-09-01T16:21:12.584812+00:00",
+    "before": null,
+    "id": 211,
+    "op": "INSERT",
+    "row_id": 1788279672458,
+    "tbl": "txns"
+  },
+  {
+    "actor": "02155e68-eb65-4089-989e-9a0485100ada",
+    "actor_email": "millaveemmanuel@gmail.com",
+    "after": {
+      "amount": 1234.5,
+      "cat": "Other",
+      "check_no": "004182",
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:21:12.584812+00:00",
+      "description": "smoke row",
+      "done": "2026-09-01",
+      "due": "2026-09-30",
+      "id": 1788279672458,
+      "notes": null,
+      "pay_type": "Check",
+      "period": "Sep 2026",
+      "status": "completed"
+    },
+    "at": "2026-09-01T16:21:12.895266+00:00",
+    "before": {
+      "amount": 1234.5,
+      "cat": "Other",
+      "check_no": null,
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:21:12.584812+00:00",
+      "description": "smoke row",
+      "done": null,
+      "due": "2026-09-30",
+      "id": 1788279672458,
+      "notes": null,
+      "pay_type": null,
+      "period": "Sep 2026",
+      "status": "pending"
+    },
+    "id": 212,
+    "op": "UPDATE",
+    "row_id": 1788279672458,
+    "tbl": "txns"
+  },
+  {
+    "actor": "02155e68-eb65-4089-989e-9a0485100ada",
+    "actor_email": "millaveemmanuel@gmail.com",
+    "after": {
+      "actual": null,
+      "amount": 2000,
+      "co": "VAR",
+      "created_at": "2026-09-01T16:21:13.183502+00:00",
+      "date": null,
+      "description": "smoke advance",
+      "file_path": null,
+      "id": 1788279673082,
+      "name": "smoke holder",
+      "status": "released"
+    },
+    "at": "2026-09-01T16:21:13.183502+00:00",
+    "before": null,
+    "id": 213,
+    "op": "INSERT",
+    "row_id": 1788279673082,
+    "tbl": "receipts"
+  },
+  {
+    "actor": "02155e68-eb65-4089-989e-9a0485100ada",
+    "actor_email": "millaveemmanuel@gmail.com",
+    "after": {
+      "actual": 999,
+      "amount": 2000,
+      "co": "VAR",
+      "created_at": "2026-09-01T16:21:13.183502+00:00",
+      "date": "2026-09-01",
+      "description": "smoke advance",
+      "file_path": null,
+      "id": 1788279673082,
+      "name": "smoke holder",
+      "status": "liquidated"
+    },
+    "at": "2026-09-01T16:21:13.533834+00:00",
+    "before": {
+      "actual": null,
+      "amount": 2000,
+      "co": "VAR",
+      "created_at": "2026-09-01T16:21:13.183502+00:00",
+      "date": null,
+      "description": "smoke advance",
+      "file_path": null,
+      "id": 1788279673082,
+      "name": "smoke holder",
+      "status": "released"
+    },
+    "id": 214,
+    "op": "UPDATE",
+    "row_id": 1788279673082,
+    "tbl": "receipts"
+  },
+  {
+    "actor": "02155e68-eb65-4089-989e-9a0485100ada",
+    "actor_email": "millaveemmanuel@gmail.com",
+    "after": {
+      "amount": 3400,
+      "co": "ZON",
+      "created_at": "2026-09-01T16:21:13.844167+00:00",
+      "cur": "GBP",
+      "id": 1788279673731,
+      "name": "smoke beneficiary",
+      "note": "smoke wire",
+      "status": "pending"
+    },
+    "at": "2026-09-01T16:21:13.844167+00:00",
+    "before": null,
+    "id": 215,
+    "op": "INSERT",
+    "row_id": 1788279673731,
+    "tbl": "transfers"
+  },
+  {
+    "actor": "02155e68-eb65-4089-989e-9a0485100ada",
+    "actor_email": "millaveemmanuel@gmail.com",
+    "after": {
+      "amount": 3400,
+      "co": "ZON",
+      "created_at": "2026-09-01T16:21:13.844167+00:00",
+      "cur": "GBP",
+      "id": 1788279673731,
+      "name": "smoke beneficiary",
+      "note": "smoke wire released",
+      "status": "released"
+    },
+    "at": "2026-09-01T16:21:14.144809+00:00",
+    "before": {
+      "amount": 3400,
+      "co": "ZON",
+      "created_at": "2026-09-01T16:21:13.844167+00:00",
+      "cur": "GBP",
+      "id": 1788279673731,
+      "name": "smoke beneficiary",
+      "note": "smoke wire",
+      "status": "pending"
+    },
+    "id": 216,
+    "op": "UPDATE",
+    "row_id": 1788279673731,
+    "tbl": "transfers"
+  },
+  {
+    "actor": "02155e68-eb65-4089-989e-9a0485100ada",
+    "actor_email": "millaveemmanuel@gmail.com",
+    "after": {
+      "data": {
+        "categories": [
+          "Accounting Services",
+          "Advertising Expense",
+          "Alan Expense",
+          "Consultancy Fee",
+          "Credit card",
+          "General Expense",
+          "Jack Expense",
+          "Legal Services",
+          "Other",
+          "Petty Cash Fund",
+          "Rental Expense",
+          "Salary & Wages",
+          "Withholding Taxes",
+          "Smoke Category"
+        ],
+        "companies": [
+          "ANG",
+          "BAR",
+          "BSC",
+          "CUPA",
+          "DNN",
+          "FEPA",
+          "GTOI",
+          "GZZ",
+          "HAL",
+          "MCR",
+          "MIC",
+          "OPT",
+          "SHK",
+          "TOR",
+          "VAR",
+          "VER",
+          "VNQ",
+          "WDO",
+          "ZON",
+          "ZPH",
+          "ZSM"
+        ],
+        "notes": [
+          {
+            "done": false,
+            "linked": false,
+            "t": "File Gov't Contributio Payments"
+          }
+        ],
+        "settings": {
+          "ackDefaultStatus": "Pending",
+          "ackRequirePhoto": false,
+          "dashDefaultScope": "All companies",
+          "dashShowNotes": true,
+          "dashWindow": "Next 30 days",
+          "mlDefaultFreq": "Monthly",
+          "trkGroupDefault": "Company",
+          "trkOverdueRed": true,
+          "trkShowGrandTotal": true,
+          "warnDuplicate": true
+        }
+      },
+      "id": true,
+      "updated_at": "2026-09-01T16:21:14.429698+00:00"
+    },
+    "at": "2026-09-01T16:21:14.429698+00:00",
+    "before": {
+      "data": {
+        "categories": [
+          "Accounting Services",
+          "Advertising Expense",
+          "Alan Expense",
+          "Consultancy Fee",
+          "Credit card",
+          "General Expense",
+          "Jack Expense",
+          "Legal Services",
+          "Other",
+          "Petty Cash Fund",
+          "Rental Expense",
+          "Salary & Wages",
+          "Withholding Taxes"
+        ],
+        "companies": [
+          "ANG",
+          "BAR",
+          "BSC",
+          "CUPA",
+          "DNN",
+          "FEPA",
+          "GTOI",
+          "GZZ",
+          "HAL",
+          "MCR",
+          "MIC",
+          "OPT",
+          "SHK",
+          "TOR",
+          "VAR",
+          "VER",
+          "VNQ",
+          "WDO",
+          "ZON",
+          "ZPH",
+          "ZSM"
+        ],
+        "notes": [
+          {
+            "done": false,
+            "linked": false,
+            "t": "File Gov't Contributio Payments"
+          }
+        ],
+        "settings": {
+          "ackDefaultStatus": "Pending",
+          "ackRequirePhoto": false,
+          "dashDefaultScope": "All companies",
+          "dashShowNotes": true,
+          "dashWindow": "Next 30 days",
+          "mlDefaultFreq": "Monthly",
+          "trkGroupDefault": "Company",
+          "trkOverdueRed": true,
+          "trkShowGrandTotal": true,
+          "warnDuplicate": true
+        }
+      },
+      "id": true,
+      "updated_at": "2026-09-01T16:20:21.887143+00:00"
+    },
+    "id": 217,
+    "op": "UPDATE",
+    "row_id": null,
+    "tbl": "app_config"
+  },
+  {
+    "actor": "02155e68-eb65-4089-989e-9a0485100ada",
+    "actor_email": "millaveemmanuel@gmail.com",
+    "after": {
+      "data": {
+        "categories": [
+          "Accounting Services",
+          "Advertising Expense",
+          "Alan Expense",
+          "Consultancy Fee",
+          "Credit card",
+          "General Expense",
+          "Jack Expense",
+          "Legal Services",
+          "Other",
+          "Petty Cash Fund",
+          "Rental Expense",
+          "Salary & Wages",
+          "Withholding Taxes"
+        ],
+        "companies": [
+          "ANG",
+          "BAR",
+          "BSC",
+          "CUPA",
+          "DNN",
+          "FEPA",
+          "GTOI",
+          "GZZ",
+          "HAL",
+          "MCR",
+          "MIC",
+          "OPT",
+          "SHK",
+          "TOR",
+          "VAR",
+          "VER",
+          "VNQ",
+          "WDO",
+          "ZON",
+          "ZPH",
+          "ZSM"
+        ],
+        "notes": [
+          {
+            "done": false,
+            "linked": false,
+            "t": "File Gov't Contributio Payments"
+          }
+        ],
+        "settings": {
+          "ackDefaultStatus": "Pending",
+          "ackRequirePhoto": false,
+          "dashDefaultScope": "All companies",
+          "dashShowNotes": true,
+          "dashWindow": "Next 30 days",
+          "mlDefaultFreq": "Monthly",
+          "trkGroupDefault": "Company",
+          "trkOverdueRed": true,
+          "trkShowGrandTotal": true,
+          "warnDuplicate": true
+        }
+      },
+      "id": true,
+      "updated_at": "2026-09-01T16:21:15.529382+00:00"
+    },
+    "at": "2026-09-01T16:21:15.529382+00:00",
+    "before": {
+      "data": {
+        "categories": [
+          "Accounting Services",
+          "Advertising Expense",
+          "Alan Expense",
+          "Consultancy Fee",
+          "Credit card",
+          "General Expense",
+          "Jack Expense",
+          "Legal Services",
+          "Other",
+          "Petty Cash Fund",
+          "Rental Expense",
+          "Salary & Wages",
+          "Withholding Taxes",
+          "Smoke Category"
+        ],
+        "companies": [
+          "ANG",
+          "BAR",
+          "BSC",
+          "CUPA",
+          "DNN",
+          "FEPA",
+          "GTOI",
+          "GZZ",
+          "HAL",
+          "MCR",
+          "MIC",
+          "OPT",
+          "SHK",
+          "TOR",
+          "VAR",
+          "VER",
+          "VNQ",
+          "WDO",
+          "ZON",
+          "ZPH",
+          "ZSM"
+        ],
+        "notes": [
+          {
+            "done": false,
+            "linked": false,
+            "t": "File Gov't Contributio Payments"
+          }
+        ],
+        "settings": {
+          "ackDefaultStatus": "Pending",
+          "ackRequirePhoto": false,
+          "dashDefaultScope": "All companies",
+          "dashShowNotes": true,
+          "dashWindow": "Next 30 days",
+          "mlDefaultFreq": "Monthly",
+          "trkGroupDefault": "Company",
+          "trkOverdueRed": true,
+          "trkShowGrandTotal": true,
+          "warnDuplicate": true
+        }
+      },
+      "id": true,
+      "updated_at": "2026-09-01T16:21:14.429698+00:00"
+    },
+    "id": 218,
+    "op": "UPDATE",
+    "row_id": null,
+    "tbl": "app_config"
+  },
+  {
+    "actor": "02155e68-eb65-4089-989e-9a0485100ada",
+    "actor_email": "millaveemmanuel@gmail.com",
+    "after": null,
+    "at": "2026-09-01T16:21:15.896127+00:00",
+    "before": {
+      "amount": 3400,
+      "co": "ZON",
+      "created_at": "2026-09-01T16:21:13.844167+00:00",
+      "cur": "GBP",
+      "id": 1788279673731,
+      "name": "smoke beneficiary",
+      "note": "smoke wire released",
+      "status": "released"
+    },
+    "id": 219,
+    "op": "DELETE",
+    "row_id": 1788279673731,
+    "tbl": "transfers"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": null,
     "at": "2026-09-01T15:07:13.365059+00:00",
     "before": {
       "amount": 8250,
@@ -392,6 +5696,188 @@
     "op": "DELETE",
     "row_id": 1788275232372,
     "tbl": "recurring"
+  },
+  {
+    "actor": "02155e68-eb65-4089-989e-9a0485100ada",
+    "actor_email": "millaveemmanuel@gmail.com",
+    "after": null,
+    "at": "2026-09-01T16:21:16.202503+00:00",
+    "before": {
+      "amount": 1234.5,
+      "cat": "Other",
+      "check_no": "004182",
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:21:12.584812+00:00",
+      "description": "smoke row",
+      "done": "2026-09-01",
+      "due": "2026-09-30",
+      "id": 1788279672458,
+      "notes": null,
+      "pay_type": "Check",
+      "period": "Sep 2026",
+      "status": "completed"
+    },
+    "id": 220,
+    "op": "DELETE",
+    "row_id": 1788279672458,
+    "tbl": "txns"
+  },
+  {
+    "actor": "02155e68-eb65-4089-989e-9a0485100ada",
+    "actor_email": "millaveemmanuel@gmail.com",
+    "after": null,
+    "at": "2026-09-01T16:21:17.161828+00:00",
+    "before": {
+      "actual": 999,
+      "amount": 2000,
+      "co": "VAR",
+      "created_at": "2026-09-01T16:21:13.183502+00:00",
+      "date": "2026-09-01",
+      "description": "smoke advance",
+      "file_path": null,
+      "id": 1788279673082,
+      "name": "smoke holder",
+      "status": "liquidated"
+    },
+    "id": 221,
+    "op": "DELETE",
+    "row_id": 1788279673082,
+    "tbl": "receipts"
+  },
+  {
+    "actor": "02155e68-eb65-4089-989e-9a0485100ada",
+    "actor_email": "millaveemmanuel@gmail.com",
+    "after": {
+      "data": {
+        "categories": [
+          "Accounting Services",
+          "Advertising Expense",
+          "Alan Expense",
+          "Consultancy Fee",
+          "Credit card",
+          "General Expense",
+          "Jack Expense",
+          "Legal Services",
+          "Other",
+          "Petty Cash Fund",
+          "Rental Expense",
+          "Salary & Wages",
+          "Withholding Taxes"
+        ],
+        "companies": [
+          "ANG",
+          "BAR",
+          "BSC",
+          "CUPA",
+          "DNN",
+          "FEPA",
+          "GTOI",
+          "GZZ",
+          "HAL",
+          "MCR",
+          "MIC",
+          "OPT",
+          "SHK",
+          "TOR",
+          "VAR",
+          "VER",
+          "VNQ",
+          "WDO",
+          "ZON",
+          "ZPH",
+          "ZSM"
+        ],
+        "notes": [
+          {
+            "done": false,
+            "linked": false,
+            "t": "File Gov't Contributio Payments"
+          }
+        ],
+        "settings": {
+          "ackDefaultStatus": "Pending",
+          "ackRequirePhoto": false,
+          "dashDefaultScope": "All companies",
+          "dashShowNotes": true,
+          "dashWindow": "Next 30 days",
+          "mlDefaultFreq": "Monthly",
+          "trkGroupDefault": "Company",
+          "trkOverdueRed": true,
+          "trkShowGrandTotal": true,
+          "warnDuplicate": true
+        }
+      },
+      "id": true,
+      "updated_at": "2026-09-01T16:21:17.790641+00:00"
+    },
+    "at": "2026-09-01T16:21:17.790641+00:00",
+    "before": {
+      "data": {
+        "categories": [
+          "Accounting Services",
+          "Advertising Expense",
+          "Alan Expense",
+          "Consultancy Fee",
+          "Credit card",
+          "General Expense",
+          "Jack Expense",
+          "Legal Services",
+          "Other",
+          "Petty Cash Fund",
+          "Rental Expense",
+          "Salary & Wages",
+          "Withholding Taxes"
+        ],
+        "companies": [
+          "ANG",
+          "BAR",
+          "BSC",
+          "CUPA",
+          "DNN",
+          "FEPA",
+          "GTOI",
+          "GZZ",
+          "HAL",
+          "MCR",
+          "MIC",
+          "OPT",
+          "SHK",
+          "TOR",
+          "VAR",
+          "VER",
+          "VNQ",
+          "WDO",
+          "ZON",
+          "ZPH",
+          "ZSM"
+        ],
+        "notes": [
+          {
+            "done": false,
+            "linked": false,
+            "t": "File Gov't Contributio Payments"
+          }
+        ],
+        "settings": {
+          "ackDefaultStatus": "Pending",
+          "ackRequirePhoto": false,
+          "dashDefaultScope": "All companies",
+          "dashShowNotes": true,
+          "dashWindow": "Next 30 days",
+          "mlDefaultFreq": "Monthly",
+          "trkGroupDefault": "Company",
+          "trkOverdueRed": true,
+          "trkShowGrandTotal": true,
+          "warnDuplicate": true
+        }
+      },
+      "id": true,
+      "updated_at": "2026-09-01T16:21:15.529382+00:00"
+    },
+    "id": 222,
+    "op": "UPDATE",
+    "row_id": null,
+    "tbl": "app_config"
   },
   {
     "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
@@ -3005,6 +8491,116 @@
   {
     "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
     "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "amount": 1,
+      "co": "GTOI",
+      "created_at": "2026-09-01T15:23:27.568771+00:00",
+      "cur": "USD",
+      "id": 1788276207473,
+      "name": "SEC transfer probe",
+      "note": "",
+      "status": "pending"
+    },
+    "at": "2026-09-01T15:23:27.568771+00:00",
+    "before": null,
+    "id": 75,
+    "op": "INSERT",
+    "row_id": 1788276207473,
+    "tbl": "transfers"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": null,
+    "at": "2026-09-01T15:23:27.773467+00:00",
+    "before": {
+      "amount": 1,
+      "co": "GTOI",
+      "created_at": "2026-09-01T15:23:27.568771+00:00",
+      "cur": "USD",
+      "id": 1788276207473,
+      "name": "SEC transfer probe",
+      "note": "",
+      "status": "pending"
+    },
+    "id": 76,
+    "op": "DELETE",
+    "row_id": 1788276207473,
+    "tbl": "transfers"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "amount": 1,
+      "cat": "Other",
+      "check_no": null,
+      "co": "GTOI",
+      "created_at": "2026-09-01T15:23:28.05607+00:00",
+      "description": "SEC audit probe",
+      "done": null,
+      "due": null,
+      "id": 1788276207997,
+      "notes": null,
+      "pay_type": null,
+      "period": "",
+      "status": "pending"
+    },
+    "at": "2026-09-01T15:23:28.05607+00:00",
+    "before": null,
+    "id": 77,
+    "op": "INSERT",
+    "row_id": 1788276207997,
+    "tbl": "txns"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": null,
+    "at": "2026-09-01T15:23:28.128596+00:00",
+    "before": {
+      "amount": 1,
+      "cat": "Other",
+      "check_no": null,
+      "co": "GTOI",
+      "created_at": "2026-09-01T15:23:28.05607+00:00",
+      "description": "SEC audit probe",
+      "done": null,
+      "due": null,
+      "id": 1788276207997,
+      "notes": null,
+      "pay_type": null,
+      "period": "",
+      "status": "pending"
+    },
+    "id": 78,
+    "op": "DELETE",
+    "row_id": 1788276207997,
+    "tbl": "txns"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "amount": 1,
+      "co": "GTOI",
+      "created_at": "2026-09-01T15:24:22.435705+00:00",
+      "cur": "USD",
+      "id": 1788276262325,
+      "name": "SEC transfer probe",
+      "note": "",
+      "status": "pending"
+    },
+    "at": "2026-09-01T15:24:22.435705+00:00",
+    "before": null,
+    "id": 79,
+    "op": "INSERT",
+    "row_id": 1788276262325,
+    "tbl": "transfers"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
     "after": null,
     "at": "2026-09-01T15:06:22.715834+00:00",
     "before": {
@@ -3021,6 +8617,231 @@
     "op": "DELETE",
     "row_id": 1788275182152,
     "tbl": "transfers"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": null,
+    "at": "2026-09-01T15:24:22.645828+00:00",
+    "before": {
+      "amount": 1,
+      "co": "GTOI",
+      "created_at": "2026-09-01T15:24:22.435705+00:00",
+      "cur": "USD",
+      "id": 1788276262325,
+      "name": "SEC transfer probe",
+      "note": "",
+      "status": "pending"
+    },
+    "id": 80,
+    "op": "DELETE",
+    "row_id": 1788276262325,
+    "tbl": "transfers"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "amount": 1,
+      "cat": "Other",
+      "check_no": null,
+      "co": "GTOI",
+      "created_at": "2026-09-01T15:24:22.959163+00:00",
+      "description": "SEC audit probe",
+      "done": null,
+      "due": null,
+      "id": 1788276262900,
+      "notes": null,
+      "pay_type": null,
+      "period": "",
+      "status": "pending"
+    },
+    "at": "2026-09-01T15:24:22.959163+00:00",
+    "before": null,
+    "id": 81,
+    "op": "INSERT",
+    "row_id": 1788276262900,
+    "tbl": "txns"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": null,
+    "at": "2026-09-01T15:24:23.030055+00:00",
+    "before": {
+      "amount": 1,
+      "cat": "Other",
+      "check_no": null,
+      "co": "GTOI",
+      "created_at": "2026-09-01T15:24:22.959163+00:00",
+      "description": "SEC audit probe",
+      "done": null,
+      "due": null,
+      "id": 1788276262900,
+      "notes": null,
+      "pay_type": null,
+      "period": "",
+      "status": "pending"
+    },
+    "id": 82,
+    "op": "DELETE",
+    "row_id": 1788276262900,
+    "tbl": "txns"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "amount": 1,
+      "co": "GTOI",
+      "created_at": "2026-09-01T15:24:28.025834+00:00",
+      "cur": "USD",
+      "id": 1788276267926,
+      "name": "SEC transfer probe",
+      "note": "",
+      "status": "pending"
+    },
+    "at": "2026-09-01T15:24:28.025834+00:00",
+    "before": null,
+    "id": 83,
+    "op": "INSERT",
+    "row_id": 1788276267926,
+    "tbl": "transfers"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": null,
+    "at": "2026-09-01T15:24:28.214211+00:00",
+    "before": {
+      "amount": 1,
+      "co": "GTOI",
+      "created_at": "2026-09-01T15:24:28.025834+00:00",
+      "cur": "USD",
+      "id": 1788276267926,
+      "name": "SEC transfer probe",
+      "note": "",
+      "status": "pending"
+    },
+    "id": 84,
+    "op": "DELETE",
+    "row_id": 1788276267926,
+    "tbl": "transfers"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "amount": 1,
+      "cat": "Other",
+      "check_no": null,
+      "co": "GTOI",
+      "created_at": "2026-09-01T15:24:28.46459+00:00",
+      "description": "SEC audit probe",
+      "done": null,
+      "due": null,
+      "id": 1788276268402,
+      "notes": null,
+      "pay_type": null,
+      "period": "",
+      "status": "pending"
+    },
+    "at": "2026-09-01T15:24:28.46459+00:00",
+    "before": null,
+    "id": 85,
+    "op": "INSERT",
+    "row_id": 1788276268402,
+    "tbl": "txns"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": null,
+    "at": "2026-09-01T15:24:28.530353+00:00",
+    "before": {
+      "amount": 1,
+      "cat": "Other",
+      "check_no": null,
+      "co": "GTOI",
+      "created_at": "2026-09-01T15:24:28.46459+00:00",
+      "description": "SEC audit probe",
+      "done": null,
+      "due": null,
+      "id": 1788276268402,
+      "notes": null,
+      "pay_type": null,
+      "period": "",
+      "status": "pending"
+    },
+    "id": 86,
+    "op": "DELETE",
+    "row_id": 1788276268402,
+    "tbl": "txns"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "amount": 1,
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:06:04.388062+00:00",
+      "cur": "USD",
+      "id": 1788278764271,
+      "name": "SEC transfer probe",
+      "note": "",
+      "status": "pending"
+    },
+    "at": "2026-09-01T16:06:04.388062+00:00",
+    "before": null,
+    "id": 87,
+    "op": "INSERT",
+    "row_id": 1788278764271,
+    "tbl": "transfers"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": null,
+    "at": "2026-09-01T16:06:04.570325+00:00",
+    "before": {
+      "amount": 1,
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:06:04.388062+00:00",
+      "cur": "USD",
+      "id": 1788278764271,
+      "name": "SEC transfer probe",
+      "note": "",
+      "status": "pending"
+    },
+    "id": 88,
+    "op": "DELETE",
+    "row_id": 1788278764271,
+    "tbl": "transfers"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "amount": 1,
+      "cat": "Other",
+      "check_no": null,
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:06:04.826509+00:00",
+      "description": "SEC audit probe",
+      "done": null,
+      "due": null,
+      "id": 1788278764724,
+      "notes": null,
+      "pay_type": null,
+      "period": "",
+      "status": "pending"
+    },
+    "at": "2026-09-01T16:06:04.826509+00:00",
+    "before": null,
+    "id": 89,
+    "op": "INSERT",
+    "row_id": 1788278764724,
+    "tbl": "txns"
   },
   {
     "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
@@ -3046,5 +8867,290 @@
     "op": "INSERT",
     "row_id": 1788275183012,
     "tbl": "txns"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": null,
+    "at": "2026-09-01T16:06:04.887387+00:00",
+    "before": {
+      "amount": 1,
+      "cat": "Other",
+      "check_no": null,
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:06:04.826509+00:00",
+      "description": "SEC audit probe",
+      "done": null,
+      "due": null,
+      "id": 1788278764724,
+      "notes": null,
+      "pay_type": null,
+      "period": "",
+      "status": "pending"
+    },
+    "id": 90,
+    "op": "DELETE",
+    "row_id": 1788278764724,
+    "tbl": "txns"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "amount": 12345.67,
+      "cat": "Rental Expense",
+      "check_no": null,
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:06:23.557778+00:00",
+      "description": "E2E-mtiv0h6k warehouse rent",
+      "done": null,
+      "due": "2026-09-02",
+      "id": 1788278783435,
+      "notes": "note from the add form",
+      "pay_type": null,
+      "period": "Sep 2026",
+      "status": "pending"
+    },
+    "at": "2026-09-01T16:06:23.557778+00:00",
+    "before": null,
+    "id": 91,
+    "op": "INSERT",
+    "row_id": 1788278783435,
+    "tbl": "txns"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "amount": 999.5,
+      "cat": "Rental Expense",
+      "check_no": null,
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:06:23.557778+00:00",
+      "description": "E2E-mtiv0h6k warehouse rent",
+      "done": null,
+      "due": "2026-09-02",
+      "id": 1788278783435,
+      "notes": "edited note",
+      "pay_type": null,
+      "period": "Sep 2026",
+      "status": "pending"
+    },
+    "at": "2026-09-01T16:06:29.338082+00:00",
+    "before": {
+      "amount": 12345.67,
+      "cat": "Rental Expense",
+      "check_no": null,
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:06:23.557778+00:00",
+      "description": "E2E-mtiv0h6k warehouse rent",
+      "done": null,
+      "due": "2026-09-02",
+      "id": 1788278783435,
+      "notes": "note from the add form",
+      "pay_type": null,
+      "period": "Sep 2026",
+      "status": "pending"
+    },
+    "id": 92,
+    "op": "UPDATE",
+    "row_id": 1788278783435,
+    "tbl": "txns"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "amount": 999.5,
+      "cat": "Rental Expense",
+      "check_no": "004821",
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:06:23.557778+00:00",
+      "description": "E2E-mtiv0h6k warehouse rent",
+      "done": "2026-09-02",
+      "due": "2026-09-02",
+      "id": 1788278783435,
+      "notes": "edited note",
+      "pay_type": "Check",
+      "period": "Sep 2026",
+      "status": "completed"
+    },
+    "at": "2026-09-01T16:06:32.580006+00:00",
+    "before": {
+      "amount": 999.5,
+      "cat": "Rental Expense",
+      "check_no": null,
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:06:23.557778+00:00",
+      "description": "E2E-mtiv0h6k warehouse rent",
+      "done": null,
+      "due": "2026-09-02",
+      "id": 1788278783435,
+      "notes": "edited note",
+      "pay_type": null,
+      "period": "Sep 2026",
+      "status": "pending"
+    },
+    "id": 93,
+    "op": "UPDATE",
+    "row_id": 1788278783435,
+    "tbl": "txns"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": null,
+    "at": "2026-09-01T16:06:39.033063+00:00",
+    "before": {
+      "amount": 999.5,
+      "cat": "Rental Expense",
+      "check_no": "004821",
+      "co": "GTOI",
+      "created_at": "2026-09-01T16:06:23.557778+00:00",
+      "description": "E2E-mtiv0h6k warehouse rent",
+      "done": "2026-09-02",
+      "due": "2026-09-02",
+      "id": 1788278783435,
+      "notes": "edited note",
+      "pay_type": "Check",
+      "period": "Sep 2026",
+      "status": "completed"
+    },
+    "id": 94,
+    "op": "DELETE",
+    "row_id": 1788278783435,
+    "tbl": "txns"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "actual": null,
+      "amount": 4500,
+      "co": "VAR",
+      "created_at": "2026-09-01T16:06:42.727452+00:00",
+      "date": null,
+      "description": "E2E-mtiv0h6k permit fees",
+      "file_path": null,
+      "id": 1788278802593,
+      "name": "E2E-mtiv0h6k Rivera",
+      "status": "pending"
+    },
+    "at": "2026-09-01T16:06:42.727452+00:00",
+    "before": null,
+    "id": 95,
+    "op": "INSERT",
+    "row_id": 1788278802593,
+    "tbl": "receipts"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": null,
+    "at": "2026-09-01T16:06:43.799471+00:00",
+    "before": {
+      "actual": null,
+      "amount": 4500,
+      "co": "VAR",
+      "created_at": "2026-09-01T16:06:42.727452+00:00",
+      "date": null,
+      "description": "E2E-mtiv0h6k permit fees",
+      "file_path": null,
+      "id": 1788278802593,
+      "name": "E2E-mtiv0h6k Rivera",
+      "status": "pending"
+    },
+    "id": 96,
+    "op": "DELETE",
+    "row_id": 1788278802593,
+    "tbl": "receipts"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "actual": null,
+      "amount": 5000,
+      "co": "VAR",
+      "created_at": "2026-09-01T16:06:44.013882+00:00",
+      "date": null,
+      "description": "E2E-mtiv0h6k-1 cash advance",
+      "file_path": null,
+      "id": 1788278804637,
+      "name": "E2E-mtiv0h6k-1 holder",
+      "status": "released"
+    },
+    "at": "2026-09-01T16:06:44.013882+00:00",
+    "before": null,
+    "id": 97,
+    "op": "INSERT",
+    "row_id": 1788278804637,
+    "tbl": "receipts"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "actual": 1234,
+      "amount": 5000,
+      "co": "VAR",
+      "created_at": "2026-09-01T16:06:44.013882+00:00",
+      "date": "2026-08-31",
+      "description": "E2E-mtiv0h6k-1 cash advance",
+      "file_path": null,
+      "id": 1788278804637,
+      "name": "E2E-mtiv0h6k-1 holder",
+      "status": "liquidated"
+    },
+    "at": "2026-09-01T16:06:46.131749+00:00",
+    "before": {
+      "actual": null,
+      "amount": 5000,
+      "co": "VAR",
+      "created_at": "2026-09-01T16:06:44.013882+00:00",
+      "date": null,
+      "description": "E2E-mtiv0h6k-1 cash advance",
+      "file_path": null,
+      "id": 1788278804637,
+      "name": "E2E-mtiv0h6k-1 holder",
+      "status": "released"
+    },
+    "id": 98,
+    "op": "UPDATE",
+    "row_id": 1788278804637,
+    "tbl": "receipts"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "actual": null,
+      "amount": 5000,
+      "co": "VAR",
+      "created_at": "2026-09-01T16:06:44.013882+00:00",
+      "date": null,
+      "description": "E2E-mtiv0h6k-1 cash advance",
+      "file_path": null,
+      "id": 1788278804637,
+      "name": "E2E-mtiv0h6k-1 holder",
+      "status": "released"
+    },
+    "at": "2026-09-01T16:06:46.464602+00:00",
+    "before": {
+      "actual": 1234,
+      "amount": 5000,
+      "co": "VAR",
+      "created_at": "2026-09-01T16:06:44.013882+00:00",
+      "date": "2026-08-31",
+      "description": "E2E-mtiv0h6k-1 cash advance",
+      "file_path": null,
+      "id": 1788278804637,
+      "name": "E2E-mtiv0h6k-1 holder",
+      "status": "liquidated"
+    },
+    "id": 99,
+    "op": "UPDATE",
+    "row_id": 1788278804637,
+    "tbl": "receipts"
   }
 ]
