@@ -1,6 +1,16 @@
 node_modules
 dist
-.env.local
-.env
 test-results
 playwright-report
+
+# Vercel CLI project link. Machine-local.
+.vercel
+
+# Secrets. `.env*` is deliberately broad — anything new starts ignored — with
+# two files exempted because they carry no secret: .env.example is a shape, and
+# .env.production holds only values that ship in the browser bundle anyway.
+# Nothing secret may join them. The CLI added the bare `.env*` on 2026-09-02;
+# the exemptions keep it from contradicting that deliberate commit.
+.env*
+!.env.example
+!.env.production

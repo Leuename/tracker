@@ -36,20 +36,20 @@ This is the agent-agnostic entry point. It describes where facts live, how instr
 - Documentation or context work: use `.claude/commands/generate-docs.md` and keep evidence distinct from decisions.
 - Passive artifact review: use `.claude/commands/review.md`; do not execute active HTML without provenance review.
 - UX or accessibility review: use `.claude/commands/ux-reviewer.md` or the matching agent, with manual checks only when authorized.
-- Resuming a session, or picking up work someone else left: start at [Telegraphic Transfers and Full-Stack Verification](../handoff/2026-09-01%20Telegraphic%20Transfers%20and%20Full-Stack%20Verification.md) and use its `## Resume prompts`.
+- Resuming a session, or picking up work someone else left: start at [Telegraphic Transfers and Full-Stack Verification](../handoff/2026-09-01%20Telegraphic%20Transfers%20and%20Full-Stack%20Verification.md) and paste its single `## Resume prompt`.
 - Run or test the authored tracker with the evidence-backed commands in [Repository Evidence](Repository%20Evidence.md). For further feature, refactor, migration, deployment, release, or rollback work, consult [Decisions](Decisions.md) and stop when its activation gate is unmet.
 
 ## Current State
 
 `apps/web/` is a running React + Vite application backed by Supabase Postgres, deployed to Vercel and used by **four** accounts sharing one ledger, all administrator-equivalent. Five screens: Dashboard, Tracker, AckRec, **Telegraphic** and Masterlist, plus Settings. Five tables: `txns`, `receipts`, `recurring`, `transfers` and `app_config`. It has a package manifest, a build, four test commands and a security probe, and it holds real financial data.
 
-The schema is now versioned in [supabase/migrations/](../supabase/README.md), seven files each MD5-verified against what was applied. A nightly GitHub Actions workflow snapshots the whole workspace into [backups/](../backups/README.md). Releases are annotated tags, `v0.2.0` through `v0.4.1`.
+The schema is now versioned in [supabase/migrations/](../supabase/README.md), nine files each MD5-verified against what was applied. A nightly GitHub Actions workflow snapshots the whole workspace into [backups/](../backups/README.md). Releases are annotated tags, `v0.2.0` through `v0.4.1`.
 
 The rest of the checkout is unchanged: `company_tracker/` remains a static Design Component export, `construction_tracker/construction.csv` remains a requirements sheet parked by decision, and `apps/api/` is still empty.
 
 Still absent: CI, an audit trail, a scheduler, conflict detection between concurrent editors, and a per-wire exchange rate. Each is recorded with its reason in [Decisions](Decisions.md); the first two have designs at [Audit Trail Plan](Audit%20Trail%20Plan.md) and [Continuous Integration Plan](Continuous%20Integration%20Plan.md).
 
-**One live security gap:** self-serve sign-up is enabled on the Supabase project, deferred by the owner on 2026-09-01. It is why `npm run security` reports 35 of 36 and must not be read as a code defect.
+**No known open security gap.** Self-serve sign-up, the one that stood since 2026-08-31, was closed on 2026-09-02 — `/auth/v1/signup` answers `422 signup_disabled` — and `npm run security` reports 41 checks, 0 failed. Being signed in is still the whole authorization ([Decisions](Decisions.md) D8, D20), so account creation staying closed is what holds that model up.
 
 ## Guideline Basis
 

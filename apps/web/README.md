@@ -25,9 +25,9 @@ Every command below is backed by `package.json` in this directory.
 | `npm run dev` | Development server on http://localhost:5173. |
 | `npm run build` | Production bundle into `dist/`. |
 | `npm run preview` | Serves the built bundle. |
-| `npm test` | `node --test src/logic.test.js src/rows.test.js` — 22 assertions over the recurrence, period and row-mapping rules. Runs offline. No test framework. |
-| `npm run e2e` | 24 Playwright specs. Needs `E2E_EMAIL` and `E2E_PASSWORD`; `E2E_BASE_URL` points them at a deployment. |
-| `npm run security` | 33-check security probe against Supabase and the deployment. |
+| `npm test` | `node --test src/logic.test.js src/rows.test.js src/errors.test.js` — 39 assertions over the recurrence, period, row-mapping and error rules. Runs offline. No test framework. |
+| `npm run e2e` | 27 Playwright specs. Needs `E2E_EMAIL` and `E2E_PASSWORD`; `E2E_BASE_URL` points them at a deployment. Without them the suite **skips and exits 0** — set `E2E_REQUIRE_CREDENTIALS=1` to make that a failure instead. |
+| `npm run security` | 41-check security probe against Supabase and the deployment. One check fails by decision: self-serve sign-up is deferred. |
 | `npm run smoke` | End-to-end check against the live Supabase project. Needs the network and `SMOKE_EMAIL` / `SMOKE_PASSWORD` for one of the two issued accounts. It writes to the shared ledger, so run it before real data goes in. |
 
 ## Configuration
@@ -51,9 +51,12 @@ Pushed to `Leuename/tracker` (private) and deployed by Vercel to
 `.env.production` is committed on purpose — both values are public by design and ship in the
 bundle regardless. A `service_role` or any other secret key must never join them.
 
-**There is no gate between a push and production.** No CI, no staging branch. `npm test`,
-`npm run e2e`, and `npm run build` are the checks, and they have to pass *before* you push,
-because nothing runs them afterwards.
+**The gate is one secret away from real.** `vercel.json` now carries
+`"git": { "deploymentEnabled": { "main": false } }`, so Vercel stops deploying pushes to `main`
+once that file is pushed, and `.github/workflows/ci.yml` runs the checks and then deploys with the
+Vercel CLI. It cannot deploy until `VERCEL_TOKEN`, `VERCEL_ORG_ID` and `VERCEL_PROJECT_ID` are set
+as repository secrets — until they are, a push to `main` reaches nothing. `npm test`,
+`npm run e2e`, and `npm run build` still have to pass *before* you push.
 
 ## Persistence
 

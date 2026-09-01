@@ -17,17 +17,39 @@ const ORIGIN = process.env.SEC_ORIGIN || 'https://tracker-six-flax.vercel.app'
 const EMAIL = process.env.E2E_EMAIL
 const PASSWORD = process.env.E2E_PASSWORD
 
+/**
+ * Checks that fail by decision rather than by defect.
+ *
+ * A deferred check still runs and still prints its real result — it simply does
+ * not fail the suite. The alternative in practice is that a known, accepted
+ * failure trains everyone to read a red run as normal, and then a real one goes
+ * unnoticed.
+ *
+ * Two rules. Every entry names the decision that authorises it, so nobody has
+ * to guess whether it is deliberate. And an entry is removed the moment its
+ * cause is gone: this file reports a STALE line when a deferred check starts
+ * passing, because an exemption that outlives its reason is how a suite quietly
+ * stops meaning anything.
+ */
+// Empty, and that is the healthy state. Self-serve sign-up lived here on
+// 2026-09-01 and was closed the next day; its entry was deleted the moment the
+// check went green, which is the whole discipline.
+const DEFERRED = {}
+
 const results = []
 const check = (name, ok, detail = '') => {
-  results.push({ name, ok, detail })
-  console.log((ok ? '  PASS  ' : '  FAIL  ') + name + (detail ? ' — ' + detail : ''))
+  const excuse = ok ? null : DEFERRED[name] || null
+  results.push({ name, ok, detail, excuse })
+  const tag = ok ? '  PASS  ' : excuse ? '  DEFER ' : '  FAIL  '
+  console.log(tag + name + (detail ? ' — ' + detail : ''))
+  if (excuse) console.log('         ' + excuse)
 }
 
 const rest = (path, init = {}) =>
   fetch(URL_ + '/rest/v1/' + path, { ...init, headers: { apikey: KEY, ...(init.headers || {}) } })
 
 console.log('\n== 1. Anonymous access ==')
-for (const table of ['txns', 'receipts', 'recurring', 'transfers', 'app_config']) {
+for (const table of ['txns', 'receipts', 'recurring', 'transfers', 'app_config', 'audit_log']) {
   const r = await rest(table + '?select=*')
   const body = await r.text()
   check(`anon cannot read ${table}`, r.status === 401 || r.status === 403,
@@ -163,6 +185,55 @@ const c = await (async () => signedIn)()
   check('app_config.updated_at cannot be set by the client', !!error, error ? error.code : 'UPDATE SUCCEEDED')
 }
 
+{
+  // The audit log, from the client's side. Check A proves the trigger fires and
+  // attributes the change; B, C and D prove the record cannot then be edited.
+  //
+  // A is deliberately a DELETE, because a deletion is the change the log exists
+  // for: it is the only operation that leaves nothing behind to inspect.
+  const id = Date.now() + 21
+  await c.from('txns').insert({ id, co: 'GTOI', cat: 'Other', description: 'SEC audit probe', amount: 1 })
+  await c.from('txns').delete().eq('id', id)
+
+  const { data: entry } = await c.from('audit_log')
+    .select('id, actor, actor_email, before')
+    .eq('tbl', 'txns').eq('row_id', id).eq('op', 'DELETE').maybeSingle()
+  check('a client delete is recorded in the audit log, naming the actor',
+    !!entry && entry.actor_email === EMAIL && !!entry.actor,
+    entry ? 'actor ' + entry.actor_email : 'NO AUDIT ROW')
+
+  if (!entry) {
+    // Never report a pass for a control that was not exercised — the transfers
+    // primary-key check did exactly that on 2026-09-01 and hid a real hole.
+    for (const n of ['inserted', 'updated', 'deleted']) {
+      check('audit rows cannot be ' + n + ' by a client', false, 'not exercised: no audit row to work from')
+    }
+  } else {
+    const { error: insErr } = await c.from('audit_log').insert({
+      tbl: 'txns', op: 'DELETE', row_id: id, actor_email: 'forged@example.com',
+    })
+    check('audit rows cannot be inserted by a client', !!insErr,
+      insErr ? 'rejected: ' + insErr.code : 'INSERT SUCCEEDED')
+
+    // Read back rather than trust the error: a silent no-op and a refusal look
+    // the same from the caller's side, and only one of them is the control.
+    const { error: updErr } = await c.from('audit_log')
+      .update({ actor_email: 'rewritten@example.com' }).eq('id', entry.id)
+    const { data: afterUpd } = await c.from('audit_log')
+      .select('actor_email').eq('id', entry.id).maybeSingle()
+    check('audit rows cannot be updated by a client',
+      !!updErr && !!afterUpd && afterUpd.actor_email === entry.actor_email,
+      updErr ? 'rejected: ' + updErr.code : 'UPDATE SUCCEEDED')
+
+    const { error: delErr } = await c.from('audit_log').delete().eq('id', entry.id)
+    const { data: afterDel } = await c.from('audit_log').select('id').eq('id', entry.id).maybeSingle()
+    check('audit rows cannot be deleted by a client', !!delErr && !!afterDel,
+      delErr ? 'rejected: ' + delErr.code : 'DELETE SUCCEEDED')
+  }
+  // The probe's own rows stay in the log on purpose: nothing may remove them,
+  // which is the property being asserted.
+}
+
 console.log('\n== 6. Receipt file storage ==')
 {
   const anon = createClient(URL_, KEY, { auth: { persistSession: false } })
@@ -245,10 +316,24 @@ console.log('\n== 9. Deployment response headers ==')
 
 await signedIn.auth.signOut()
 
-const failed = results.filter((r) => !r.ok)
-console.log('\n' + results.length + ' checks, ' + failed.length + ' failed')
+const failed = results.filter((r) => !r.ok && !r.excuse)
+const deferred = results.filter((r) => r.excuse)
+// A deferred check that has started passing: the decision behind it is spent.
+const stale = results.filter((r) => r.ok && DEFERRED[r.name])
+
+console.log('\n' + results.length + ' checks, ' + failed.length + ' failed' +
+  (deferred.length ? ', ' + deferred.length + ' deferred' : ''))
 if (failed.length) {
   console.log('\nFailing:')
   for (const f of failed) console.log('  - ' + f.name + (f.detail ? ' — ' + f.detail : ''))
+}
+if (deferred.length) {
+  console.log('\nDeferred, not passing, and not counted:')
+  for (const d of deferred) console.log('  - ' + d.name + ' — ' + d.excuse)
+}
+if (stale.length) {
+  // Loud, but not fatal. Closing the hole must never turn the nightly run red.
+  console.log('\nSTALE EXEMPTION — these now pass and their DEFERRED entries should be deleted:')
+  for (const s_ of stale) console.log('  - ' + s_.name)
 }
 process.exit(failed.length ? 1 : 0)

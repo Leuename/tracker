@@ -1,0 +1,71 @@
+# The suites that touch the real ledger, kept off the push path.
+#
+# `npm run e2e`, `npm run security` and `npm run smoke` all WRITE to production
+# data. There is one Supabase project; E2E_BASE_URL changes which site the tests
+# drive, not which database they hit. Running them on every push would put test
+# rows in real data all day, so they run once a night and whenever someone asks.
+#
+# The security probe also mints a real `sec-probe-<ts>@zoneoffice.ph` account on
+# every run and that account outlives the run, because self-serve sign-up is
+# still open. Clear them periodically:
+#
+#   delete from auth.users where email like 'sec-probe-%';
+name: Verify
+
+on:
+  schedule:
+    # 16:00 UTC = midnight in Manila, and two hours before the backup at 18:00,
+    # so a night's residue is swept before the snapshot is taken.
+    - cron: '0 16 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify
+  cancel-in-progress: false
+
+jobs:
+  suites:
+    runs-on: ubuntu-latest
+    env:
+      VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+      E2E_EMAIL: ${{ secrets.E2E_EMAIL }}
+      E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+      SMOKE_EMAIL: ${{ secrets.SMOKE_EMAIL }}
+      SMOKE_PASSWORD: ${{ secrets.SMOKE_PASSWORD }}
+      # Without this the suite prints "27 skipped" and exits 0 when a credential
+      # is missing, and this job reports a safety it never provided.
+      E2E_REQUIRE_CREDENTIALS: '1'
+      # Drive the deployment rather than starting a dev server for it.
+      E2E_BASE_URL: https://tracker-six-flax.vercel.app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - run: npm ci
+        working-directory: apps/web
+
+      - run: npx playwright install --with-deps chromium
+        working-directory: apps/web
+
+      # The probe's section 7 reads dist/assets looking for a leaked key, so the
+      # bundle has to exist before it runs.
+      - run: npm run build
+        working-directory: apps/web
+
+      - run: npm run e2e
+        working-directory: apps/web
+
+      - run: npm run security
+        working-directory: apps/web
+
+      - run: npm run smoke
+        working-directory: apps/web

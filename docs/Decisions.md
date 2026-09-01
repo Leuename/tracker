@@ -234,6 +234,89 @@ Caught by querying `role_column_grants` after applying, rather than trusting the
 **Any future table repeats this or repeats the bug.** Revoke first, then grant columns, then verify
 against `information_schema.role_column_grants` — the verification is the part that found it.
 
+## D24 — Attribution Lives in a Trigger, Not in the App
+
+Built 2026-09-01: `public.audit_log`, a `security definer` trigger function `public.log_change()`,
+and one `after insert or update or delete` trigger on each of the five tables.
+
+The client talks straight to Postgres through PostgREST, with nothing in between (D7). Anything
+written in `apps/web/src/` can be skipped by anyone holding the publishable key and a session, so
+application-level logging would record what the app did rather than what happened to the database.
+A trigger is the only place in this architecture that cannot be bypassed.
+
+The log is **read-only to clients and append-only in practice**: `authenticated` holds `SELECT` and
+nothing else, there is deliberately no policy for INSERT, UPDATE or DELETE, and only the definer
+function writes. `actor_email` is resolved once at write time inside that function rather than
+joined, because `auth.users` must stay unreachable from a client and the security probe asserts it.
+
+**This is attribution, not authorization.** All four accounts keep full delete rights by decision
+(D20). The log records who did it; it does not stop anyone.
+
+Retention is **unbounded, on purpose**. At four people and this volume it is years from mattering,
+and `pg_cron` 1.6.4 is available on the project if it ever does. The table is in `TABLES` in
+`apps/web/scripts/backup.mjs`, so it is in the nightly snapshot; that snapshot therefore grows
+monotonically, which is the intended cost.
+
+**Any table added later needs its own trigger**, exactly as D23 says it needs its own revoke. Both
+are per-table obligations that a new table silently fails to inherit.
+
+## D25 — `revoke insert, update, delete` Is Not Enough on a New Table
+
+D23's lesson, one layer deeper. After `20260901150411_audit_log` applied cleanly,
+`information_schema.role_table_grants` still listed **TRUNCATE and TRIGGER** for `authenticated`:
+Supabase's default privileges on `public` grant ALL, and ALL is wider than the three verbs that had
+been revoked.
+
+TRUNCATE is the one that matters. **Row-level security does not apply to TRUNCATE**, so a surviving
+grant is a grant to erase the whole audit log in one statement — precisely what the table exists to
+make impossible. TRIGGER goes with it: a role that can attach its own trigger to the log can change
+what lands in it.
+
+Fixed by `20260901150458_lock_audit_log_truncate`: `revoke all`, then grant back the single
+privilege intended. **`revoke all from anon, authenticated` then grant, on every new table** — the
+narrower revoke leaves privileges behind, and only the catalogue query shows it.
+
+
+## D26 — A Failing Check May Be Deferred, Never Deleted
+
+`npm run security` reported 40 of 41 for a day, and the one failure was the deferred sign-up
+toggle. A suite with a permanent known failure teaches everyone to read red as normal, and the day
+a real failure appears nobody looks.
+
+`DEFERRED` in `apps/web/security/probe.mjs` is the answer, with three properties that matter:
+
+- The check **still runs and still prints its real result**, tagged `DEFER` rather than `FAIL`. It
+  is exempt from the tally and the exit code, not from execution.
+- Every entry **names the decision that authorises it**, in the file, next to the check. An
+  unexplained exemption is indistinguishable from a bug someone hid.
+- A deferred check that **starts passing prints `STALE EXEMPTION`**, because an exemption that
+  outlives its cause is how a suite quietly stops meaning anything. It warns rather than fails:
+  closing a hole must never turn the nightly run red.
+
+Deleting the check instead would have been the wrong move and is not authorised. The control still
+has to be measured; what changed is only whether a decision the owner already made counts as a
+defect.
+
+**`DEFERRED` is empty as of 2026-09-02, and that is the healthy state.** Sign-up was closed and the
+entry was deleted the same minute the check went green — the discipline is the deletion, not the
+mechanism. `npm run security` now reports 41 checks, 0 failed, the first fully clean run this
+project has had.
+
+## D27 — Automatic Git Deployments Are Off in `vercel.json`, Not in the Dashboard
+
+`apps/web/vercel.json` carries `"git": { "deploymentEnabled": { "main": false } }`. Vercel no
+longer deploys a push to `main`; `.github/workflows/ci.yml` deploys with the CLI after the checks
+pass, and `git.deploymentEnabled` governs Git-triggered deployments only, so the CLI path is
+unaffected.
+
+**In the repository rather than in the dashboard, deliberately.** The setting is then reviewable,
+versioned, and travels with a checkout — a dashboard toggle is invisible to everyone who was not
+in the room. The trade is that it takes effect only once pushed: **the push that introduces it is
+itself deployed by Vercel the old way**, and that is expected rather than a failure.
+
+`ignoreCommand` stays alongside it as a second lock, for the case where this key is ever removed.
+
+
 ## Guideline Basis
 
 - **AGENT-03** ensures adapter workflows stop rather than invent authorization.

@@ -1,0 +1,94 @@
+# The gate in front of production.
+#
+# Read this before changing it: **GitHub checks do not gate Vercel.** Vercel
+# deploys on push, on its own, and does not wait for an Actions run. A workflow
+# that only runs checks produces a green tick beside a deployment that already
+# went out — and `[skip ci]` does not stop it either; that was tried on
+# 2026-09-01 and Vercel deployed the commit anyway.
+#
+# So deployment is taken away from Vercel's git integration and done here, after
+# the checks pass. That requires **Project → Settings → Git → automatic
+# deployments for `main` turned off** in the Vercel dashboard. With it still on,
+# both this workflow and Vercel deploy the same commit, and the gate is
+# decorative.
+#
+# What is deliberately NOT here: `npm run e2e`, `npm run security` and
+# `npm run smoke`. All three write to the production ledger — there is one
+# Supabase project, and E2E_BASE_URL changes which site the tests drive, not
+# which database they hit. They run in verify.yml, on a schedule and on demand.
+name: CI
+
+on:
+  push:
+    branches: [main]
+    # The nightly backup commits to main. Its message carries `[skip ci]`, which
+    # GitHub Actions honours even though Vercel never did, and this is the
+    # second lock on the same door: a snapshot must never redeploy production.
+    paths-ignore:
+      - 'backups/**'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# A newer push supersedes an in-flight run; cancelling a half-finished deploy is
+# worse than letting it land, so only the check stage is interruptible.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # 22 or newer: supabase-js reaches for a native WebSocket at
+          # createClient and Node 20 has none, so anything importing it dies on
+          # import. The backup workflow learned this the hard way.
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      # apps/web holds the only package manifest in this repository.
+      - run: npm ci
+        working-directory: apps/web
+
+      - run: npm test
+        working-directory: apps/web
+
+      - run: npm run build
+        working-directory: apps/web
+
+      - run: npm audit --audit-level=high
+        working-directory: apps/web
+
+  deploy:
+    needs: check
+    # Only a push to main is a release. Pull requests and manual runs stop at
+    # the checks.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://tracker-six-flax.vercel.app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      # Run from the REPOSITORY ROOT, not apps/web. The Vercel project's Root
+      # Directory is already set to `apps/web`; deploying from inside it would
+      # make Vercel look for apps/web/apps/web and fail every build.
+      - name: Deploy to production
+        run: npx --yes vercel@latest deploy --prod --yes --token "$VERCEL_TOKEN"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}

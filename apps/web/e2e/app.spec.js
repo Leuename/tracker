@@ -1,9 +1,12 @@
 import { expect, test } from '@playwright/test'
+import { haveCredentials } from './db.js'
 
 const EMAIL = process.env.E2E_EMAIL
 const PASSWORD = process.env.E2E_PASSWORD
 
-test.skip(!EMAIL || !PASSWORD, 'Set E2E_EMAIL and E2E_PASSWORD to an issued account.')
+// Shared with functional.spec.js so there is one gate, and so E2E_REQUIRE_CREDENTIALS
+// turns a silent skip into a red build here too. See haveCredentials in db.js.
+test.skip(!haveCredentials(), 'Set E2E_EMAIL, E2E_PASSWORD and the two VITE_ variables.')
 
 // The gate has no sign-up form by design, so every test starts by signing in.
 async function signIn(page) {

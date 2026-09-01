@@ -1,10 +1,10 @@
 ---
 title: Continuous Integration Plan
-tags: [plan, ci, github-actions, vercel, deployment, deferred]
+tags: [plan, ci, github-actions, vercel, deployment, built]
 created: 2026-09-01
-status: planned
+status: built, not yet active
 related:
-  - "[Audit Trail Plan](Audit%20Trail%20Plan.md) — build that first; it is the higher-value held-back"
+  - "[Audit Trail Plan](Audit%20Trail%20Plan.md) — the higher-value held-back, built first on 2026-09-01"
   - "[Decisions](Decisions.md) — D19 fixes the release convention this would automate around"
   - "[Repository Evidence](Repository%20Evidence.md) — the factual baseline"
 up: "[AI Agent Context](AI%20Agent%20Context.md)"
@@ -12,7 +12,57 @@ up: "[AI Agent Context](AI%20Agent%20Context.md)"
 
 # Continuous Integration Plan
 
-**Not built.** A push to `main` still deploys to production unchecked.
+**Built and wired on 2026-09-01. Untested until the first push.** The workflows are checked in as
+`.github/workflows/ci.yml` and `.github/workflows/verify.yml`, the prerequisite below is done,
+Vercel's automatic deployments for `main` are switched off in `vercel.json`, and all eleven
+repository secrets are set — including `VERCEL_TOKEN`, created in the browser as `tracker-ci`.
+
+**Nothing here has run yet.** None of it is committed, so no workflow has ever executed and the
+deploy step has never been exercised. The first push to `main` is the test, and it is also the
+moment Vercel stops deploying on its own. Expect to debug that push rather than to trust it —
+every CI defect on this project so far lived in the gap between "passes locally" and "runs
+elsewhere".
+
+1. ~~Turn off automatic deployments for `main`.~~ **Done, in the repository rather than the
+   dashboard**: `apps/web/vercel.json` carries `"git": { "deploymentEnabled": { "main": false } }`
+   ([Decisions](Decisions.md) D27). It takes effect once pushed — the push carrying it is still
+   deployed the old way. The dashboard equivalent, if it is ever wanted instead, is
+   <https://vercel.com/grade-fit-s-projects/tracker/settings/git>.
+2. ~~Add three repository secrets.~~ **Done — eleven secrets.** `VERCEL_ORG_ID`,
+   `VERCEL_PROJECT_ID`, `E2E_EMAIL`, `E2E_PASSWORD`, `SMOKE_EMAIL` and `SMOKE_PASSWORD` were set
+   from `apps/web/.env.local`; `VERCEL_TOKEN` was created in the browser as `tracker-ci` and set by
+   hand, because it
+   cannot be sourced from here. **The Vercel CLI does not help**, and this was tested rather than
+   assumed on 2026-09-01: the CLI is installed and logged in, but its credential is a short-lived
+   OAuth app token — it expires the same day, and `POST /v3/user/tokens` refuses it outright with
+   `403 forbidden — Cannot create tokens for this app.` Vercel does not let an app credential mint
+   an account credential. A browser session is the only path.
+   Create it at <https://vercel.com/account/tokens>, scoped to `GradeFit's projects`,
+   then set it **in the GitHub web UI** — Settings → Secrets and variables → Actions → New
+   repository secret — or from your own terminal with
+   `gh secret set VERCEL_TOKEN --repo Leuename/tracker`, pasting at the prompt.
+
+   Two ways to get this wrong, both seen on 2026-09-01. The value must never be a command-line
+   argument, where it lands in shell history and in any transcript. And it must never go in the
+   **name** position: `gh secret set <token> --repo …` creates a secret *named* after the token,
+   and secret names are visible to anyone with repository access. That mistake published a live
+   account-wide token and cost a revoke-and-reissue.
+
+   **Rotation.** `tracker-ci` has no expiry and no owner recorded anywhere but here. It is
+   account-wide — Vercel tokens are not project-scoped — so it is worth revoking and reissuing on
+   any cadence at all rather than none, and immediately if it is ever pasted anywhere. The first
+   one made on 2026-09-01 was burned within a minute by landing in a secret's *name*; the
+   replacement is the live one.
+
+Every one of those was read straight out of `apps/web/.env.local` with
+`gh secret set --body "$(grep …)"` and never pasted — a `…` from a truncated paste cost a release
+earlier the same day. `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` were already set for
+the backup.
+
+**One consequence worth naming.** The shared five-character password is now in GitHub secrets as
+well as in four people's hands. That does not make it weaker, but it widens who can reach it — any
+future collaborator with write access to this repository can exfiltrate it through a workflow.
+Password rotation was already a deferred open item; this makes it a slightly sharper one.
 
 ## Read this before designing anything
 
@@ -40,11 +90,27 @@ skip; CI gets a red build.
 
 Do this first. It is small, and everything below is unsound without it.
 
+**Done.** `haveCredentials()` in `apps/web/e2e/db.js` now names the missing variables and throws
+when `E2E_REQUIRE_CREDENTIALS` is set. `app.spec.js` had a *second*, separate gate reading
+`E2E_EMAIL` and `E2E_PASSWORD` directly; it calls the shared one now, so there is one gate rather
+than two that can disagree. Verified by moving `.env.local` aside and running the suite:
+`playwright test` exits **1** with `Refusing to skip`, where it previously printed `27 skipped` and
+exited 0.
+
+`npm run smoke` and `npm run security` were also changed from `--env-file` to
+`--env-file-if-exists`. Both would have aborted with `node: .env.local: not found` in CI, where the
+file is gitignored and the variables arrive as real environment variables — the same defect that
+took the backup workflow down on 2026-09-01.
+
 ## Design: take deployment away from Vercel's git integration
 
 The only arrangement that actually gates production:
 
-1. **Turn off Vercel's automatic git deployments** for `main` (Project → Settings → Git).
+1. **Turn off Vercel's automatic git deployments** for `main`. Two ways: the dashboard at
+   Project → Settings → Git, or — the way it was actually done, because it is then versioned and
+   reviewable — `"git": { "deploymentEnabled": { "main": false } }` in `apps/web/vercel.json`.
+   The key governs Git-triggered deployments only; a CLI deploy is unaffected, which is what makes
+   the pairing work.
 2. The workflow runs the checks.
 3. The workflow deploys with the Vercel CLI, on success only.
 
@@ -118,6 +184,24 @@ So:
 A second Supabase project as a test environment would remove this constraint entirely, and is the
 right answer if the team grows. It costs a project, not money, on the free plan — but it also means
 a second schema to keep in step, which is a real cost. Not proposed, only noted.
+
+## What was built, against what was designed
+
+Two departures from the sketch above, both in `ci.yml`:
+
+- **The deploy step runs from the repository root, not `apps/web`.** The Vercel project's Root
+  Directory is already `apps/web`; deploying from inside it would make Vercel look for
+  `apps/web/apps/web`. The sketch above has `working-directory: apps/web` on the deploy step and
+  that would have failed every build.
+- **The push trigger carries `paths-ignore: backups/**`.** The nightly backup commits to `main`,
+  and a snapshot must never redeploy production. Its commit message already carries `[skip ci]`,
+  which GitHub Actions honours even though Vercel never did; the path filter is the second lock on
+  the same door.
+
+The suites that write to the ledger went into a separate `verify.yml` on a 16:00 UTC schedule —
+two hours before the backup, so a night's residue is swept before the snapshot is taken — plus
+`workflow_dispatch`. It builds first, because the probe's section 7 scans `dist/assets` for a
+leaked key.
 
 ## Ordering against the audit trail
 

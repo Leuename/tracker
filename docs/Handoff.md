@@ -528,6 +528,274 @@ over real financial data. It is one dashboard toggle.
 real `sec-probe-<ts>@zoneoffice.ph` account that outlives the run; delete it afterwards or they
 accumulate.
 
+## 2026-09-01 — The audit trail, and a CI gate that is not decorative
+
+Both remaining held-backs, built in one pass to
+[Audit Trail Plan](Audit%20Trail%20Plan.md) and
+[Continuous Integration Plan](Continuous%20Integration%20Plan.md). The audit trail is **live in the
+database**; the CI gate is **checked in but not yet active**, because two of its steps are outside
+this repository.
+
+### The audit trail
+
+`public.audit_log`, a `security definer` trigger function `public.log_change()`, and one
+`after insert or update or delete` row trigger on each of the five existing tables. Applied as
+`20260901150411_audit_log`, mirrored into `supabase/migrations/` and MD5-verified against
+`supabase_migrations.schema_migrations`.
+
+It records `actor`, `actor_email`, table, operation, row id, and the full `before` and `after`
+rows. A trigger rather than application code because there is no server between the client and
+Postgres ([Decisions](Decisions.md) D7): anything in `apps/web/src/` can be skipped by anyone
+holding the publishable key and a session.
+
+Two departures from the plan, both because the plan's SQL would not have worked as written:
+
+- `coalesce((to_jsonb(new)->>'id')::bigint, …)` raises
+  `invalid input syntax for type bigint: "true"` on `app_config`, whose primary key is a boolean.
+  The shipped function extracts the key as text and casts only when it matches `^[0-9]+$`.
+- `before` and `after` are computed from `tg_op` in the DECLARE block, because on DELETE the `NEW`
+  record is unassigned and reading it would fail on the operation the log exists to record.
+
+### `revoke insert, update, delete` left the door open
+
+The migration applied clean. `information_schema.role_table_grants` then showed `authenticated`
+still holding **TRUNCATE and TRIGGER** on `audit_log` — Supabase's default privileges on `public`
+grant ALL, and ALL is wider than three verbs.
+
+Row-level security does not apply to TRUNCATE. The audit log could have been erased in one
+statement, which is the single thing it exists to prevent. Fixed by
+`20260901150458_lock_audit_log_truncate`: `revoke all`, then grant back only `select`. Recorded as
+[Decisions](Decisions.md) D25 — this is D23 one layer deeper, and it was found the same way, by
+querying the catalogue instead of believing `{"success": true}`.
+
+### Five probe checks, one of which proves the feature works
+
+The probe went from 36 to 41. `audit_log` joined the anonymous-access list in section 1, and
+section 5 gained four: a client delete **is** recorded and names the actor, and audit rows cannot
+be inserted, updated or deleted by a client. The last two read the row back afterwards rather than
+trusting the error, because a silent no-op and a refusal look identical from the caller's side.
+
+Observed, signed in as an ordinary account:
+
+```
+PASS  a client delete is recorded in the audit log, naming the actor — actor millaveemmanuel15@gmail.com
+PASS  audit rows cannot be inserted by a client — rejected: 42501
+PASS  audit rows cannot be updated by a client — rejected: 42501
+PASS  audit rows cannot be deleted by a client — rejected: 42501
+```
+
+`audit_log` was added to `TABLES` in `apps/web/scripts/backup.mjs`; a backup run captured 74 rows,
+so the log is in the nightly snapshot. That snapshot now grows monotonically, which is the intended
+cost of unbounded retention ([Decisions](Decisions.md) D24).
+
+### The CI prerequisite: a skipped suite now fails
+
+`haveCredentials()` in `apps/web/e2e/db.js` names the variables it is missing and throws when
+`E2E_REQUIRE_CREDENTIALS` is set. `app.spec.js` had a **second** gate reading `E2E_EMAIL` and
+`E2E_PASSWORD` directly; it calls the shared one now, so the two cannot disagree.
+
+Verified by moving `.env.local` aside: `playwright test` exits **1** with `Refusing to skip`, where
+it previously printed `27 skipped` and exited 0.
+
+`npm run smoke` and `npm run security` moved from `--env-file` to `--env-file-if-exists`. Both
+would have died with `node: .env.local: not found` in CI — the defect that took the backup workflow
+down earlier the same day, still present in two more scripts.
+
+### Two workflows
+
+`ci.yml` runs `npm test`, `npm run build` and `npm audit --audit-level=high` on push to `main`,
+then deploys with the Vercel CLI. `verify.yml` runs `npm run e2e`, `npm run security` and
+`npm run smoke` at 16:00 UTC and on `workflow_dispatch`, never on push, because all three write to
+the production ledger.
+
+Two things the plan's sketch got wrong, corrected here:
+
+- The deploy step runs from the **repository root**, not `apps/web`. The Vercel project's Root
+  Directory is already `apps/web`; deploying from inside it makes Vercel look for
+  `apps/web/apps/web`.
+- The push trigger carries `paths-ignore: backups/**`, so the nightly backup commit can never
+  redeploy production. Its `[skip ci]` marker already stops GitHub Actions — which honours it even
+  though Vercel never did — and this is the second lock on the same door.
+
+### What is still needed to make the gate real
+
+**GitHub checks do not gate Vercel.** Until both of these are done, `ci.yml` is a green tick beside
+a deployment that already went out:
+
+1. Vercel → Project → Settings → Git → turn off automatic deployments for `main`.
+2. Set `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`, and for `verify.yml` also `E2E_EMAIL`,
+   `E2E_PASSWORD`, `SMOKE_EMAIL`, `SMOKE_PASSWORD`. Read each value out of `apps/web/.env.local`
+   with `gh secret set --body "$(grep …)"`, never by pasting it.
+
+### Results
+
+`npm test` 39/39. `npm run build` green. `npm run e2e` 27/27. `npm run security` **41 checks, 1
+failed** — the deferred sign-up toggle. `npm run smoke` passing. `npm run backup` wrote six tables
+including the new one. Grants on `audit_log` confirmed as `authenticated SELECT` and nothing else.
+Both new migrations MD5-identical to the applied statements.
+
+Nothing was committed, tagged or deployed. `apps/web/package.json` still reads `0.4.1`.
+
+### One thing that drifted, and one that did not
+
+The ledger no longer matches the previous package: 21 transactions and **zero** receipts, where it
+recorded 1 and 1 eleven hours earlier. The owner has been using the app. Checked before writing
+this: every DELETE in the new audit log has a matching INSERT from the same run, so none of the
+suites removed anything they had not created — but the log started at 15:04 UTC and cannot speak
+for anything before that. That is the cost of the day this was not built.
+
+Self-serve sign-up is still open and still deferred. It is the one failing probe check, by
+decision, not by defect.
+
+## 2026-09-01 — Deferring a check instead of living with it, and taking `main` off Vercel's hook
+
+Two follow-ups to the audit-trail and CI pass, both asked for directly.
+
+### The sign-up failure is now `DEFER`, not `FAIL`
+
+`npm run security` had reported 40 of 41 for a day, and the missing one was a decision the owner
+had already made. A suite with a permanent known failure teaches everyone to read red as normal.
+
+`DEFERRED` in `apps/web/security/probe.mjs` maps a check name to the decision that authorises it.
+A deferred check **still runs and still prints its real result** — including the HTTP 200 that
+proves sign-up is open — tagged `DEFER`, exempt from the tally and the exit code but not from
+execution. And a deferred check that starts passing prints `STALE EXEMPTION`, warning rather than
+failing, because closing a hole must never turn the nightly run red.
+
+```
+DEFER self-serve sign-up is refused — HTTP 200 {"access_token":"eyJhbGciOiJFUzI1NiIsImtpZCI6IjhhOThjMDdkLWU
+      deferred by the owner 2026-09-01 — Decisions D26, one dashboard toggle, not a code defect
+
+41 checks, 0 failed, 1 deferred
+```
+
+Exit code 0. Recorded as [Decisions](Decisions.md) D26. Deleting the check was considered and
+rejected: the control still has to be measured.
+
+### Sign-up itself is still open, and cannot be closed from here
+
+The owner asked for it to be turned off as well. **It could not be done from this session.** It is
+an Auth service setting, not a database one, so `execute_sql` does not reach it; the Supabase MCP
+server exposes no auth-configuration tool; and there is no management-API token in the repository
+or the environment. It remains one click at
+<https://supabase.com/dashboard/project/jusifpditdigqdjiwdaj/auth/providers>.
+
+### `main` is off Vercel's hook, in the repository
+
+`apps/web/vercel.json` now carries `"git": { "deploymentEnabled": { "main": false } }`.
+
+Chosen over the dashboard toggle deliberately: the setting is versioned, reviewable and travels
+with a checkout, where a dashboard change is invisible to anyone who was not in the room. The key
+governs **Git-triggered deployments only**, so the CLI deploy in `ci.yml` still works — that
+asymmetry is the whole mechanism. `ignoreCommand` stays as a second lock.
+
+It takes effect only once pushed, so **the push that introduces it is itself deployed the old
+way**. That is expected, not a failure. Recorded as [Decisions](Decisions.md) D27.
+
+### Secrets: six set, one that cannot be
+
+The owner asked why the secrets were unset. The honest answer was that nobody had ever made them —
+until this pass the only workflow was `backup.yml`, and exactly its four secrets existed.
+
+Six more are set now, each read straight out of `apps/web/.env.local` with
+`gh secret set --body "$(grep …)"` and never handed through prose: `E2E_EMAIL`, `E2E_PASSWORD`,
+`SMOKE_EMAIL`, `SMOKE_PASSWORD`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`. Ten on the repository.
+
+**`VERCEL_TOKEN` cannot be obtained from a session, and no permission changes that.** The owner
+installed the Vercel CLI mid-pass so it could be tried properly, and it was:
+
+- The CLI logs in and `vercel whoami` returns `leuename`, but its credential carries `expiresAt`
+  and a `refreshToken` — a session token good for hours, not a CI secret.
+- Using it to mint a real one fails: `POST https://api.vercel.com/v3/user/tokens` answers
+  `403 forbidden — Cannot create tokens for this app.` Vercel does not let an OAuth app credential
+  create an account credential.
+- The Vercel MCP server exposes no token-creation tool.
+- `.env.local` holds a `VERCEL_OIDC_TOKEN` from an earlier `vercel env pull`; that is a short-lived
+  OIDC identity token for reaching cloud resources and **cannot authenticate a deploy**.
+
+A browser session at <https://vercel.com/account/tokens> is the only path, and the token is
+account-wide however it is created — Vercel tokens are not project-scoped. Name it so it can be
+revoked with confidence.
+
+### The first token was burned in under a minute
+
+The owner created one and set it with `gh secret set <token> --repo Leuename/tracker` — the value
+in the **name** position. GitHub secret names are not secret: they appear in the repository
+settings UI and come back from the API to anyone with access. So the token was published, and the
+value slot got nothing.
+
+The bad secret was deleted, but deletion is not revocation and the token could not be revoked from
+a session either — a Vercel token is refused by its own token-management endpoints
+(`403 forbidden`), the same rule that blocks minting. The owner revoked it in the browser, and it
+was confirmed dead rather than assumed:
+
+```
+GET https://api.vercel.com/v2/user
+{"error":{"code":"forbidden","message":"Not authorized","invalidToken":true}}
+```
+
+A replacement, `tracker-ci`, was created and set correctly. Two traps came out of this — 33 and 34
+in the current package — and the guidance changed with them: the GitHub web UI is the right place
+to set a secret by hand, because the `!` prefix puts the value in a transcript and its prompt has
+no usable stdin.
+
+### Eleven secrets, and a gate that has never run
+
+All eleven are set. **Nothing has been committed**, so no workflow has ever executed: `ci.yml`,
+`verify.yml`, the deploy step and `git.deploymentEnabled` are all configured and unexercised. The
+first push to `main` is the test and is also the moment Vercel stops deploying on its own. Every CI
+defect on this project so far has lived in the gap between "passes locally" and "runs elsewhere",
+so that push deserves watching rather than trusting.
+
+Until that token exists, `ci.yml` runs the checks and its deploy job fails. Paired with
+`git.deploymentEnabled: false`, **`main` reaches production by no route at all** — the safe
+direction to be wrong in, but not a working pipeline.
+
+**One consequence to note.** The shared five-character password now lives in GitHub secrets as well
+as in four people's hands, reachable through a workflow by anyone with write access to the
+repository. Rotation was already a deferred open item; this sharpens it.
+
+### Results
+
+`npm run security` 41 checks, 0 failed, 1 deferred, exit 0. `vercel.json` valid JSON. Probe
+accounts swept afterwards: 0 remaining, 4 real accounts. `gh secret list` shows ten secrets;
+`.env.local` confirmed ASCII with no trailing whitespace, so nothing was truncated on the way in.
+Nothing committed, tagged or deployed.
+
+## 2026-09-02 — Sign-up closed, and the first release through the gate
+
+The owner closed self-serve sign-up in the Supabase dashboard. Verified against the endpoint rather
+than the dashboard, because a setting and its effect are different claims:
+
+```
+POST /auth/v1/signup
+422 {"code":422,"error_code":"signup_disabled","msg":"Signups not allowed for this instance"}
+```
+
+That closes the gap that had stood since 2026-08-31 and was the last open security item. It matters
+more than one check turning green: every policy is `for all to authenticated using (true)`, so
+being signed in *is* the authorization and account creation was the only boundary the model had.
+
+Its `DEFERRED` entry was deleted the same minute, which is the discipline [Decisions](Decisions.md)
+D26 exists for — the mechanism stays, the list is empty. `npm run security` now reports **41
+checks, 0 failed**, the first fully clean run this project has had. A side effect worth noting: the
+probe can no longer mint a `sec-probe-*` account, so it stops leaving accounts behind.
+
+### Released as v0.5.0
+
+Everything from phases 21 to 23 in one release commit: the audit trail, the CI workflows, the
+credential gate, `git.deploymentEnabled`, the deferral mechanism and the documentation.
+
+**This push is the first time any of it has run.** It is simultaneously the release, the moment
+Vercel stops deploying `main` on its own, and the only test the pipeline has ever had.
+
+### Results before pushing
+
+`npm test` 39/39. `npm run build` green. `npm audit` 0. `npm run e2e` 27/27. `npm run security`
+41/41. `npm run smoke` passing. Ledger afterwards: 4 accounts, 0 probe accounts, 21 transactions,
+0 residue of any tag, 154 audit rows. 581 local markdown links resolve. `AGENTS.md` byte-identical
+to `CLAUDE.md`.
+
 ## Guideline Basis
 
 - **PG-04** requires a continuation record with exact scope, checks, limitations, and unresolved evidence.

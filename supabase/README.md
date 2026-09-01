@@ -12,7 +12,7 @@ up: "[AI Agent Context](../docs/AI%20Agent%20Context.md)"
 
 # Supabase schema
 
-The five migrations that built the hosted project, in the order they were applied.
+The nine migrations that built the hosted project, in the order they were applied.
 
 Until 2026-09-01 these existed **only** inside the Supabase project. The repository had no
 schema source of truth, so losing the project lost the shape of the data as well as the
@@ -25,6 +25,10 @@ data. They are versioned here now.
 | `20260831085534_shared_workspace_two_users` | Drops per-account ownership; one shared ledger, recreated |
 | `20260831155259_lock_server_managed_columns` | Column-level grants, so a client cannot back-date `created_at` |
 | `20260831160423_receipt_files` | `receipts.file_path`, the private bucket, and its four storage policies |
+| `20260901092715_telegraphic_transfers` | The `transfers` table, its indexes, grants and policy |
+| `20260901092751_lock_transfer_server_managed_columns` | Revokes the table-wide grant the previous migration left behind ([D23](../docs/Decisions.md)) |
+| `20260901150411_audit_log` | `audit_log`, the `security definer` `log_change()`, and one trigger per table ([D24](../docs/Decisions.md)) |
+| `20260901150458_lock_audit_log_truncate` | Revokes the TRUNCATE and TRIGGER grants `revoke insert, update, delete` had left ([D25](../docs/Decisions.md)) |
 
 ## How these were produced
 
@@ -57,6 +61,15 @@ natural next step and would make these files executable rather than merely accur
 Migrations are still applied through the Supabase dashboard or MCP, not from here. After
 applying one, copy it into this folder with the same `version_name.sql` filename and verify
 its MD5. A schema change that never lands here puts the repository back where it was.
+
+**MCP assigns the version, not you.** `apply_migration` stamps its own timestamp, so read
+`supabase_migrations.schema_migrations` back and rename the local file to match rather than
+naming it in advance — otherwise the folder and the database disagree about what a version is.
+
+**A new table needs five things it does not inherit**: `revoke all` then grant back only what
+is intended (D23, D25), its own RLS policy, an entry in `TABLES` in
+`apps/web/scripts/backup.mjs`, its own checks in `apps/web/security/probe.mjs`, and its own
+`log_change()` trigger (D24).
 
 ## Guideline Basis
 

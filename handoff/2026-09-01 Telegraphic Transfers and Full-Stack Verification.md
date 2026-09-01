@@ -5,9 +5,9 @@ created: 2026-09-01
 status: current
 supersedes: "[Repository Restructure and Data Clear](2026-09-01%20Repository%20Restructure%20and%20Data%20Clear.md) as the entry point; that note remains the record of phases 10 to 13 and is not repeated here"
 related:
-  - "[Decisions](../docs/Decisions.md) — D1 to D23, the authority on what is authorised"
-  - "[Audit Trail Plan](../docs/Audit%20Trail%20Plan.md) — the next thing to build"
-  - "[Continuous Integration Plan](../docs/Continuous%20Integration%20Plan.md) — the one after that"
+  - "[Decisions](../docs/Decisions.md) — D1 to D27, the authority on what is authorised"
+  - "[Audit Trail Plan](../docs/Audit%20Trail%20Plan.md) — built in phase 21; the note records the departures"
+  - "[Continuous Integration Plan](../docs/Continuous%20Integration%20Plan.md) — written in phase 21, awaiting two dashboard changes"
   - "[Handoff](../docs/Handoff.md) — the per-pass record"
   - "[Repository Evidence](../docs/Repository%20Evidence.md) — the factual baseline"
 up: "[AI Agent Context](../docs/AI%20Agent%20Context.md)"
@@ -15,14 +15,19 @@ up: "[AI Agent Context](../docs/AI%20Agent%20Context.md)"
 
 # Telegraphic Transfers and Full-Stack Verification
 
-**This is the current entry point.** It covers phases 14 to 20 and carries the live facts.
+**This is the current entry point.** It covers phases 14 to 23 and carries the live facts.
+
+**Updated 2026-09-01, later the same day.** Phase 21 built both remaining held-backs — the audit
+trail and the CI gate — and phase 22 deferred the sign-up check and took `main` off Vercel's git
+hook. The rows below are corrected in place and the changes are marked **Phase 21** or **Phase 22**;
+both passes are written up in [Handoff](../docs/Handoff.md).
 
 **Read in this order.**
 
-1. This note — *Where everything stands*, *Open items*, *Traps*, *Resume prompts*.
+1. This note — *Where everything stands*, *Open items*, *Traps*, *Resume prompt*.
 2. [Repository Restructure and Data Clear](2026-09-01%20Repository%20Restructure%20and%20Data%20Clear.md) — phases 10 to 13, traps 13 to 18.
 3. [Session Continuation Package](2026-09-01%20Session%20Continuation%20Package.md) — phases 1 to 9, the codebase map, traps 1 to 12.
-4. [Decisions](../docs/Decisions.md) — D1 to D23.
+4. [Decisions](../docs/Decisions.md) — D1 to D27.
 
 Nothing in the two earlier packages is repeated here. Their traps all still apply.
 
@@ -30,31 +35,31 @@ Nothing in the two earlier packages is repeated here. Their traps all still appl
 
 ## The one thing to read if you read nothing else
 
-**Self-serve sign-up is enabled on the Supabase project.** Every RLS policy is
-`for all to authenticated using (true) with check (true)`, so being signed in *is* the
-authorization. Anyone who reaches `https://tracker-six-flax.vercel.app` can register and hold full
-read, write and **delete** over real financial data.
+**Self-serve sign-up is now closed** (2026-09-02), and that is what holds this whole access model
+up. Every RLS policy is `for all to authenticated using (true) with check (true)`, so being signed
+in *is* the authorization — account creation is the only boundary there is. Verified directly:
 
-One toggle: Authentication → Providers → Email → *Allow new users to sign up* → off.
+```
+POST /auth/v1/signup
+422 {"code":422,"error_code":"signup_disabled","msg":"Signups not allowed for this instance"}
+```
+
+For the day before that, anyone reaching `https://tracker-six-flax.vercel.app` could register and
+hold full read, write and **delete** over real financial data. The owner deferred it on 2026-09-01
+on timing rather than on the merits, and closed it the next day. The toggle lives at
+Authentication → Providers → Email → *Allow new users to sign up*:
 `https://supabase.com/dashboard/project/jusifpditdigqdjiwdaj/auth/providers`
 
-**The owner deferred it on 2026-09-01**, on timing rather than on the merits — the Supabase
-dashboard appeared unavailable to them at the time. It is the reason `npm run security` reports
-35 of 36 rather than 36 of 36. **Do not treat that failure as a code defect, and do not "fix" it in
-code.** Raise it, then move on.
-
-Each probe run mints a real `sec-probe-<timestamp>@zoneoffice.ph` account that outlives the run.
-Delete them afterwards or they accumulate:
-
-```sql
-delete from auth.users where email like 'sec-probe-%';
-```
+**If it is ever turned back on, the access model is gone**, not weakened. `npm run security` is the
+check that notices; it reports 41 checks, 0 failed today, the first fully clean run this project
+has had. The probe no longer leaves `sec-probe-*` accounts behind either, because it can no longer
+create one.
 
 ---
 
 ## What happened this session, in order
 
-Seven phases. Each is written up in [Handoff](../docs/Handoff.md); this is the sequence and why.
+Ten phases. Each is written up in [Handoff](../docs/Handoff.md); this is the sequence and why.
 
 | # | Phase | Trigger | Outcome |
 |---|---|---|---|
@@ -64,7 +69,10 @@ Seven phases. Each is written up in [Handoff](../docs/Handoff.md); this is the s
 | 17 | Editable receipts | "editable like in tracker" | D16 extended: click a receipt to edit it, as a Tracker row has always worked |
 | 18 | Telegraphic transfers | Updated design in Claude Design | D21 to D23; a fourth table, a screen, three modals, two migrations |
 | 19 | Full-stack verification | "looped end-to-end verification of everything" | Two more defects: smoke had never passed; the probe did not know the new table existed |
-| 20 | This documentation pass | "map, note, write everything" | Two forward plans and this package |
+| 20 | Documentation pass | "map, note, write everything" | Two forward plans and this package |
+| 21 | Audit trail and CI | "create the audit trail and CI pipeline" | Both held-backs built; D24, D25; a TRUNCATE grant that `revoke insert, update, delete` had left behind |
+| 22 | Deferral and the Vercel hook | "remove the deferred sign-up toggle from the check-pass" | D26, D27; the probe exits 0 with the failure still printed, and `main` comes off Vercel's git hook in `vercel.json` |
+| 23 | Sign-up closed, first release | "self-serve signup is done" | 41/41 clean, `DEFERRED` emptied, v0.5.0 cut and pushed — the first run of the CI gate |
 
 ### Phase 14 — the sweep that changed the priorities
 
@@ -154,11 +162,11 @@ preceding insert was refused; it inserts a clean row first now and gets a real `
 | Accounts | 4, all administrator-equivalent. One (`millaveemmanuel15@`) exists only to run the backup |
 | Claude Design project | `9996e477-0bfc-4941-a9dc-affa12f70bcf`, "ERP Dashboard Overview Wireframes" |
 
-### Schema — five tables, seven migrations
+### Schema — six tables, nine migrations
 
-`txns`, `receipts`, `recurring`, **`transfers`** (new), `app_config`.
+`txns`, `receipts`, `recurring`, `transfers`, `app_config`, **`audit_log`** (Phase 21).
 
-All seven migrations are in `supabase/migrations/`, each **MD5-verified byte-for-byte** against
+All nine migrations are in `supabase/migrations/`, each **MD5-verified byte-for-byte** against
 `supabase_migrations.schema_migrations`. Note that Postgres `length()` counts characters while
 `wc -c` counts bytes, so files containing em dashes are longer than their character count; the MD5
 is the check that matters.
@@ -201,8 +209,9 @@ No `E2E-`, `smoke`, or `SEC ` residue of any kind.
 |---|---|
 | `npm test` | **39/39** — was 33; `alphabetical` and transfer-total cases added |
 | `npm run e2e` | **27/27** — was 24; receipt delete, receipt edit, transfer lifecycle added |
-| `npm run security` | **35/36** — was 33 checks; three transfer checks added. The one failure is sign-up |
+| `npm run security` | **41/41** — Phase 21 added five audit-log checks; phase 23 closed sign-up and deleted its `DEFERRED` entry. First fully clean run |
 | `npm run smoke` | Passing, and now covers all four entity tables |
+| `npm run backup` | Six tables, `audit_log` included (Phase 21) |
 | `npm run build`, `npm audit` | Green, clean |
 | Local markdown links | 506/506 resolve |
 
@@ -212,8 +221,8 @@ No `E2E-`, `smoke`, or `SEC ` residue of any kind.
 
 | # | Item | State |
 |---|---|---|
-| 1 | Backups | **Closed.** Nightly 18:00 UTC, verified, covers all five tables |
-| 2 | Password rotation | **Deferred by the owner.** Five characters, shared across four accounts |
+| 1 | Backups | **Closed.** Nightly 18:00 UTC, verified, covers all six tables |
+| 2 | Password rotation | **Deferred by the owner.** Five characters, shared across four accounts — and as of phase 22 also held in GitHub secrets, reachable through a workflow by anyone with write access |
 | 3 | Company codes and categories | **Closed.** Confirmed real, sorted a–z (D15) |
 | 4 | `ackRequirePhoto` | **Closed.** Stays off (D17); verified still off |
 | 5 | Receipt deletion | **Closed.** Built, plus editing (D16) |
@@ -224,8 +233,8 @@ No `E2E-`, `smoke`, or `SEC ` residue of any kind.
 
 | | Why still out | Grade |
 |---|---|---|
-| **Audit trail** | Four accounts, no record of who changed or deleted what. **[Plan written](../docs/Audit%20Trail%20Plan.md)** | **A** |
-| **CI** | Push to `main` deploys unchecked. **[Plan written](../docs/Continuous%20Integration%20Plan.md)** | C+ |
+| ~~**Audit trail**~~ | **Built in Phase 21.** Live in the database: `audit_log`, `log_change()`, five triggers. [Decisions](../docs/Decisions.md) D24, D25 | — |
+| **CI** | **Written in Phase 21**, fully wired in Phase 22. `main` is off Vercel's git hook in `vercel.json` (D27) and all eleven secrets are set, `VERCEL_TOKEN` included. **It has never run** — nothing is committed, so the deploy step is unexercised and the first push to `main` is the test | C+ |
 | **Scheduler** (`autoGen`, `ackAutoNotify`) | `pg_cron` 1.6.4 is available but not installed; notification delivery has no channel | C |
 | **Last write wins** | The real hotspot is `app_config` — one jsonb row rewritten whole, so two people editing *different* settings already collide | C |
 | **`apps/api/`** | Empty directory declaring an intent. Deleting it is also a documentation change | A |
@@ -266,6 +275,38 @@ Traps 1 to 18 are in the two earlier packages and all still apply. These are new
 
 ---
 
+27. **`revoke insert, update, delete` does not lock a table down.** Supabase's default privileges
+    grant ALL on a new table to `authenticated`, and ALL includes **TRUNCATE**, which row-level
+    security does not restrict. `audit_log` shipped for one migration with `authenticated` able to
+    erase the whole log in a statement. `revoke all from anon, authenticated`, then grant back the
+    one privilege intended, then read `role_table_grants`. ([Decisions](../docs/Decisions.md) D25)
+28. **Every new table now needs five things, not four:** the revoke-then-grant, its own RLS policy,
+    an entry in `TABLES` in `apps/web/scripts/backup.mjs`, its own security-probe checks, and
+    **its own audit trigger**. None of the five is inherited.
+29. **The audit log cannot be cleaned up.** Nothing may delete from it, by design, so every
+    `npm run e2e`, `npm run security` and `npm run smoke` run leaves its writes there permanently.
+    That is correct behaviour, not residue; do not go looking for a way to sweep it.
+30. **`ci.yml` gates nothing until Vercel stops deploying on push.** GitHub checks do not gate
+    Vercel. With automatic git deployments still on, both deploy the same commit and the workflow
+    is decorative.
+
+31. **A green security suite is not necessarily a suite with no failures.** `npm run security`
+    exits 0 for anything listed in `DEFERRED` (D26). The list is empty today, so 41/41 means what
+    it says — but read the `n deferred` line, not just the exit code, and never add an entry
+    without a decision to point at.
+32. **`vercel.json`'s `git.deploymentEnabled` only takes effect once pushed.** The commit that
+    introduces it is deployed by Vercel the old way. Expected, not a failure.
+
+33. **A GitHub secret's NAME is public; only its value is secret.** On 2026-09-01 a Vercel token
+    was pasted into the name position — `gh secret set <token> --repo …` instead of
+    `gh secret set VERCEL_TOKEN --repo …` — which published it in the repository settings UI and
+    in the API listing, and burned it. The token had to be revoked and reissued. The name always
+    comes first and is always a constant; the value never appears on the command line.
+34. **Vercel token management is browser-only.** A CLI/OAuth app credential is refused by both
+    `POST /v3/user/tokens` and `GET /v5/user/tokens` with `403 forbidden`, so a leaked token cannot
+    be revoked from a session either — only at <https://vercel.com/account/tokens>. Plan for that
+    before creating one, not after.
+
 ## How to verify state in a fresh session
 
 ```bash
@@ -274,7 +315,7 @@ npm test          # 39 offline assertions
 npm run build     # green
 npm audit         # 0
 npm run e2e       # 27 specs — WRITES to the production ledger
-npm run security  # 36 checks, expect 35 pass while sign-up is open
+npm run security  # 41 checks, expect 41/41 — DEFERRED is empty
 npm run smoke     # live end-to-end — WRITES to the production ledger
 ```
 
@@ -298,7 +339,8 @@ union all select 'recurring', count(*) from recurring union all select 'transfer
 union all select 'probe users', count(*) from auth.users where email like 'sec-probe-%';
 ```
 
-**Last verified green:** 2026-09-01 — 39 unit, 27 e2e, 35/36 security, smoke passing, `npm audit`
+**Last verified green:** 2026-09-02, after phase 23 — 39 unit, 27 e2e, 41/41 security, smoke
+passing, `npm audit`
 clean, 506 links resolving, `AGENTS.md` byte-identical to `CLAUDE.md`, production 200 with 7 of 7
 security headers, deployment `dpl_XDJ9fcJUFu1YFPhQnR97FXfKts7S` READY.
 
@@ -315,78 +357,69 @@ security headers, deployment `dpl_XDJ9fcJUFu1YFPhQnR97FXfKts7S` READY.
 
 ---
 
-## Resume prompts
+## Resume prompt
 
-Paste one into a fresh chat. Each names this file and tells the session to verify before acting.
-
-### Straight continuation
+One prompt, whole state. Paste it into a fresh chat as-is.
 
 ```
-Read "handoff/2026-09-01 Telegraphic Transfers and Full-Stack Verification.md" in
-/Users/itadmin/Desktop/puge, then docs/Decisions.md D1-D23. Confirm the current
-state back to me in a few lines — including anything you find stale — before doing
-any work. Note that self-serve sign-up is deliberately still open and deferred; do
-not treat the one failing security check as a code defect. Then wait.
-```
+Read these, in this order, in /Users/itadmin/Desktop/puge:
 
-### Build the audit trail
+  handoff/2026-09-01 Telegraphic Transfers and Full-Stack Verification.md   (phases 14-23, current)
+  handoff/2026-09-01 Repository Restructure and Data Clear.md               (phases 10-13, traps 13-18)
+  handoff/2026-09-01 Session Continuation Package.md                        (phases 1-9, codebase map, traps 1-12)
+  docs/Decisions.md                                                          (D1-D23, what is authorised)
 
-```
-Read "handoff/2026-09-01 Telegraphic Transfers and Full-Stack Verification.md" and
-"docs/Audit Trail Plan.md" in /Users/itadmin/Desktop/puge. Build the audit trail to
-that plan. Apply the migration through the Supabase MCP, then VERIFY the grants with
-a direct information_schema.role_column_grants query rather than trusting the success
-response — Decisions D23 is why. Mirror the migration into supabase/migrations/ and
-MD5-verify it. Add the five probe checks, add audit_log to TABLES in
-apps/web/scripts/backup.mjs, and run npm test, npm run e2e and npm run security
-before telling me it is done.
-```
+This is a React + Vite ERP in apps/web, on Supabase Postgres, deployed to Vercel from
+main with no CI gate — a push to main is a production release. One shared ledger, four
+equal accounts, real financial data only (D8, D12, D20).
 
-### Build CI
+Before doing any work, verify the state rather than trusting the snapshot. In apps/web
+run npm test, npm run build, npm audit, npm run e2e, npm run security and npm run smoke,
+then query the database directly with the two SQL blocks in the handoff's "How to verify
+state in a fresh session". Note that e2e and smoke WRITE to the production ledger, and
+that npm run e2e exits 0 having run nothing when credentials are missing — if it reports
+specs skipped it did not pass. Also check the Supabase project has not paused (free plan,
+7 quiet days), that the nightly backup workflow is still enabled (GitHub disables a
+schedule after 60 days without a commit). The probe no longer creates sec-probe-* accounts
+now that sign-up is closed, but check for leftovers from before 2026-09-02.
 
-```
-Read "handoff/2026-09-01 Telegraphic Transfers and Full-Stack Verification.md" and
-"docs/Continuous Integration Plan.md" in /Users/itadmin/Desktop/puge. Build CI to
-that plan. Start with the prerequisite: npm run e2e currently exits 0 having run
-nothing when credentials are missing, and any gate built on that is worthless. Then
-remember that GitHub checks do NOT gate Vercel — deployment has to move behind the
-workflow or the gate is decorative. Do not put the e2e or security suites on push;
-they write to the production ledger.
-```
+Hold these while you work:
+- Self-serve sign-up is CLOSED as of 2026-09-02 and must stay closed. Every policy is
+  using (true), so being signed in is the authorization and account creation is the only
+  boundary the model has. If npm run security ever reports that check failing again, treat
+  it as the most serious thing on the board.
+- Never delete a failing security check to make a suite green. Add it to DEFERRED in
+  apps/web/security/probe.mjs with the decision that authorises it, or fix the thing (D26).
+- D23: a column grant cannot carve a column out of a table grant. Revoke first, then grant
+  columns, then verify against information_schema.role_column_grants — {"success": true}
+  from apply_migration proves the SQL ran, not that it achieved anything.
+- Every new table needs five things it does not inherit: revoke-then-grant, its own RLS
+  policy, an entry in TABLES in apps/web/scripts/backup.mjs, its own security-probe
+  checks, and its own audit trigger.
+- D25: revoke insert, update, delete is not enough. Supabase grants ALL on a new table to
+  authenticated, and ALL includes TRUNCATE, which RLS does not restrict. Revoke all, then
+  grant back only what is intended, then read role_table_grants.
+- The audit log is append-only and nothing may delete from it. Test-suite writes stay in it
+  permanently and that is correct; do not build a sweep for them.
+- D22: cross-currency totals are indicative until there is a per-wire FX rate.
+- Node 22 or newer. [skip ci] does not stop a Vercel deploy; vercel.json ignoreCommand does.
+- Read the full Traps sections of all three handoffs before touching migrations, Vercel or
+  the test suites. cleanupOrphanFiles() deletes any stored file no receipt row points at.
 
-### Pick up a specific piece of work
+Next work: commit and push phases 21 and 22, and watch that push closely. Everything is
+in place — the audit trail is live in the database, .github/workflows/ci.yml and
+verify.yml are written, main is off Vercel's git hook in apps/web/vercel.json, and all
+eleven repository secrets are set including VERCEL_TOKEN. But none of it has ever run: no
+workflow has executed and the deploy step is unexercised, so the first push is
+simultaneously the release, the moment Vercel stops deploying on its own, and the only
+test the pipeline has had. Every CI defect on this project so far lived in the gap
+between "passes locally" and "runs elsewhere", so expect to debug it. If the deploy job
+fails, main reaches production by no route at all until it is fixed — safe, but down.
+Bump apps/web/package.json from 0.4.1 and cut an annotated tag per D19 as part of that
+commit.
 
-```
-Read "handoff/2026-09-01 Telegraphic Transfers and Full-Stack Verification.md" in
-/Users/itadmin/Desktop/puge for context, then <TASK>. Respect docs/Decisions.md —
-D8 and D20 (one shared ledger, four equal accounts), D12 (the ledger holds only real
-data), D22 (cross-currency totals are indicative) and D23 (revoke before granting
-columns, then verify) constrain most changes. Read the Traps section before touching
-migrations, Vercel, or the test suites. Run npm test, npm run e2e and npm run
-security in apps/web before telling me it is done.
-```
-
-### Something is broken in production
-
-```
-Read "handoff/2026-09-01 Telegraphic Transfers and Full-Stack Verification.md" in
-/Users/itadmin/Desktop/puge and its Traps section, plus the two earlier packages'.
-<SYMPTOM>. Check the Vercel deployment list and the Supabase project state before
-assuming a code fault — a failed Vercel build never replaces a working deployment,
-and a skipped one shows as CANCELED. Reproduce it before proposing a fix, and give
-me the root cause, not the symptom.
-```
-
-### After a long gap
-
-```
-Read "handoff/2026-09-01 Telegraphic Transfers and Full-Stack Verification.md" in
-/Users/itadmin/Desktop/puge. Verify the state still matches: run npm test, npm run
-e2e, npm run security and npm run smoke in apps/web, check the Supabase project has
-not paused (free plan, pauses after 7 quiet days), confirm the nightly backup
-workflow is still enabled — GitHub disables a schedule after 60 days without a
-commit — and delete any sec-probe-* accounts that have accumulated. Report what
-drifted.
+Report what you verified and what drifted, confirm the state back to me in a few lines,
+and wait for direction before starting.
 ```
 
 ---

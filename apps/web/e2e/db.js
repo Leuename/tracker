@@ -17,8 +17,25 @@ export const MARK = 'E2E-' + Date.now().toString(36)
 const url = process.env.VITE_SUPABASE_URL
 const key = process.env.VITE_SUPABASE_PUBLISHABLE_KEY
 
+/**
+ * The one credential gate. Both spec files ask this, so there is one answer.
+ *
+ * On a laptop, missing credentials are a reason to skip: a developer without an
+ * issued account should still be able to run everything else. In CI they are a
+ * defect, because `playwright test` prints `27 skipped` and exits 0, and a gate
+ * built on that reports a safety it is not providing. `E2E_REQUIRE_CREDENTIALS`
+ * is how CI says which of the two it is; the workflow sets it.
+ */
 export function haveCredentials() {
-  return !!(url && key && process.env.E2E_EMAIL && process.env.E2E_PASSWORD)
+  const missing = ['VITE_SUPABASE_URL', 'VITE_SUPABASE_PUBLISHABLE_KEY', 'E2E_EMAIL', 'E2E_PASSWORD']
+    .filter((n) => !process.env[n])
+  if (missing.length && process.env.E2E_REQUIRE_CREDENTIALS) {
+    throw new Error(
+      'E2E_REQUIRE_CREDENTIALS is set and these are missing: ' + missing.join(', ') +
+      '. Refusing to skip — a skipped suite that exits 0 is worse than a failing one.'
+    )
+  }
+  return missing.length === 0
 }
 
 let client = null

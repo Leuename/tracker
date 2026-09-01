@@ -1,24 +1,28 @@
 ---
 title: Audit Trail Plan
-tags: [plan, audit, security, database, supabase, deferred]
+tags: [plan, audit, security, database, supabase, built]
 created: 2026-09-01
-status: planned
+status: built
 supersedes: nothing
 related:
   - "[Decisions](Decisions.md) — D8 and D20 are why there is nothing to attribute a change to today"
-  - "[Continuous Integration Plan](Continuous%20Integration%20Plan.md) — the other unbuilt held-back, sequenced after this one"
+  - "[Continuous Integration Plan](Continuous%20Integration%20Plan.md) — the other held-back, built the same day and awaiting two dashboard changes"
   - "[Repository Evidence](Repository%20Evidence.md) — the factual baseline"
 up: "[AI Agent Context](AI%20Agent%20Context.md)"
 ---
 
 # Audit Trail Plan
 
-**Not built.** This is the design to build from, not a description of something that exists.
+**Built on 2026-09-01.** Migrations `20260901150411_audit_log` and
+`20260901150458_lock_audit_log_truncate`, both MD5-verified against
+`supabase_migrations.schema_migrations`. The design below is what was built, with two departures,
+each marked **Departure** where it applies. The decisions it produced are
+[Decisions](Decisions.md) D24 and D25.
 
 ## Why this one first
 
 Four accounts share one ledger and all four are administrators ([Decisions](Decisions.md) D8, D20).
-Nothing records who changed or deleted anything. On 2026-09-01 that got sharper: receipts and
+Nothing recorded who changed or deleted anything. On 2026-09-01 that got sharper: receipts and
 telegraphic transfers both gained delete buttons the same day, so there are now four ways for four
 people to destroy a financial record without trace.
 
@@ -95,8 +99,20 @@ writes to a table the caller must never be able to write to, so it needs privile
 not have. `set search_path = ''` is not optional on a definer function; without it a caller can
 point `public` at their own schema and the function executes their code with elevated rights.
 
-`app_config` uses a boolean primary key, not a bigint, so its `row_id` will be null. That is
-correct — there is only ever one config row.
+**Departure.** `app_config` uses a boolean primary key, not a bigint, so its `row_id` is null —
+that part is as planned. But the cast as written above raises
+`invalid input syntax for type bigint: "true"` rather than yielding null, which would have made
+every settings write fail. The shipped function guards it:
+
+```sql
+key text := coalesce(a->>'id', b->>'id');
+-- ...
+case when key ~ '^[0-9]+$' then key::bigint end
+```
+
+`before` and `after` are also computed from `tg_op` in the DECLARE block rather than inline, because
+on DELETE the `NEW` record is unassigned and reading it would fail on exactly the operation the
+function exists to record.
 
 ## Triggers
 
@@ -128,6 +144,15 @@ create policy "any signed-in account may read the audit log" on public.audit_log
 Read-only to clients, append-only in practice: only the definer function writes. There is
 deliberately no policy for INSERT, UPDATE or DELETE, so those are refused even before the missing
 grant is consulted.
+
+**Departure, and the one real defect in this plan.** That revoke is too narrow. Supabase's default
+privileges grant ALL on a new table to `authenticated`, and after the migration applied cleanly
+`role_table_grants` still listed **TRUNCATE and TRIGGER**. Row-level security does not apply to
+TRUNCATE, so the audit log could have been erased in one statement. The shipped version is
+`revoke all on public.audit_log from anon, authenticated;` followed by
+`grant select on public.audit_log to authenticated;` — see [Decisions](Decisions.md) D25. The
+function is locked down too: `revoke all on function public.log_change() from public, anon,
+authenticated`.
 
 ## Retention
 
@@ -162,11 +187,12 @@ which reported a pass while skipping its own UPDATE.
    the reason that sentence is here.
 2. Mirror the migration into `supabase/migrations/`, MD5-verified against
    `supabase_migrations.schema_migrations`, per D14.
-3. Extend the probe with the five checks. Expect 36 → 41.
+3. Extend the probe with the five checks. **Done: 36 → 41**, and `npm run security` reports
+   41 checks with 1 failure, that one being the deferred sign-up toggle.
 4. Add `audit_log` to `TABLES` in `apps/web/scripts/backup.mjs`. A table missing from that list is
    invisible until a restore, which is exactly how `transfers` nearly shipped unbacked.
 5. Only then consider a UI. A read-only Activity screen is a nice-to-have; the record existing is
-   the point.
+   the point. **Not built** — the log is queryable and in the backup, and there is no screen for it.
 
 ## What this does not solve
 
