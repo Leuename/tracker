@@ -434,9 +434,17 @@ test('a scripting payload in a description is stored and shown as text', async (
   await saveAddForm(page)
 
   // Stored verbatim: escaping belongs at render time, not on the way in.
-  await expect.poll(async () => (await D.txnsTagged()).length, { timeout: 10_000 }).toBe(1)
-  const [row] = await D.txnsTagged()
-  expect(row.description).toBe(payload)
+  //
+  // Asserted on THIS row, not on how many rows carry the run's tag. Counting
+  // made the spec depend on every earlier spec having finished cleaning up —
+  // an assumption that held until `load()` grew one more request and the timing
+  // shifted, at which point it failed roughly every other run with
+  // `Expected: 1, Received: 3`. The payload is unique; look for it directly.
+  await expect
+    .poll(async () => (await D.txnsTagged()).some((t) => t.description === payload),
+      { timeout: 10_000 })
+    .toBe(true)
+  const row = (await D.txnsTagged()).find((t) => t.description === payload)
 
   // Rendered as text on a fresh load, and no injected node in the document.
   await page.reload()

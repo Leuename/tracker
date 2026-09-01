@@ -1084,6 +1084,38 @@ so the report cannot disagree with the screen. [Decisions](Decisions.md) D31.
 No `autoGen` setting was reintroduced. A toggle in the app that only a workflow reads is a second
 source of truth for one boolean; the Actions tab already shows whether it is on.
 
+## 2026-09-01 — A flake that was not a flake
+
+The final sweep reported `19 passed, 7 did not run` where every earlier run that day had been 27/27.
+Re-running gave 27/27 and exit 0, which is exactly the point at which it would have been easy to
+call it a flake and move on. Running it twice more instead reproduced it: **exit 1 on roughly every
+other run.**
+
+The failure was the scripting-payload spec:
+
+```
+Error: expect(received).toBe(expected)
+Expected: 1
+Received: 3
+  > 437 | await expect.poll(async () => (await D.txnsTagged()).length, ...).toBe(1)
+```
+
+It asserted on *how many* rows carried the run's tag, which quietly depended on every spec before it
+having finished cleaning up. That assumption held for weeks and stopped holding when `load()` gained
+one more request — the `is_viewer()` lookup added for the read-only role — and the timing shifted.
+Nothing was wrong with the application; the spec was counting a shared ledger.
+
+Fixed by asserting on the row it created rather than on a count. Three consecutive runs green.
+
+**One thing worth admitting.** The first version of that fix removed the `const [row]` binding the
+spec's own cleanup uses two lines further down, turning an intermittent failure into
+`ReferenceError: row is not defined` on every run. That is a worse bug than the one being fixed, and
+it was caught only because the run count went from "about half" to "all three". Deterministic
+failures are a gift; the lesson is to re-read what the removed line was still feeding.
+
+Trap 43 records the general form: an e2e spec against a shared ledger must look for the row it
+created, never count the rows carrying its tag.
+
 ## Guideline Basis
 
 - **PG-04** requires a continuation record with exact scope, checks, limitations, and unresolved evidence.

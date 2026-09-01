@@ -339,6 +339,12 @@ Traps 1 to 18 are in the two earlier packages and all still apply. These are new
     job. `pg_cron` is available and was deliberately not used, because it would mean a second copy
     that drifts (D31).
 
+43. **An e2e spec must assert on its own row, never on how many carry the run's tag.** The
+    scripting-payload spec asserted `txnsTagged().length === 1`, which quietly depended on every
+    earlier spec having finished cleaning up. It began failing about every other run —
+    `Expected: 1, Received: 3` — as soon as `load()` gained one more request and the timing shifted.
+    Counting shared-ledger rows is a race; look for the row you created.
+
 ## How to verify state in a fresh session
 
 ```bash
