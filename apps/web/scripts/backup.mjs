@@ -3,6 +3,11 @@
  *
  *   BACKUP_EMAIL=… BACKUP_PASSWORD=… npm run backup
  *
+ * `--env-file-if-exists` rather than `--env-file`: locally the Supabase URL and
+ * key come from .env.local, and in CI that file does not exist — it is
+ * gitignored — so they arrive as real environment variables instead. The strict
+ * flag aborts on the missing file and takes the nightly backup down with it.
+ *
  * Why this exists: the project is on the Supabase free plan, whose backups are
  * not downloadable, and real payables now live in it. This is the restore path.
  *

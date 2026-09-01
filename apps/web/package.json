@@ -1,7 +1,7 @@
 {
   "name": "@puge/web",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.2.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -11,7 +11,7 @@
     "smoke": "node --env-file=.env.local src/smoke.mjs",
     "e2e": "playwright test",
     "security": "node --env-file=.env.local security/probe.mjs",
-    "backup": "node --env-file=.env.local scripts/backup.mjs"
+    "backup": "node --env-file-if-exists=.env.local scripts/backup.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.4",
