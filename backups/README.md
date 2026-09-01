@@ -47,8 +47,11 @@ every table, both null and populated `row_id`, the largest jsonb payloads, and t
 highest ids — rather than all 222 rows, because moving 153 KB through a chat session proves nothing
 the sample does not. The statement is the same one either way.
 
-**Still untested: `files/`.** There are no stored documents today, so restoring storage objects has
-never been exercised.
+**`files/` is now covered too.** `npm run smoke` stores a receipt document of random bytes behind a
+PDF header, downloads it and compares SHA-256, uploads the held copy back under a second key and
+compares again — the two hops a backup and a restore actually make. Added 2026-09-01, after the
+bucket had been empty at every backup taken until then, which meant `files: 0 stored` had never said
+anything about whether a document would survive one.
 
 ## How to restore
 

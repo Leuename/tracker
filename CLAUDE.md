@@ -29,7 +29,7 @@ Knowledge notes live in `docs/`; handoffs live in `handoff/`, named `YYYY-MM-DD 
 | `npm test` | `node --test src/logic.test.js src/rows.test.js src/errors.test.js`. 39 assertions. Offline. No test framework. |
 | `npm run e2e` | 27 Playwright specs. They drive the UI and read Postgres back, so they need `E2E_EMAIL` and `E2E_PASSWORD`; `E2E_BASE_URL` points them at a deployment. They write to the shared ledger and sweep every `E2E-` tag before and after. Without credentials they skip and exit 0; set `E2E_REQUIRE_CREDENTIALS=1` to make that a failure instead. |
 | `npm run security` | 41-check probe: anonymous access, forged tokens, schema exposure, filter injection, mass assignment, audit-log tamper resistance, storage, bundle secrets, sign-up, deployment headers. Checks named in `DEFERRED` still run and print, tagged `DEFER`, but do not fail the suite ([D26](docs/Decisions.md)); the list is empty and all 41 pass. |
-| `npm run smoke` | End-to-end check against the live Supabase project. Needs the network and credentials, so it is not part of `npm test`. |
+| `npm run smoke` | End-to-end check against the live Supabase project, including a receipt document stored, read back and restored byte-for-byte. Needs the network and credentials, so it is not part of `npm test`. |
 
 `apps/web/` now requires `apps/web/.env.local` (`VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`); `.env.example` records the shape and both files are git-ignored. Never place a `service_role` or other secret key there — Vite ships every `VITE_`-prefixed variable to the browser.
 

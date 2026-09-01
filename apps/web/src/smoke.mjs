@@ -12,6 +12,7 @@
  * cleans up the row it adds, but run it before real payables go in.
  */
 import assert from 'node:assert/strict'
+import { createHash, randomBytes } from 'node:crypto'
 import { supabase } from './supabase.js'
 import { db, load } from './db.js'
 
@@ -32,7 +33,8 @@ if (error) {
 }
 step('signed in as ' + email + ' (' + auth.user.id + ')')
 
-const created = { txns: [], receipts: [], transfers: [] }
+const created = { txns: [], receipts: [], transfers: [], files: [] }
+const sha = (b) => createHash('sha256').update(b).digest('hex')
 let restoreConfig = false
 // Declared out here on purpose: the finally block restores the shared config
 // from it, and a `const` inside the try is not in scope there. It threw
@@ -97,6 +99,35 @@ try {
   // Leave the shared category list as it was found.
   await db.saveConfig(first)
 
+  // ---- stored documents ----------------------------------------------
+  // The one path in scripts/backup.mjs that nothing else exercises. The bucket
+  // has been empty at every backup so far, so `files: 0 stored` has never said
+  // anything about whether a document would survive one. Random bytes behind a
+  // PDF header, because the bucket only accepts real media types and a byte
+  // comparison must not be able to pass by accident.
+  const doc = Buffer.concat([Buffer.from('%PDF-1.4\n'), randomBytes(2048)])
+  const docPath = receipt.id + '/smoke.pdf'
+  const { error: upErr } = await supabase.storage.from('receipts')
+    .upload(docPath, doc, { contentType: 'application/pdf' })
+  assert.ok(!upErr, 'a receipt document must upload: ' + (upErr && upErr.message))
+  created.files.push(docPath)
+
+  const { data: blob, error: dlErr } = await supabase.storage.from('receipts').download(docPath)
+  assert.ok(!dlErr, 'a stored document must download again: ' + (dlErr && dlErr.message))
+  const held = Buffer.from(await blob.arrayBuffer())
+  assert.equal(sha(held), sha(doc), 'the bytes a backup would hold must match what was stored')
+
+  // And back the other way, which is the half a restore depends on.
+  const restoredPath = receipt.id + '/smoke-restored.pdf'
+  const { error: reErr } = await supabase.storage.from('receipts')
+    .upload(restoredPath, held, { contentType: 'application/pdf' })
+  assert.ok(!reErr, 'a held document must upload back: ' + (reErr && reErr.message))
+  created.files.push(restoredPath)
+  const { data: restored } = await supabase.storage.from('receipts').download(restoredPath)
+  assert.equal(sha(Buffer.from(await restored.arrayBuffer())), sha(doc),
+    'a restored document must be byte-identical to the original')
+  step('a receipt document stored, read back and restored byte-for-byte')
+
   await db.deleteTransfer(wire.id)
   await db.deleteTxn(added.id)
   const third = await load()
@@ -108,6 +139,8 @@ try {
   if (created.txns.length) await supabase.from('txns').delete().in('id', created.txns)
   if (created.receipts.length) await supabase.from('receipts').delete().in('id', created.receipts)
   if (created.transfers.length) await supabase.from('transfers').delete().in('id', created.transfers)
+  // Before the receipt rows go, so nothing is left that no row points at.
+  if (created.files.length) await supabase.storage.from('receipts').remove(created.files)
   // The category list is shared configuration, not a row this script owns.
   if (restoreConfig && first) await db.saveConfig(first)
 }
