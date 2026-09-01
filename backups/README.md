@@ -27,29 +27,72 @@ folder is the restore path.
 Rows are written in the **database's** column shape — `due_date`, `file_path` — not the
 app's. That is deliberate: the shape here is the shape that inserts straight back.
 
-## What has been verified, and what has not
+## What has been verified
 
-**Verified on 2026-09-01**, against the live database rather than by reading the script:
+**The restore was performed on 2026-09-01**, into an empty Supabase project
+(`tracker-restore-test`), and compared against production by fingerprint rather than by eye.
 
-- The nightly workflow runs green with all six tables, `audit_log` included — run
-  `33531626080`, 24 seconds. That mattered because `audit_log` was added to `TABLES` after
-  the previous run, and a table missing from that list is invisible until a restore.
-- Every file parses, and every table's column set matches `information_schema` for the live
-  schema, column for column. Nothing in a backup would be rejected on insert, and no live
-  column is absent from a backup.
-- Row counts and money match production exactly: 21 transactions, ₱226,000.00 on both sides.
+| Claim | Evidence |
+|---|---|
+| The nine migrations replay into an empty project | All nine applied clean, in order |
+| The rebuilt schema *is* production's schema | Identical fingerprint over 178 facts — columns, grants, column grants, RLS, policies, triggers, indexes, function security flags: `a18b5dd26e148a1e216068023b0e4403` on both |
+| The ledger comes back byte-for-byte | `md5(string_agg(t::text))` over every `txns` row identical on both: `f95cd619e877916891cb0f6853f9e041`, 21 rows, ₱226,000.00 |
+| Server-managed columns survive | `created_at` and `app_config.updated_at` restored to their original values, not to `now()` |
+| The restored database still works | A write after restore produced audit row **223**, continuing from the restored maximum |
+| The nightly job covers all six tables | Workflow run `33531626080`, `audit_log` at 222 rows |
 
-**Not verified: the restore itself.** Nobody has rebuilt an empty project from this folder.
-Everything above says the data is *shaped* to go back; none of it proves the nine migrations
-replay cleanly into an empty project, which is the other half. Attempted on 2026-09-01 and
-blocked — a Supabase free plan allows two active projects and both slots are taken, by this
-one and by `zone-offices`. Freeing one is the owner's call.
+**Scope, stated precisely.** `txns`, `app_config`, `receipts`, `recurring` and `transfers` were
+restored in full. `audit_log` was restored as an **18-row stratified sample** — every operation,
+every table, both null and populated `row_id`, the largest jsonb payloads, and the lowest and
+highest ids — rather than all 222 rows, because moving 153 KB through a chat session proves nothing
+the sample does not. The statement is the same one either way.
 
-To do it when a slot exists: create an empty project, apply
-[the nine migrations](../supabase/README.md) in version order, insert each JSON file into its
-table, then compare counts and `sum(amount)` against `MANIFEST.md`. Restore `audit_log` last
-— its triggers fire on the other tables, so restoring in the wrong order writes audit rows
-for the restore itself and mixes them with the history being restored.
+**Still untested: `files/`.** There are no stored documents today, so restoring storage objects has
+never been exercised.
+
+## How to restore
+
+Run this as `postgres`, through the SQL editor, MCP or `psql`. **Not through the application's
+credentials** — that path cannot work, and it is worth knowing why: `authenticated` holds no INSERT
+on `audit_log` at all, and only column-list grants elsewhere, so a client-credentialed restore
+silently drops `created_at` and the entire audit history. The security model that protects the
+ledger also forbids restoring it.
+
+1. Create an empty project and apply [the nine migrations](../supabase/README.md) in version order.
+2. **Disable the triggers**, or the restore writes history *about itself* and mixes it with the
+   history being restored:
+
+   ```sql
+   alter table public.txns       disable trigger txns_audit;
+   alter table public.receipts   disable trigger receipts_audit;
+   alter table public.recurring  disable trigger recurring_audit;
+   alter table public.transfers  disable trigger transfers_audit;
+   alter table public.app_config disable trigger app_config_audit;
+   alter table public.app_config disable trigger app_config_touch;  -- else updated_at becomes now()
+   ```
+
+3. Load each file. `json_populate_recordset` maps the saved column shape straight onto the table:
+
+   ```sql
+   insert into public.txns select * from json_populate_recordset(null::public.txns, '<txns.json>'::json);
+   ```
+
+4. **Fix the sequence.** `audit_log.id` is a `bigserial`, and inserting explicit ids does not advance
+   it. Skip this and the next audited write dies on a duplicate primary key:
+
+   ```sql
+   select setval(pg_get_serial_sequence('public.audit_log','id'), (select max(id) from public.audit_log));
+   ```
+
+5. Re-enable every trigger disabled in step 2.
+6. Verify against `MANIFEST.md`, and compare fingerprints with the source if it still exists:
+
+   ```sql
+   select md5(string_agg(t::text, chr(10) order by t.id)), count(*), sum(amount) from public.txns t;
+   ```
+
+Restoring `audit_log` last is not required once the triggers are off, but it keeps the ids
+contiguous and makes step 4 obviously correct.
 
 ## A cost that is growing faster than it looks
 

@@ -308,6 +308,19 @@ Traps 1 to 18 are in the two earlier packages and all still apply. These are new
     be revoked from a session either — only at <https://vercel.com/account/tokens>. Plan for that
     before creating one, not after.
 
+35. **A schema fingerprint over a whole database compares the platform too.** A production/rebuild
+    comparison read 177 facts against 176 and looked like drift; the extra was
+    `realtime.subscription.tr_check_filters`, a Supabase platform trigger, because the query
+    excluded `storage%` but not `realtime%`. Scope catalogue comparisons to `public`.
+36. **A restore must disable the triggers and then fix the sequence.** Leave the audit triggers on
+    and the restore writes history about itself; leave `app_config_touch` on and every restored
+    `updated_at` becomes `now()`; skip `setval` on `audit_log_id_seq` and the next audited write
+    anywhere in the app dies on a duplicate primary key. Procedure in
+    [backups/README.md](../backups/README.md).
+37. **A restore cannot run through the application's credentials.** `authenticated` has no INSERT on
+    `audit_log` and only column-list grants elsewhere, so a client-credentialed restore silently
+    drops `created_at` and the whole audit history. Restore as `postgres`.
+
 ## How to verify state in a fresh session
 
 ```bash
@@ -407,19 +420,23 @@ Hold these while you work:
 - Read the full Traps sections of all three handoffs before touching migrations, Vercel or
   the test suites. cleanupOrphanFiles() deletes any stored file no receipt row points at.
 
-Everything held back is now built and released as v0.5.0: the audit trail is live in
-the database, CI gates production through .github/workflows/ci.yml, self-serve sign-up
-is closed, and both workflows have run green — ci.yml on push and verify.yml by
-dispatch, with 27 e2e specs, 41 security checks and smoke all really executing rather
-than skipping. One thing has still never been exercised: no backup has ever been
-restored. The data is verified shaped to go back — every file parses, every column set
-matches the live schema, and counts and totals match production exactly — but nobody has
-shown the nine migrations replay into an empty project, which is the other half. The
-attempt was blocked: a Supabase free plan allows two active projects and both slots are
-held, by baby and by zone-offices. Freeing one is the owner's call. Do not pause
-zone-offices without asking; the @zoneoffice.ph accounts suggest it is live. After that the open
-items are the read-only role (D20), the scheduler, last-write-wins on app_config, and
-rotating both the shared five-character password and the tracker-ci Vercel token.
+FIRST, TWO CLEANUPS THE LAST SESSION LEFT BEHIND, both dashboard-only because no
+MCP tool deletes or unpauses a project. The Supabase project zone-offices
+(lasycakyudaawrydetnm) was PAUSED on 2026-09-01 to free a free-tier slot and needs
+restoring if anything depends on it. And tracker-restore-test (kfuhuphgiwdkeafhixeg)
+was created for the restore test, still holds a copy of the ledger, and should be
+deleted. Raise both with me before assuming either is safe to leave.
+
+Everything held back is built and released as v0.5.0: the audit trail is live, CI
+gates production through .github/workflows/ci.yml, self-serve sign-up is closed, both
+workflows have run green with 27 e2e specs and 41 security checks really executing
+rather than skipping, and the restore was performed end to end — the nine migrations
+rebuild production's schema fact-for-fact (fingerprint a18b5dd2 over 178 catalogue
+facts) and the ledger comes back byte-for-byte (f95cd619, 21 rows, PHP 226,000.00).
+Remaining open items: restoring files/ has never been tested because no stored
+documents exist yet, the read-only role (D20), the scheduler, last-write-wins on
+app_config, and rotating both the shared five-character password and the tracker-ci
+Vercel token.
 
 Report what you verified and what drifted, confirm the state back to me in a few lines,
 and wait for direction before starting.

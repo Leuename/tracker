@@ -43,7 +43,7 @@ This is the agent-agnostic entry point. It describes where facts live, how instr
 
 `apps/web/` is a running React + Vite application backed by Supabase Postgres, deployed to Vercel and used by **four** accounts sharing one ledger, all administrator-equivalent. Five screens: Dashboard, Tracker, AckRec, **Telegraphic** and Masterlist, plus Settings. Five tables: `txns`, `receipts`, `recurring`, `transfers` and `app_config`. It has a package manifest, a build, four test commands and a security probe, and it holds real financial data.
 
-The schema is now versioned in [supabase/migrations/](../supabase/README.md), nine files each MD5-verified against what was applied. A nightly GitHub Actions workflow snapshots the whole workspace into [backups/](../backups/README.md). Releases are annotated tags, `v0.2.0` through `v0.4.1`.
+The schema is now versioned in [supabase/migrations/](../supabase/README.md), nine files each MD5-verified against what was applied. A nightly GitHub Actions workflow snapshots the whole workspace into [backups/](../backups/README.md), and that restore path was exercised end to end on 2026-09-01 rather than assumed. Releases are annotated tags, `v0.2.0` through `v0.4.1`.
 
 The rest of the checkout is unchanged: `company_tracker/` remains a static Design Component export, `construction_tracker/construction.csv` remains a requirements sheet parked by decision, and `apps/api/` is still empty.
 

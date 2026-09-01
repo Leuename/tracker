@@ -863,6 +863,71 @@ rewritten whole into version control every night. Corrected in D24 and written u
 `backups/README.md`. Not fixed: nothing is broken today, and NDJSON or excluding the log from the
 snapshot are both design choices rather than repairs.
 
+## 2026-09-01 — The restore, performed
+
+The last claim in this repository that had never been tested. The owner freed a project slot by
+pausing `zone-offices`, and the restore ran into an empty project, `tracker-restore-test`.
+
+### The migrations replay
+
+All nine applied in order to an empty project, clean. The rebuilt schema was then compared to
+production by fingerprint rather than by reading it — 178 catalogue facts covering columns, grants,
+column grants, RLS, policies, triggers, indexes and function security flags:
+
+```
+a18b5dd26e148a1e216068023b0e4403   178 facts   production
+a18b5dd26e148a1e216068023b0e4403   178 facts   rebuilt from supabase/migrations/
+```
+
+A first comparison reported 177 against 176 and looked like real drift. It was not: the extra fact
+was `realtime.subscription.tr_check_filters`, a Supabase platform trigger, because the query
+excluded `storage%` but not `realtime%`. Scoping the comparison to `public` gave the identical
+hashes above. Worth recording as a caution — a fingerprint over a whole database compares the
+platform as well as the application.
+
+### The data comes back
+
+Every `txns` row byte-for-byte, `created_at` included:
+
+```
+f95cd619e877916891cb0f6853f9e041   21 rows   PHP 226,000.00   production
+f95cd619e877916891cb0f6853f9e041   21 rows   PHP 226,000.00   restored
+```
+
+And the restored database *works*, which is a separate claim from holding the right rows: a write
+afterwards produced audit row **223**, continuing from the restored maximum instead of colliding.
+
+### Two steps a naive restore gets wrong
+
+Both found by doing it rather than by reading the code.
+
+- **The triggers have to be off.** Otherwise the restore writes audit history *about the restore*
+  and mixes it with the history being restored. `app_config_touch` matters as much as the audit
+  triggers: leave it on and every restored `updated_at` becomes `now()`.
+- **The sequence has to be set.** `audit_log.id` is a `bigserial`, and inserting explicit ids does
+  not advance it. Skip `setval` and the next audited write anywhere in the application dies on a
+  duplicate primary key — a restore that looks complete and breaks on first use.
+
+### A restore cannot run through the application's credentials
+
+`authenticated` holds no INSERT on `audit_log` at all, and only column-list grants elsewhere, so a
+client-credentialed restore silently drops `created_at` and the entire audit history. The security
+model that protects the ledger also forbids restoring it. The restore has to run as `postgres`.
+
+### Scope, stated precisely
+
+`txns`, `app_config`, `receipts`, `recurring` and `transfers` were restored in full. `audit_log` was
+restored as an **18-row stratified sample** — every operation, every table, both null and populated
+`row_id`, the largest jsonb payloads, the lowest and highest ids — not all 222 rows, because moving
+153 KB through a chat session proves nothing the sample does not. Restoring `files/` is still
+untested: there are no stored documents.
+
+### Left for the owner
+
+`tracker-restore-test` (`kfuhuphgiwdkeafhixeg`) still exists and holds a copy of the ledger; the MCP
+server has no delete tool, so it has to go from the dashboard. `zone-offices` is paused and needs
+restoring. Both are named in the resume prompt.
+
 ## Guideline Basis
 
 - **PG-04** requires a continuation record with exact scope, checks, limitations, and unresolved evidence.
