@@ -51,7 +51,16 @@ const retryOnce = (fn) => async (...args) => {
 async function start() {
   const defaults = configOf(initialState)
   await supabase.from('app_config').insert({ id: true, data: defaults }).then(ok)
-  return { txns: [], receipts: [], recurring: [], transfers: [], ...defaults, notes: [] }
+  return {
+    txns: [], receipts: [], recurring: [], transfers: [], ...defaults, notes: [],
+    // Whoever reaches this line is an administrator: creating the config row is
+    // an INSERT on app_config, and only "administrators may create the settings"
+    // permits one — a viewer would have thrown above. Saying so explicitly
+    // matters because `initialState.readOnly` is true, so omitting the key here
+    // left the first person ever to open a workspace looking at an app that
+    // refused every action until they reloaded.
+    readOnly: false,
+  }
 }
 
 /** Read the shared dataset, seeding it on the workspace's first run. */
@@ -172,8 +181,11 @@ const queries = {
     )
     const touched = await supabase.rpc('merge_app_config', { patch: body }).then(ok)
     if (touched) return touched
-    // No config row yet — a workspace nobody has opened. Seed it whole.
-    return supabase.from('app_config').insert({ id: true, data: configOf(patch) }).then(ok)
+    // No config row yet — a workspace nobody has opened. Seed it whole, with the
+    // patch over the defaults rather than the patch alone: `configOf` of a
+    // partial patch would write `undefined` into every key the patch omits.
+    return supabase.from('app_config')
+      .insert({ id: true, data: { ...configOf(initialState), ...body } }).then(ok)
   },
 }
 

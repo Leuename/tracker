@@ -2,7 +2,7 @@
 title: Telegraphic Transfers and Full-Stack Verification
 tags: [handoff, continuation, erp, tracker, supabase, vercel, telegraphic, verification, security]
 created: 2026-09-01
-status: current
+status: superseded
 supersedes: "[Repository Restructure and Data Clear](2026-09-01%20Repository%20Restructure%20and%20Data%20Clear.md) as the entry point; that note remains the record of phases 10 to 13 and is not repeated here"
 related:
   - "[Decisions](../docs/Decisions.md) — D1 to D27, the authority on what is authorised"
@@ -15,7 +15,11 @@ up: "[AI Agent Context](../docs/AI%20Agent%20Context.md)"
 
 # Telegraphic Transfers and Full-Stack Verification
 
-**This is the current entry point.** It covers phases 14 to 23 and carries the live facts.
+**Superseded as the entry point** by
+[Everything Held Back, Built](2026-09-02%20Everything%20Held%20Back,%20Built.md) — start there.
+This note remains the record of phases 14 to 23 and its traps all still apply.
+
+It covers phases 14 to 23 and carries the live facts.
 
 **Updated 2026-09-01, later the same day.** Phase 21 built both remaining held-backs — the audit
 trail and the CI gate — and phase 22 deferred the sign-up check and took `main` off Vercel's git

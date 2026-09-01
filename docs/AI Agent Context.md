@@ -22,7 +22,7 @@ This is the agent-agnostic entry point. It describes where facts live, how instr
 - **observed-in:** [Repository Evidence](Repository%20Evidence.md) records what is present, absent, generated, or externally loaded.
 - **decided-by:** [Decisions](Decisions.md) records current boundaries and activation gates.
 - **continued-by:** [Handoff](Handoff.md) records completed documentation work and unresolved source gaps.
-- **resumed-by:** [Telegraphic Transfers and Full-Stack Verification](../handoff/2026-09-01%20Telegraphic%20Transfers%20and%20Full-Stack%20Verification.md) is the current entry point for a fresh session. It supersedes [Repository Restructure and Data Clear](../handoff/2026-09-01%20Repository%20Restructure%20and%20Data%20Clear.md), which in turn superseded [Session Continuation Package](../handoff/2026-09-01%20Session%20Continuation%20Package.md). All three are live: the newest carries the current facts, the older two remain the record of phases 10 to 13 and 1 to 9 and hold traps 1 to 18.
+- **resumed-by:** [Everything Held Back, Built](../handoff/2026-09-02%20Everything%20Held%20Back,%20Built.md) is the current entry point for a fresh session. It supersedes [Repository Restructure and Data Clear](../handoff/2026-09-01%20Repository%20Restructure%20and%20Data%20Clear.md), which in turn superseded [Session Continuation Package](../handoff/2026-09-01%20Session%20Continuation%20Package.md). All three are live: the newest carries the current facts, the older two remain the record of phases 10 to 13 and 1 to 9 and hold traps 1 to 18.
 - **planned-by:** [Audit Trail Plan](Audit%20Trail%20Plan.md) and [Continuous Integration Plan](Continuous%20Integration%20Plan.md) are designs for the two highest-value unbuilt items. Neither describes anything that exists; build the audit trail first.
 - **archived-in:** [Seeded Data Backup](seeded-data-backup/README.md) holds the demo rows cleared from the ledger on 2026-09-01, with the totals verified against the live database before the delete.
 - **specialized-by:** [Turborepo and Turbopack](Turborepo%20and%20Turbopack.md) governs conditional build-tool adoption.
@@ -36,7 +36,7 @@ This is the agent-agnostic entry point. It describes where facts live, how instr
 - Documentation or context work: use `.claude/commands/generate-docs.md` and keep evidence distinct from decisions.
 - Passive artifact review: use `.claude/commands/review.md`; do not execute active HTML without provenance review.
 - UX or accessibility review: use `.claude/commands/ux-reviewer.md` or the matching agent, with manual checks only when authorized.
-- Resuming a session, or picking up work someone else left: start at [Telegraphic Transfers and Full-Stack Verification](../handoff/2026-09-01%20Telegraphic%20Transfers%20and%20Full-Stack%20Verification.md) and paste its single `## Resume prompt`.
+- Resuming a session, or picking up work someone else left: start at [Everything Held Back, Built](../handoff/2026-09-02%20Everything%20Held%20Back,%20Built.md) and paste its single `## Resume prompt`.
 - Run or test the authored tracker with the evidence-backed commands in [Repository Evidence](Repository%20Evidence.md). For further feature, refactor, migration, deployment, release, or rollback work, consult [Decisions](Decisions.md) and stop when its activation gate is unmet.
 
 ## Current State

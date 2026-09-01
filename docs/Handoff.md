@@ -7,7 +7,7 @@ status: current
 # Handoff
 
 > **Resuming from a fresh session?** Start at
-> [Session Continuation Package 2026-09-01](../handoff/2026-09-01%20Session%20Continuation%20Package.md).
+> [Everything Held Back, Built](../handoff/2026-09-02%20Everything%20Held%20Back,%20Built.md).
 > It indexes every dated pass below, and carries what this note does not: the service
 > identifiers, the codebase map, the open items awaiting the owner's decision, and the traps
 > that cost time. This note stays the append-only record of what each pass did.
@@ -1115,6 +1115,59 @@ failures are a gift; the lesson is to re-read what the removed line was still fe
 
 Trap 43 records the general form: an e2e spec against a shared ledger must look for the row it
 created, never count the rows carrying its tag.
+
+## 2026-09-02 — Audit pass, and the continuation package
+
+An audit-mode sweep over everything this session touched, then a fresh entry point:
+[Everything Held Back, Built](../handoff/2026-09-02%20Everything%20Held%20Back,%20Built.md).
+
+### What the audit found
+
+Two things worth fixing, found by looking rather than by a failure.
+
+**The release had drifted from the manifest.** Fourteen commits and four decisions (D28 to D31)
+shipped after `v0.5.0` with `apps/web/package.json` still reading `0.5.0` and no tag cut. D19 says
+the tag and the manifest match on the same commit; nothing enforces it, and production had shipped
+repeatedly under an unnamed version. Closed as `v0.6.0`. Trap 44.
+
+**A fresh workspace would have locked its first user out.** `initialState.readOnly` defaults to
+`true` — deliberately, so a failed role lookup denies rather than grants — but `start()`, the
+never-used-workspace path, returned no `readOnly` key. The first person ever to open a workspace
+would have found every action refused until they reloaded. Whoever reaches `start()` is an
+administrator by construction, since creating the config row is an INSERT only an administrator may
+make, so the fix states that rather than making another request. Trap 45.
+
+A third, smaller: `saveConfig`'s insert fallback ran `configOf(patch)`, writing `undefined` into
+every key a partial patch omits. It merges the patch over the defaults now. Trap 46.
+
+### What the audit confirmed
+
+All twelve migrations MD5-identical to what was applied. All four workflows active and last-green.
+Eleven secrets. Ledger fingerprint `f95cd619e877916891cb0f6853f9e041` at 21 rows and ₱226,000.00,
+zero residue, zero probe accounts. 43 unit, 27 e2e, 47/47 security with `DEFERRED` empty, smoke and
+the scheduler dry run both clean, `npm audit` 0, 594 links resolving, `AGENTS.md` byte-identical to
+`CLAUDE.md`.
+
+### What the audit left open, on purpose
+
+`public.is_viewer()` is flagged by a Supabase advisor as a `security definer` function callable over
+RPC. The exposure is small — no arguments, returns only the caller's own role — but whether
+revoking `EXECUTE` breaks the RLS policies that call it is **unknown, and was not tested**: it was
+07:46 in Manila, and a wrong answer means no account can write. That is a decision about when, not
+about whether, and it is written up as open item 1 with the safe way to settle it.
+
+`profiles.json` is not yet in `backups/` — the table joined `TABLES` after the last snapshot ran —
+so a restore today would return everyone as a viewer. One nightly run closes it, and it is the
+first item in the new resume prompt.
+
+### The package
+
+The new handoff supersedes [Telegraphic Transfers and Full-Stack
+Verification](../handoff/2026-09-01%20Telegraphic%20Transfers%20and%20Full-Stack%20Verification.md),
+which is marked `superseded` and keeps its traps. Every pointer that named the old entry point —
+`docs/AI Agent Context.md`, `.claude/rules/documentation.md`, `CLAUDE.md` and `AGENTS.md` — now
+names the new one. Traps 44 to 46 are added; the four incidents of the session are written up where
+they happened rather than summarised away.
 
 ## Guideline Basis
 
