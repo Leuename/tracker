@@ -77,6 +77,10 @@ export function StoreProvider({ children }) {
   const savedConfig = useRef(null)
   useEffect(() => {
     if (!ready) return undefined
+    // A viewer's config never leaves the tab. Without this the effect would
+    // fire on the settings screen and hand merge_app_config a patch it is
+    // certain to refuse, turning a greyed-out screen into a toast storm.
+    if (state.readOnly) return undefined
     const next = configOf(state)
     if (savedConfig.current === null) { savedConfig.current = next; return undefined }
     const patch = configPatch(savedConfig.current, next)

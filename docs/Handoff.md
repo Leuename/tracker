@@ -994,6 +994,62 @@ whole config on every keystroke. `npm run build` green, `npm audit` 0, `npm run 
 `npm run security` 41/41, `npm run smoke` passing with the new document round-trip. Ten migrations,
 the newest MD5-verified.
 
+## 2026-09-01 — The read-only role, and a real row lost and recovered
+
+### Built
+
+`public.profiles` maps a user to `admin` or `viewer`, `public.is_viewer()` answers for the caller,
+and every write policy on the five ledger tables and the receipts bucket now reads
+`not public.is_viewer()`. Reads stay open to any signed-in account, which is what D8 always was.
+
+An account with no profile row is a **viewer**. That is the deliberate direction to fail: an account
+created in the dashboard and forgotten holds nothing, rather than silently holding full delete
+rights over real financial data. Creating an account is two steps now, and the second grants the
+power. Nobody can change their own role — `profiles` grants `SELECT` and has no write policy.
+
+The app reflects it rather than enforcing it: `viewerActions()` in `logic.js` turns every mutation
+into a no-op with an explanation, blocking **by default** so an unclassified new action costs a
+viewer a button rather than costing the ledger a row, and a quiet persistent banner says why.
+Verified by demoting a real account and asserting both directions — every write refused with
+`42501`, every read fine, then promoted back and every write allowed again.
+
+### A refusal that looked like success
+
+`merge_app_config` returned `0` and no error to a viewer. The policy blocked it, but `row_count = 0`
+means both "not allowed" and "no config row yet", and the caller treats the second as a reason to
+INSERT. Fixed by raising `42501` explicitly.
+
+Worth naming plainly: **the probe caught this only because it asserted the refusal.** A check
+written as "no error came back" would have passed while the feature was broken. Third time this
+exact shape has cost something here.
+
+### I deleted a real transaction, and the audit trail got it back
+
+The role probe's admin pass ran a delete on a real row before the guard that was supposed to skip
+it — my bug, in a throwaway script, against production.
+
+The row was recovered in full from `audit_log`, `created_at` included, because the audit trail built
+that morning stores the complete `before` image:
+
+```sql
+insert into public.txns
+select * from jsonb_populate_record(null::public.txns,
+  (select before from public.audit_log where id = 330));
+```
+
+`txns` is back to 21 rows and ₱226,000.00, with the fingerprint `f95cd619e877916891cb0f6853f9e041`
+identical to the value recorded before the incident.
+
+Two things follow. The audit trail is worth more than attribution — it is a per-row undo for exactly
+the accident nobody plans for, and that should be said out loud in the notes. And a throwaway probe
+that writes to production needs the same care as shipped code; "it's just a test script" is how a
+real row gets deleted.
+
+### Results
+
+`npm test` 43/43, `npm run build` green, `npm audit` 0, `npm run e2e` 27/27, `npm run security`
+47/47, `npm run smoke` passing. Twelve migrations, the two newest MD5-verified.
+
 ## Guideline Basis
 
 - **PG-04** requires a continuation record with exact scope, checks, limitations, and unresolved evidence.

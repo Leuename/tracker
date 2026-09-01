@@ -3,8 +3,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { CSYM, initialState, MAX_OCC, TODAY } from './data.js'
 import {
-  addDays, alphabetical, buildGeneratedRows, curFmt, dstr, eff, inPesos, monthKeys, occurrences, openingView, parsePeriod, periodLabel, ruleLabel, transferTotals, visibleRows, windowDays,
-} from './logic.js'
+  addDays, alphabetical, buildGeneratedRows, curFmt, dstr, eff, inPesos, monthKeys, occurrences, openingView, parsePeriod, periodLabel, ruleLabel, transferTotals, visibleRows, windowDays, viewerActions, VIEWER_MAY} from './logic.js'
 
 const rent = { co: 'GTOI', cat: 'Rental Expense', freq: 'Monthly', desc: 'Warehouse B monthly rent', dueDate: '2026-08-24', amount: 45000 }
 
@@ -210,4 +209,41 @@ test('a wire prints in its own currency, not in pesos', () => {
   assert.equal(curFmt('USD', 38200, CSYM), '$38,200')
   assert.equal(curFmt('PHP', 820000, CSYM), '₱820,000')
   assert.equal(curFmt('AUD', 14900.4, CSYM), 'A$14,900')
+})
+
+test('a viewer keeps navigation and loses every mutation', () => {
+  const called = []
+  const actions = {
+    state: { readOnly: true },
+    go: () => called.push('go'),
+    clearFilters: () => called.push('clearFilters'),
+    openRow: () => called.push('openRow'),
+    commit: () => called.push('commit'),
+    deleteEdit: () => called.push('deleteEdit'),
+    confirmRemoveReceipt: () => called.push('confirmRemoveReceipt'),
+    addCompany: () => called.push('addCompany'),
+  }
+  const messages = []
+  const guarded = viewerActions(actions, (m) => messages.push(m))
+
+  // Looking around still works, or the account is useless rather than read-only.
+  guarded.go(); guarded.clearFilters(); guarded.openRow()
+  assert.deepEqual(called, ['go', 'clearFilters', 'openRow'])
+
+  // Everything that writes is refused, and says so once per attempt.
+  guarded.commit(); guarded.deleteEdit(); guarded.confirmRemoveReceipt(); guarded.addCompany()
+  assert.deepEqual(called, ['go', 'clearFilters', 'openRow'], 'no mutation may run')
+  assert.equal(messages.length, 4)
+  assert.match(messages[0], /not change it/)
+
+  // Non-functions pass straight through; `state` is one.
+  assert.deepEqual(guarded.state, { readOnly: true })
+})
+
+test('an action nobody listed is blocked, not allowed', () => {
+  // The default matters more than the list: forgetting to classify a new action
+  // must cost a viewer a button, never cost the ledger a row.
+  const guarded = viewerActions({ someBrandNewWrite: () => 'wrote' }, () => {})
+  assert.notEqual(guarded.someBrandNewWrite(), 'wrote')
+  assert.ok(!VIEWER_MAY.has('someBrandNewWrite'))
 })

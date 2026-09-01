@@ -56,12 +56,17 @@ async function start() {
 
 /** Read the shared dataset, seeding it on the workspace's first run. */
 async function read() {
-  const [txns, receipts, recurring, transfers, config] = await Promise.all([
+  const [txns, receipts, recurring, transfers, config, viewer] = await Promise.all([
     supabase.from('txns').select('*').order('id', { ascending: false }).then(ok),
     supabase.from('receipts').select('*').order('id').then(ok),
     supabase.from('recurring').select('*').order('id').then(ok),
     supabase.from('transfers').select('*').order('id').then(ok),
     supabase.from('app_config').select('data').maybeSingle().then(ok),
+    // The same question every policy asks. Read from the database rather than
+    // inferred here, so the screen and the row-level security agree about who
+    // this is — and note the app only *reflects* this. The enforcement is the
+    // policy; a client that lied to itself would still be refused.
+    supabase.rpc('is_viewer').then(ok),
   ])
 
   // No config row is the one reliable marker of a never-used workspace:
@@ -70,6 +75,7 @@ async function read() {
 
   const cfg = config.data || {}
   return {
+    readOnly: viewer === true,
     txns: txns.map(fromTxn),
     receipts: receipts.map(fromReceipt),
     recurring: recurring.map(fromRecurring),

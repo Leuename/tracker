@@ -358,6 +358,56 @@ both changes present afterwards, and the whole-document save it replaces shown t
 one. Covered by unit tests on `configPatch` and by the existing e2e config spec.
 
 
+## D29 — The Read-Only Role, Built
+
+D20 planned a consumer-only account and costed it. Built 2026-09-01 as
+`20260901170544_viewer_role`.
+
+**Roles cannot come from a grant.** Every account is the same `authenticated` role to Postgres, so
+the distinction lives in the policy predicates. `public.profiles` maps a user to `admin` or
+`viewer`; `public.is_viewer()` — `security definer`, `stable`, pinned `search_path` — answers for
+the caller, and every write policy on the five ledger tables and on the receipts bucket now reads
+`not public.is_viewer()`. Reads stay open to any signed-in account, which is what D8 always was.
+
+**An account with no profile row is a viewer.** That is the deliberate direction to fail: an account
+created in the dashboard and forgotten holds no power at all, rather than silently holding full
+delete rights over real financial data. **Creating an account is two steps now**, and the second one
+is the one that grants anything:
+
+```sql
+insert into public.profiles (user_id, role)
+select id, 'admin' from auth.users where email = 'someone@example.com';
+```
+
+**Nobody can change their own role.** `profiles` grants `authenticated` nothing but `SELECT`, and
+has no write policy, so the roster is editable only from the dashboard or as `postgres`. A role a
+client can rewrite is not a role.
+
+The app reflects this; it does not enforce it. `is_viewer()` is read at load, `viewerActions()` in
+`apps/web/src/logic.js` turns every mutation into a no-op with an explanation, and a quiet
+persistent banner says why. The wrapper blocks **by default** — an action not on the `VIEWER_MAY`
+list is refused — so forgetting to classify a new action costs a viewer a button rather than
+costing the ledger a row. A client that skipped all of it would still be refused by the policies.
+
+Verified by demoting a real account and asserting both directions: every insert, the delete of an
+existing row, the config merge, a document upload and a self-promotion all refused with `42501`,
+reads all still working, then promoted back and every one of them allowed again.
+
+## D30 — A Refusal Must Look Different From a No-Op
+
+`merge_app_config` returned `0` and no error when a viewer called it. The policy did block the
+update — nothing was written — but `row_count = 0` meant both "you are not allowed" and "there is no
+config row yet", and the caller treats the second as a reason to fall through to an INSERT. A
+refused save became a confusing second failure instead of a clear first one.
+
+Fixed in `20260901170754_harden_merge_app_config` by raising `42501` explicitly. The policy is still
+the enforcement; the function only makes the refusal legible.
+
+**Found because the role probe asserted the refusal rather than assuming it.** A check written as
+"no error came back" would have passed. That is the same lesson as the transfers primary-key check
+on 2026-09-01, and it keeps costing the same way: assert the *outcome*, then read the state back.
+
+
 ## Guideline Basis
 
 - **AGENT-03** ensures adapter workflows stop rather than invent authorization.

@@ -207,9 +207,9 @@ No `E2E-`, `smoke`, or `SEC ` residue of any kind.
 
 | Command | Result |
 |---|---|
-| `npm test` | **39/39** — was 33; `alphabetical` and transfer-total cases added |
+| `npm test` | **43/43** — was 33; `alphabetical` and transfer-total cases added |
 | `npm run e2e` | **27/27** — was 24; receipt delete, receipt edit, transfer lifecycle added |
-| `npm run security` | **41/41** — Phase 21 added five audit-log checks; phase 23 closed sign-up and deleted its `DEFERRED` entry. First fully clean run |
+| `npm run security` | **47/47** — Phase 21 added five audit-log checks; phase 23 closed sign-up and deleted its `DEFERRED` entry. First fully clean run |
 | `npm run smoke` | Passing, and now covers all four entity tables |
 | `npm run backup` | Six tables, `audit_log` included (Phase 21) |
 | `npm run build`, `npm audit` | Green, clean |
@@ -226,7 +226,7 @@ No `E2E-`, `smoke`, or `SEC ` residue of any kind.
 | 3 | Company codes and categories | **Closed.** Confirmed real, sorted a–z (D15) |
 | 4 | `ackRequirePhoto` | **Closed.** Stays off (D17); verified still off |
 | 5 | Receipt deletion | **Closed.** Built, plus editing (D16) |
-| 6 | Roles | **Closed as a decision** (D20). A consumer-only fifth account is planned and costed |
+| 6 | Roles | **Closed and built** (D29). `profiles` + `is_viewer()`, every write policy behind it, the app reflecting it. An account with no profile row is a viewer |
 | 7 | Construction tracker | **Parked** until explicitly requested (D18) |
 
 ## Held back, and what each would take
@@ -239,7 +239,7 @@ No `E2E-`, `smoke`, or `SEC ` residue of any kind.
 | ~~**Last write wins**~~ | **Closed.** `merge_app_config` folds patches server-side and the client sends diffs ([Decisions](../docs/Decisions.md) D28). Two people editing the *same* key still resolve last-write-wins, deliberately | — |
 | **`apps/api/`** | Empty directory declaring an intent. Deleting it is also a documentation change | A |
 | **Per-wire FX rate** | D22. The correct fix for cross-currency totals | — |
-| **Read-only role** | D20. Needs a `profiles` table or JWT claim and every policy rewritten | — |
+| ~~**Read-only role**~~ | **Built.** `profiles`, `is_viewer()`, every write policy rewritten, the app reflecting it ([Decisions](../docs/Decisions.md) D29) | — |
 
 Grades are from an external consultation (`codex exec`, `gpt-5.6-sol`, low effort) on 2026-09-01,
 re-graded against this repository. Two of its six answers were usable as written; three would have
@@ -321,6 +321,16 @@ Traps 1 to 18 are in the two earlier packages and all still apply. These are new
     `audit_log` and only column-list grants elsewhere, so a client-credentialed restore silently
     drops `created_at` and the whole audit history. Restore as `postgres`.
 
+38. **Creating an account is two steps now.** An account with no `public.profiles` row is a
+    **viewer** and can change nothing — deliberately, so a forgotten account holds no power. Add
+    the row, or the new administrator will report that nothing saves.
+39. **A single `for all using (true)` policy on a new table hands viewers full write access.** Since
+    D29 a table needs a `for select` policy plus separate write policies predicated on
+    `not public.is_viewer()`. The old shape is still all over the earlier migrations; do not copy it.
+40. **Assert the refusal, not the absence of an error.** `merge_app_config` returned 0 and no error
+    when a viewer called it, because a blocked policy and a missing row both give `row_count = 0`.
+    A probe checking "no error came back" passed while the feature was broken. Read the state back.
+
 ## How to verify state in a fresh session
 
 ```bash
@@ -329,7 +339,7 @@ npm test          # 39 offline assertions
 npm run build     # green
 npm audit         # 0
 npm run e2e       # 27 specs — WRITES to the production ledger
-npm run security  # 41 checks, expect 41/41 — DEFERRED is empty
+npm run security  # 47 checks, expect 47/47 — DEFERRED is empty
 npm run smoke     # live end-to-end — WRITES to the production ledger
 ```
 

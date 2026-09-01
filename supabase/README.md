@@ -12,7 +12,7 @@ up: "[AI Agent Context](../docs/AI%20Agent%20Context.md)"
 
 # Supabase schema
 
-The ten migrations that built the hosted project, in the order they were applied.
+The twelve migrations that built the hosted project, in the order they were applied.
 
 Until 2026-09-01 these existed **only** inside the Supabase project. The repository had no
 schema source of truth, so losing the project lost the shape of the data as well as the
@@ -30,6 +30,8 @@ data. They are versioned here now.
 | `20260901150411_audit_log` | `audit_log`, the `security definer` `log_change()`, and one trigger per table ([D24](../docs/Decisions.md)) |
 | `20260901150458_lock_audit_log_truncate` | Revokes the TRUNCATE and TRIGGER grants `revoke insert, update, delete` had left ([D25](../docs/Decisions.md)) |
 | `20260901165841_merge_app_config` | `merge_app_config(patch)`, so two people editing different settings stop clobbering each other ([D28](../docs/Decisions.md)) |
+| `20260901170544_viewer_role` | `profiles`, `is_viewer()`, and every write policy rewritten behind it ([D29](../docs/Decisions.md)) |
+| `20260901170754_harden_merge_app_config` | Makes a refused config merge raise `42501` instead of returning 0 ([D30](../docs/Decisions.md)) |
 
 ## How these were produced
 
@@ -68,8 +70,10 @@ its MD5. A schema change that never lands here puts the repository back where it
 naming it in advance — otherwise the folder and the database disagree about what a version is.
 
 **A new table needs five things it does not inherit**: `revoke all` then grant back only what
-is intended (D23, D25), its own RLS policy, an entry in `TABLES` in
-`apps/web/scripts/backup.mjs`, its own checks in `apps/web/security/probe.mjs`, and its own
+is intended (D23, D25); its own RLS policies — and since D29 that means a `for select` policy
+plus separate write policies predicated on `not public.is_viewer()`, because a single
+`for all using (true)` would hand a viewer full write access; an entry in `TABLES` in
+`apps/web/scripts/backup.mjs`; its own checks in `apps/web/security/probe.mjs`; and its own
 `log_change()` trigger (D24).
 
 ## Guideline Basis

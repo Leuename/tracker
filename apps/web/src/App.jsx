@@ -89,6 +89,11 @@ export default function App() {
       {state.telOpen ? <AddTransfer /> : null}
       {state.telEditOpen ? <EditTransfer /> : null}
       {state.delTelId ? <DeleteTransfer /> : null}
+      {state.readOnly ? (
+        <div className="viewing-only" role="status">
+          Viewing only — this account can read the ledger but not change it.
+        </div>
+      ) : null}
       {state.toast ? <div className="toast" role="status">{state.toast}</div> : null}
     </div>
   )

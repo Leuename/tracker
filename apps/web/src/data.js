@@ -124,6 +124,9 @@ export const blankForm = () => ({
 
 export const initialState = {
   screen: 'dashboard',
+  // Assume no write access until the roster says otherwise. If the role lookup
+  // fails, a viewer keeps read-only rather than briefly gaining every button.
+  readOnly: true,
   scope: 'All companies',
   txns,
   receipts,

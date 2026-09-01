@@ -1,7 +1,7 @@
 import { useStore } from './store.jsx'
 import { CUR, TODAY, blankForm } from './data.js'
 import { db } from './db.js'
-import { alphabetical, amountOf, buildGeneratedRows, isMonthKey, longDate, monthLabel, parsePeriod, periodLabel } from './logic.js'
+import { alphabetical, amountOf, buildGeneratedRows, isMonthKey, longDate, monthLabel, parsePeriod, periodLabel, viewerActions } from './logic.js'
 
 // The masterlist and the transfer sheet both edit in place, so their text
 // fields fire on every keystroke. One pending write per row, coalesced,
@@ -566,7 +566,7 @@ export function useActions() {
 
   const field = (k) => (e) => set({ [k]: e.target.value })
 
-  return {
+  const actions = {
     state, set, flash, go, goSettings, setS, tileFilter, field,
     openAdd, closeAdd, setF, pickFormStatus, commit,
     openRow, setE, setEditStatus, saveEdit, deleteEdit,
@@ -585,4 +585,6 @@ export function useActions() {
     addCompany, addCategory, removeCompany, removeCategory,
     toggleStatus, toggleGroup, clearFilters,
   }
+
+  return state.readOnly ? viewerActions(actions, flash) : actions
 }

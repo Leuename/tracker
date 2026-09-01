@@ -278,3 +278,37 @@ export const transferTotals = (transfers = []) => {
   const sum = (rows) => rows.reduce((a, w) => a + inPesos(w), 0)
   return { pending: sum(pending), pendingCount: pending.length, released: sum(released) }
 }
+
+/**
+ * Everything a viewer must not do, refused in one place.
+ *
+ * Every mutation in this app updates the reducer first and saves afterwards, so
+ * blocking only the save would leave a viewer looking at a change that never
+ * reached the database — worse than an error. Wrapping the action stops both
+ * halves together.
+ *
+ * The list below is what a viewer may still use: navigation, filters, opening a
+ * row to look at it, opening a stored document. Anything not named here becomes
+ * a no-op with an explanation. New actions are therefore blocked by default,
+ * which is the right way round — forgetting to add one costs a viewer a button,
+ * not the ledger a row.
+ *
+ * This is the app agreeing with the database, not enforcing anything. The
+ * policies in `20260901170544_viewer_role` are the enforcement; a client that
+ * skipped this would still be refused.
+ */
+export const VIEWER_MAY = new Set([
+  'state', 'set', 'flash', 'go', 'goSettings', 'tileFilter', 'field',
+  'openRow', 'openPeriod', 'openReceiptRow', 'openTransferRow',
+  'openReceiptFile', 'generatedFor',
+  'toggleStatus', 'toggleGroup', 'clearFilters',
+  'closeAdd', 'closeTransfer', 'closeReceipt',
+  'cancelPay', 'cancelRemoveReceipt', 'cancelRemoveTransfer',
+])
+
+export function viewerActions(actions, flash) {
+  return Object.fromEntries(Object.entries(actions).map(([name, value]) => {
+    if (VIEWER_MAY.has(name) || typeof value !== 'function') return [name, value]
+    return [name, () => flash('This account can view the ledger but not change it.')]
+  }))
+}

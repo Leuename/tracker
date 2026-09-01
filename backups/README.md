@@ -53,6 +53,23 @@ compares again — the two hops a backup and a restore actually make. Added 2026
 bucket had been empty at every backup taken until then, which meant `files: 0 stored` had never said
 anything about whether a document would survive one.
 
+## The audit log is also a per-row undo
+
+Worth knowing before reaching for this folder. `audit_log` stores the complete `before` image of
+every update and delete, so a single row destroyed by accident comes back without a restore:
+
+```sql
+insert into public.txns
+select * from jsonb_populate_record(null::public.txns,
+  (select before from public.audit_log
+    where tbl = 'txns' and op = 'DELETE' and row_id = <id>
+    order by at desc limit 1));
+```
+
+Used in anger on 2026-09-01, when a probe script deleted a real transaction: the row came back with
+`created_at` intact and the table's fingerprint matched its pre-incident value exactly. This folder
+is for losing the project; the audit log is for losing a row.
+
 ## How to restore
 
 Run this as `postgres`, through the SQL editor, MCP or `psql`. **Not through the application's

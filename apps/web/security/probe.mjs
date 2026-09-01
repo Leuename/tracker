@@ -49,7 +49,7 @@ const rest = (path, init = {}) =>
   fetch(URL_ + '/rest/v1/' + path, { ...init, headers: { apikey: KEY, ...(init.headers || {}) } })
 
 console.log('\n== 1. Anonymous access ==')
-for (const table of ['txns', 'receipts', 'recurring', 'transfers', 'app_config', 'audit_log']) {
+for (const table of ['txns', 'receipts', 'recurring', 'transfers', 'app_config', 'audit_log', 'profiles']) {
   const r = await rest(table + '?select=*')
   const body = await r.text()
   check(`anon cannot read ${table}`, r.status === 401 || r.status === 403,
@@ -232,6 +232,38 @@ const c = await (async () => signedIn)()
   }
   // The probe's own rows stay in the log on purpose: nothing may remove them,
   // which is the property being asserted.
+}
+
+{
+  // Roles. The probe signs in as an administrator, so what it can prove here is
+  // that the boundary exists and that nobody can move themselves across it —
+  // the viewer side is exercised separately, by demoting an account.
+  const { data: me } = await c.auth.getUser()
+  const { data: mine } = await c.from('profiles').select('role').eq('user_id', me.user.id).maybeSingle()
+  check('the signed-in account has a role on record', !!mine, mine ? mine.role : 'NO PROFILE ROW')
+
+  // The whole model rests on this: a role a client can rewrite is not a role.
+  const { error: selfErr } = await c.from('profiles').update({ role: 'admin' }).eq('user_id', me.user.id)
+  const { data: after } = await c.from('profiles').select('role').eq('user_id', me.user.id).maybeSingle()
+  check('no account can change its own role', !!selfErr && !!after && after.role === (mine && mine.role),
+    selfErr ? 'rejected: ' + selfErr.code : 'UPDATE SUCCEEDED')
+
+  const { error: insErr } = await c.from('profiles')
+    .insert({ user_id: '00000000-0000-0000-0000-000000000000', role: 'admin' })
+  check('a client cannot add itself to the roster', !!insErr,
+    insErr ? 'rejected: ' + insErr.code : 'INSERT SUCCEEDED')
+
+  const { error: delErr } = await c.from('profiles').delete().eq('user_id', me.user.id)
+  const { data: still } = await c.from('profiles').select('role').eq('user_id', me.user.id).maybeSingle()
+  check('a client cannot remove a role', !!delErr && !!still,
+    delErr ? 'rejected: ' + delErr.code : 'DELETE SUCCEEDED')
+
+  // An account with no profile row is a viewer, not an administrator. Asserted
+  // on the function rather than on a real account, since making one would mean
+  // creating a user; is_viewer() is what every policy actually consults.
+  const { data: viewerNow, error: fnErr } = await c.rpc('is_viewer')
+  check('is_viewer() answers for the caller', !fnErr && viewerNow === false,
+    fnErr ? fnErr.code : 'is_viewer=' + viewerNow)
 }
 
 console.log('\n== 6. Receipt file storage ==')
