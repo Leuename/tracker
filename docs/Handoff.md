@@ -786,8 +786,18 @@ probe can no longer mint a `sec-probe-*` account, so it stops leaving accounts b
 Everything from phases 21 to 23 in one release commit: the audit trail, the CI workflows, the
 credential gate, `git.deploymentEnabled`, the deferral mechanism and the documentation.
 
-**This push is the first time any of it has run.** It is simultaneously the release, the moment
-Vercel stops deploying `main` on its own, and the only test the pipeline has ever had.
+**The gate ran green on its first push.** Run `33530246170`: `check` then `deploy`, 1m11s, both
+jobs passing, production returning 200 on the new build.
+
+The interesting part is what did not happen. Vercel's git integration produced **no** deployment
+for `b5b238f` — exactly one production deployment exists for that commit and the CLI in the
+workflow made it. `git.deploymentEnabled` applied to the very push that introduced it, which had
+been an open question written down as a trap; Vercel reads the setting from the commit it is about
+to deploy, so it took effect immediately rather than one push later. Trap 32 is corrected to say so.
+
+The run carries one annotation, harmless: `actions/checkout@v4` and `actions/setup-node@v4` still
+target Node 20 and the runner forces them onto Node 24. That is a deprecation on those actions, not
+on this repository's Node version, and needs nothing until they publish a v5.
 
 ### Results before pushing
 

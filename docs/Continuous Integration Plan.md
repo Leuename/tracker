@@ -17,11 +17,19 @@ up: "[AI Agent Context](AI%20Agent%20Context.md)"
 Vercel's automatic deployments for `main` are switched off in `vercel.json`, and all eleven
 repository secrets are set — including `VERCEL_TOKEN`, created in the browser as `tracker-ci`.
 
-**Nothing here has run yet.** None of it is committed, so no workflow has ever executed and the
-deploy step has never been exercised. The first push to `main` is the test, and it is also the
-moment Vercel stops deploying on its own. Expect to debug that push rather than to trust it —
-every CI defect on this project so far lived in the gap between "passes locally" and "runs
-elsewhere".
+**It ran, and it worked, first time.** `v0.5.0` was pushed on 2026-09-01 at 16:10 UTC. Run
+`33530246170`: `check` green, `deploy` green, 1m11s end to end. Production returned 200 on the new
+build.
+
+The part worth recording is what did **not** happen. Vercel's git integration produced **no**
+deployment for that commit — exactly one production deployment exists for `b5b238f`, created by the
+CLI in the workflow. `git.deploymentEnabled` was honoured on the very push that introduced it,
+which had been an open question: the setting is read from the commit being deployed, so it took
+effect immediately rather than one push later.
+
+One annotation, harmless: `actions/checkout@v4` and `actions/setup-node@v4` still target Node 20
+and are forced onto Node 24 by the runner. It is a deprecation notice on the actions themselves,
+not on this repository's Node version, and needs no change until those actions publish a v5.
 
 1. ~~Turn off automatic deployments for `main`.~~ **Done, in the repository rather than the
    dashboard**: `apps/web/vercel.json` carries `"git": { "deploymentEnabled": { "main": false } }`

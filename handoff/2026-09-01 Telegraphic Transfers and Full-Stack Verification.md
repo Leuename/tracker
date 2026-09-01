@@ -234,7 +234,7 @@ No `E2E-`, `smoke`, or `SEC ` residue of any kind.
 | | Why still out | Grade |
 |---|---|---|
 | ~~**Audit trail**~~ | **Built in Phase 21.** Live in the database: `audit_log`, `log_change()`, five triggers. [Decisions](../docs/Decisions.md) D24, D25 | — |
-| **CI** | **Written in Phase 21**, fully wired in Phase 22. `main` is off Vercel's git hook in `vercel.json` (D27) and all eleven secrets are set, `VERCEL_TOKEN` included. **It has never run** — nothing is committed, so the deploy step is unexercised and the first push to `main` is the test | C+ |
+| ~~**CI**~~ | **Closed.** Built in Phase 21, wired in 22, proven in 23: `v0.5.0` went out through `ci.yml` run `33530246170`, both jobs green, and Vercel's git integration produced no competing deployment | — |
 | **Scheduler** (`autoGen`, `ackAutoNotify`) | `pg_cron` 1.6.4 is available but not installed; notification delivery has no channel | C |
 | **Last write wins** | The real hotspot is `app_config` — one jsonb row rewritten whole, so two people editing *different* settings already collide | C |
 | **`apps/api/`** | Empty directory declaring an intent. Deleting it is also a documentation change | A |
@@ -294,8 +294,9 @@ Traps 1 to 18 are in the two earlier packages and all still apply. These are new
     exits 0 for anything listed in `DEFERRED` (D26). The list is empty today, so 41/41 means what
     it says — but read the `n deferred` line, not just the exit code, and never add an entry
     without a decision to point at.
-32. **`vercel.json`'s `git.deploymentEnabled` only takes effect once pushed.** The commit that
-    introduces it is deployed by Vercel the old way. Expected, not a failure.
+32. **`vercel.json`'s `git.deploymentEnabled` takes effect on the commit that introduces it.**
+    Expected it to apply one push late; it did not. Vercel reads the setting from the commit it is
+    about to deploy, so `v0.5.0` produced exactly one production deployment — the CLI's, from CI.
 
 33. **A GitHub secret's NAME is public; only its value is secret.** On 2026-09-01 a Vercel token
     was pasted into the name position — `gh secret set <token> --repo …` instead of
@@ -406,17 +407,15 @@ Hold these while you work:
 - Read the full Traps sections of all three handoffs before touching migrations, Vercel or
   the test suites. cleanupOrphanFiles() deletes any stored file no receipt row points at.
 
-Next work: commit and push phases 21 and 22, and watch that push closely. Everything is
-in place — the audit trail is live in the database, .github/workflows/ci.yml and
-verify.yml are written, main is off Vercel's git hook in apps/web/vercel.json, and all
-eleven repository secrets are set including VERCEL_TOKEN. But none of it has ever run: no
-workflow has executed and the deploy step is unexercised, so the first push is
-simultaneously the release, the moment Vercel stops deploying on its own, and the only
-test the pipeline has had. Every CI defect on this project so far lived in the gap
-between "passes locally" and "runs elsewhere", so expect to debug it. If the deploy job
-fails, main reaches production by no route at all until it is fixed — safe, but down.
-Bump apps/web/package.json from 0.4.1 and cut an annotated tag per D19 as part of that
-commit.
+Everything held back is now built and released as v0.5.0: the audit trail is live in
+the database, CI gates production through .github/workflows/ci.yml, and self-serve
+sign-up is closed. The gate has run green once. Two things have still never been
+exercised, and both are worth doing before trusting them: verify.yml has never run at
+all, so trigger it manually (gh workflow run verify.yml --repo Leuename/tracker) and
+watch it, remembering it WRITES to the production ledger; and no backup has ever been
+restored, so the restore path remains a claim rather than a fact. After that the open
+items are the read-only role (D20), the scheduler, last-write-wins on app_config, and
+rotating both the shared five-character password and the tracker-ci Vercel token.
 
 Report what you verified and what drifted, confirm the state back to me in a few lines,
 and wait for direction before starting.
