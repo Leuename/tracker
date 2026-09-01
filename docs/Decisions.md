@@ -408,6 +408,37 @@ the enforcement; the function only makes the refusal legible.
 on 2026-09-01, and it keeps costing the same way: assert the *outcome*, then read the state back.
 
 
+## D31 — The Scheduler Runs in Actions, and Reminders Have One Channel
+
+`autoGen` and `ackAutoNotify` were removed from the app on 2026-09-01 because nothing performed the
+work they described. Something does now: `.github/workflows/schedule.yml` runs
+`apps/web/scripts/schedule.mjs` daily at 22:00 UTC.
+
+**In a workflow, not in `pg_cron`.** `pg_cron` 1.6.4 is available on the project and was the obvious
+answer, but the recurrence rules already exist in `src/logic.js` as `buildGeneratedRows` — the same
+function the Tracker's Generate button calls, with tests. Scheduling in Postgres would mean a second
+implementation of "which payables are due this month", and the second one would drift silently. One
+copy of that rule is worth more than one fewer moving part.
+
+**Daily, not monthly.** `buildGeneratedRows` skips any payable whose company, category, period and
+description already exist, so a repeat run adds nothing. Daily is therefore free, and it catches a
+recurring rule added mid-month that a monthly run would leave until the next.
+
+**Reminders report to the job summary, and that is the whole channel.** There is no email or SMS
+provider on this project. Choosing one is a decision — which provider, which addresses, who is
+accountable when it silently stops — and not something to invent inside an implementation. What is
+built is the half that does not depend on that choice: knowing what is overdue and what is awaiting
+liquidation, computed with `eff()`, the same rule the Tracker colours a row by, so the report cannot
+disagree with the screen.
+
+The job writes to the ledger, so it signs in as an administrator. A viewer would be refused and the
+run would go red — the correct outcome, if a confusing way to discover a demotion.
+
+**Turning it off is disabling the workflow.** No `autoGen` setting was reintroduced: a toggle in the
+app that only a workflow reads is a second source of truth for one boolean, and the Actions tab
+already shows whether it is on.
+
+
 ## Guideline Basis
 
 - **AGENT-03** ensures adapter workflows stop rather than invent authorization.

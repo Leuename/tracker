@@ -1050,6 +1050,40 @@ real row gets deleted.
 `npm test` 43/43, `npm run build` green, `npm audit` 0, `npm run e2e` 27/27, `npm run security`
 47/47, `npm run smoke` passing. Twelve migrations, the two newest MD5-verified.
 
+## 2026-09-01 — The scheduler, and the last of the list
+
+`autoGen` and `ackAutoNotify` were stripped out of the app earlier because nothing performed the
+work they described. Something does now: `.github/workflows/schedule.yml`, daily at 22:00 UTC.
+
+**Not `pg_cron`, though it is available.** The recurrence rules already exist in `src/logic.js` as
+`buildGeneratedRows`, with tests, and it is what the Tracker's Generate button calls. Scheduling in
+Postgres would have meant a second implementation of "which payables are due this month", and the
+second one drifts silently. One copy of that rule is worth more than one fewer moving part.
+
+**Daily rather than monthly**, because `buildGeneratedRows` skips any payable whose company,
+category, period and description already exist. Proven rather than assumed — a second run
+immediately after the first:
+
+```
+- Added 1 payable(s) for Sep 2026:
+  - GTOI · Other · SCHED-probe monthly rule · due 2026-09-20
+- Every recurring payable already exists for Sep 2026 (1 already there).
+```
+
+Exercised against the live project with a tagged rule and a deliberately overdue row, since the
+ledger has neither: generation, the overdue report, and idempotency all confirmed, then every probe
+row deleted by explicit id and the `txns` fingerprint checked back to
+`f95cd619e877916891cb0f6853f9e041`.
+
+**Reminders have exactly one channel, and it is honest about that.** There is no email or SMS
+provider here. Choosing one is a decision — which provider, which addresses, who notices when it
+silently stops — not something to invent inside an implementation. So the job reports to the run's
+job summary, and computes what is overdue with `eff()`, the same rule the Tracker colours a row by,
+so the report cannot disagree with the screen. [Decisions](Decisions.md) D31.
+
+No `autoGen` setting was reintroduced. A toggle in the app that only a workflow reads is a second
+source of truth for one boolean; the Actions tab already shows whether it is on.
+
 ## Guideline Basis
 
 - **PG-04** requires a continuation record with exact scope, checks, limitations, and unresolved evidence.

@@ -12,7 +12,8 @@
     "smoke": "node --env-file-if-exists=.env.local src/smoke.mjs",
     "e2e": "playwright test",
     "security": "node --env-file-if-exists=.env.local security/probe.mjs",
-    "backup": "node --env-file-if-exists=.env.local scripts/backup.mjs"
+    "backup": "node --env-file-if-exists=.env.local scripts/backup.mjs",
+    "schedule": "node --env-file-if-exists=.env.local scripts/schedule.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.4",

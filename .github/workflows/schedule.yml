@@ -1,0 +1,62 @@
+# The scheduled work the app describes: generate this month's recurring
+# payables, and report what somebody should look at.
+#
+# It runs daily rather than monthly on purpose. `buildGeneratedRows` skips any
+# payable whose company, category, period and description already exist, so a
+# repeat run adds nothing — and a daily run catches a recurring rule added
+# mid-month, which a monthly one would leave until the next.
+#
+# It writes to the ledger, so it uses an administrator account: a viewer would
+# be refused by the row-level security policies and the run would go red, which
+# is the correct outcome but a confusing way to discover a demotion.
+#
+# Reminders land in the run's job summary. That is the only delivery channel
+# this project has — no email or SMS provider is configured, and choosing one is
+# the owner's decision, not something to invent here. See Decisions D31.
+name: Schedule
+
+on:
+  schedule:
+    # 22:00 UTC = 06:00 in Manila, so a generated month is waiting at the start
+    # of the working day rather than appearing during it.
+    - cron: '0 22 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Report what would be generated, write nothing'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: schedule
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # 22 or newer: supabase-js reaches for a native WebSocket at
+          # createClient and Node 20 has none.
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - run: npm ci
+        working-directory: apps/web
+
+      - name: Generate and report
+        run: npm run schedule ${{ inputs.dry_run && '-- --dry-run' || '' }}
+        working-directory: apps/web
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          # The same account the backup uses. It must be an administrator.
+          SCHEDULE_EMAIL: ${{ secrets.BACKUP_EMAIL }}
+          SCHEDULE_PASSWORD: ${{ secrets.BACKUP_PASSWORD }}

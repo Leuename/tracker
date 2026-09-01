@@ -235,7 +235,7 @@ No `E2E-`, `smoke`, or `SEC ` residue of any kind.
 |---|---|---|
 | ~~**Audit trail**~~ | **Built in Phase 21.** Live in the database: `audit_log`, `log_change()`, five triggers. [Decisions](../docs/Decisions.md) D24, D25 | — |
 | ~~**CI**~~ | **Closed.** Built in Phase 21, wired in 22, proven in 23: `v0.5.0` went out through `ci.yml` run `33530246170`, both jobs green, no competing deployment from Vercel. `verify.yml` proven too — run `33530924458`, 27 e2e, 41 checks, smoke, no residue | — |
-| **Scheduler** (`autoGen`, `ackAutoNotify`) | `pg_cron` 1.6.4 is available but not installed; notification delivery has no channel | C |
+| ~~**Scheduler**~~ | **Built** as `.github/workflows/schedule.yml`, daily, reusing `buildGeneratedRows` rather than reimplementing it in `pg_cron` ([Decisions](../docs/Decisions.md) D31). Reminders go to the job summary; a real notification channel is still an owner decision | — |
 | ~~**Last write wins**~~ | **Closed.** `merge_app_config` folds patches server-side and the client sends diffs ([Decisions](../docs/Decisions.md) D28). Two people editing the *same* key still resolve last-write-wins, deliberately | — |
 | **`apps/api/`** | Empty directory declaring an intent. Deleting it is also a documentation change | A |
 | **Per-wire FX rate** | D22. The correct fix for cross-currency totals | — |
@@ -330,6 +330,14 @@ Traps 1 to 18 are in the two earlier packages and all still apply. These are new
 40. **Assert the refusal, not the absence of an error.** `merge_app_config` returned 0 and no error
     when a viewer called it, because a blocked policy and a missing row both give `row_count = 0`.
     A probe checking "no error came back" passed while the feature was broken. Read the state back.
+
+41. **The scheduler writes to the ledger as an administrator.** `schedule.yml` reuses
+    `BACKUP_EMAIL`/`BACKUP_PASSWORD`; demote that account to `viewer` and the daily run goes red
+    with `42501` rather than quietly generating nothing.
+42. **Do not reimplement recurrence in SQL.** `buildGeneratedRows` in `apps/web/src/logic.js` is the
+    single definition of which payables are due, shared by the Generate button and the scheduled
+    job. `pg_cron` is available and was deliberately not used, because it would mean a second copy
+    that drifts (D31).
 
 ## How to verify state in a fresh session
 
@@ -436,10 +444,16 @@ workflows have run green with 27 e2e specs and 41 security checks really executi
 rather than skipping, and the restore was performed end to end — the nine migrations
 rebuild production's schema fact-for-fact (fingerprint a18b5dd2 over 178 catalogue
 facts) and the ledger comes back byte-for-byte (f95cd619, 21 rows, PHP 226,000.00).
-Remaining open items: restoring files/ has never been tested because no stored
-documents exist yet, the read-only role (D20), the scheduler, last-write-wins on
-app_config, and rotating both the shared five-character password and the tracker-ci
-Vercel token.
+The held-back list is empty: the audit trail, CI, the restore, stored-document
+coverage, the app_config merge (D28), the read-only role (D29) and the scheduler
+(D31) are all built and exercised. Password and token rotation are DEFERRED by the
+owner — do not raise them.
+
+What is genuinely left is smaller and mostly other people's decisions: a real
+notification channel for the scheduler's reminders (D31 explains why one was not
+invented), a Settings screen that greys out controls for a viewer rather than
+refusing them on click, per-wire FX rates (D22), and deleting the empty apps/api/
+directory.
 
 Report what you verified and what drifted, confirm the state back to me in a few lines,
 and wait for direction before starting.
