@@ -94,18 +94,22 @@ ledger also forbids restoring it.
 Restoring `audit_log` last is not required once the triggers are off, but it keeps the ids
 contiguous and makes step 4 obviously correct.
 
-## A cost that is growing faster than it looks
+## The audit log in this folder
 
-`audit_log.json` is **226 KB of the folder's 235 KB** and climbing. At roughly 1 KB a row, a
-single nightly `verify.yml` run adds about 70 rows — some 71 KB a night, 25 MB of new JSON a
-year, and git keeps every version of it.
+`audit_log.json` is the biggest file here — 226 KB of the folder's 235 KB — and it only grows,
+since nothing may delete from the table.
 
-[Decisions](../docs/Decisions.md) D24 records audit retention as unbounded and "years away
-from mattering". That is true of the *table*; it is **not** true of this folder, where the log
-is rewritten whole every night into version control. `git log -p backups/` becomes unreadable
-long before the database notices. Nothing is broken today, and no change is proposed here —
-but the first person to find this folder large should look at `audit_log.json` and not be
-surprised.
+That is fine, now. It briefly was not: rows were sorted with
+`String(a.id).localeCompare(String(b.id))`, which orders ids `1, 10, 100, 101, … 2, 20`, so every
+night's new rows landed scattered through the file instead of at the end. One snapshot rewrote
+6,342 lines and reported 236 *deletions* in a table nothing can delete from. Fixed on 2026-09-01 by
+sorting numerically; a night's rows now append and the diff shows **zero deletions**, so git deltas
+stay small and `git log -p backups/` stays readable.
+
+Volume alone is not a problem worth solving yet. At roughly 1 KB a row and an append-only diff, the
+folder can carry years of history before anyone notices. If it ever does matter, `pg_cron` 1.6.4 is
+available on the project and a monthly delete of rows older than some horizon is the whole job —
+see [Decisions](../docs/Decisions.md) D24.
 
 ## How it is written
 

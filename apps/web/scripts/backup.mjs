@@ -73,7 +73,17 @@ for (const table of TABLES) {
     process.exit(1)
   }
   // Sorted by primary key so row order never depends on how Postgres felt.
-  const rows = [...data].sort((a, b) => String(a.id).localeCompare(String(b.id)))
+  //
+  // Numerically when the key is a number, which every table here uses. String
+  // comparison put audit_log in the order 1, 10, 100, 101, ... 2, 20 — so each
+  // night's new rows landed scattered through the file rather than at the end,
+  // and one snapshot rewrote 6,342 lines and "deleted" 236 in a table nothing
+  // can delete from. Sorted properly the file only ever grows at the bottom and
+  // `git log -p backups/` stays readable.
+  const rows = [...data].sort((a, b) =>
+    typeof a.id === 'number' && typeof b.id === 'number'
+      ? a.id - b.id
+      : String(a.id).localeCompare(String(b.id)))
   await writeJson(table, rows)
   counts[table] = rows.length
   console.log('  ' + table + ': ' + rows.length + ' rows')

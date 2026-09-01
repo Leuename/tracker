@@ -257,12 +257,16 @@ and `pg_cron` 1.6.4 is available on the project if it ever does. The table is in
 `apps/web/scripts/backup.mjs`, so it is in the nightly snapshot; that snapshot therefore grows
 monotonically, which is the intended cost.
 
-**Correction, 2026-09-01.** "Years from mattering" holds for the table and not for the backup. The
-log is rewritten whole into version control every night: `audit_log.json` is already 226 KB of the
-folder's 235 KB, and one nightly `verify.yml` run alone adds ~70 rows, ~71 KB, ~25 MB of new JSON a
-year — every version of which git keeps. The database will not notice for years; `git log -p
-backups/` will be unreadable long before that. Recorded rather than fixed; see
-[backups/README.md](../backups/README.md).
+**Correction, and then a correction to the correction, both 2026-09-01.** It was first recorded
+here that unbounded retention would hurt the *backup* long before the table, because the log is
+rewritten into version control nightly. That reasoning was right about the symptom and wrong about
+the cause: the snapshot was scattering new rows through the file because `backup.mjs` sorted ids as
+strings — `1, 10, 100, 101, … 2` — so one night rewrote 6,342 lines and reported 236 deletions in a
+table nothing can delete from. Sorting numerically makes a night's rows a pure append with zero
+deletions.
+
+So the original judgement stands: retention is years from mattering, for the table and for the
+folder. What almost turned a design decision into a real problem was a one-line bug, not the volume.
 
 **Any table added later needs its own trigger**, exactly as D23 says it needs its own revoke. Both
 are per-table obligations that a new table silently fails to inherit.
