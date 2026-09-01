@@ -57,8 +57,8 @@ jobs:
           git add backups
           # The manifest carries a timestamp, so there is normally something to
           # commit. Guarded anyway: a no-op run must not fail the workflow.
-          # [skip ci] keeps Vercel out of it. A push to main is a production
-          # deploy, and without this every night would redeploy the same code
-          # because a JSON file changed.
+          # [skip ci] is kept for any CI added later; Vercel ignores it —
+          # tested, it deployed anyway. What actually stops the nightly
+          # redeploy is `ignoreCommand` in apps/web/vercel.json.
           git diff --staged --quiet || git commit -m "Back up the workspace [skip ci]"
           git push

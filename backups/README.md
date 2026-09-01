@@ -74,8 +74,20 @@ a restore script nobody has ever run is not a safety net.
 - **A tested restore.** Nobody has performed one against an empty project. Until somebody
   has, this is a backup that is *believed* to work.
 
-The commit message carries `[skip ci]`, so Vercel ignores it. Without that, a push to `main` is a
-production deploy and every night would redeploy identical code because a JSON file moved.
+A push to `main` is a production deploy, so the nightly commit would rebuild the site every night
+for nothing. `apps/web/vercel.json` therefore carries:
+
+```json
+"ignoreCommand": "git diff --quiet HEAD^ HEAD -- ."
+```
+
+Vercel runs that from the Root Directory, which is `apps/web`, so `-- .` means the application
+folder. Exit 0 skips the build; anything else builds. A git error is non-zero, so an unexpected
+state still deploys rather than silently skipping a real change.
+
+The commit also carries `[skip ci]`, but **Vercel ignores that marker** — it was tried first and
+deployed anyway. It is kept only for CI added later. No comment explains this inside `vercel.json`
+itself, because JSON here is strict: no comment keys.
 
 ## The trap
 
