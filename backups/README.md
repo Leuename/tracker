@@ -20,7 +20,8 @@ folder is the restore path.
 
 | Path | Holds |
 |---|---|
-| `txns.json`, `receipts.json`, `recurring.json`, `transfers.json`, `app_config.json`, `audit_log.json` | Every row, in database column shape |
+| `txns.json`, `receipts.json`, `recurring.json`, `transfers.json`, `app_config.json`, `audit_log.json`, `profiles.json` | Every row, in database column shape |
+| `accounts.json` | The roster as `user_id`, `role`, `email` — what a restore needs to recreate the accounts themselves |
 | `files/` | Every liquidation document, one file per stored object |
 | `MANIFEST.md` | Row counts, totals and the time the snapshot was taken |
 
@@ -40,6 +41,25 @@ app's. That is deliberate: the shape here is the shape that inserts straight bac
 | Server-managed columns survive | `created_at` and `app_config.updated_at` restored to their original values, not to `now()` |
 | The restored database still works | A write after restore produced audit row **223**, continuing from the restored maximum |
 | The nightly job covers all six tables | Workflow run `33531626080`, `audit_log` at 222 rows |
+
+### Rehearsed again on 2026-09-02, and it failed
+
+The 2026-09-01 rehearsal predates `profiles`, so it proved a restore of a schema that had no
+roster. Repeated on `tracker-rehearsal` against all twelve migrations, it found three things the
+procedure above now carries — and they are the reason this section is not a victory lap.
+
+| Claim | Evidence |
+|---|---|
+| The **twelve** migrations replay into an empty project | Identical fingerprint over **291** facts, `public` only: `7d44a32a1ad258f984fb145892e94c97` on both. First replay of `merge_app_config`, `viewer_role` and `harden_merge_app_config` |
+| The ledger still comes back byte-for-byte | `f95cd619e877916891cb0f6853f9e041`, 21 rows, ₱226,000.00; `app_config.updated_at` preserved; **zero** rows written into `audit_log` by the restore |
+| **The roster could not be restored at all** | `23503` on `profiles_user_id_fkey` — the backup held no `auth.users`. Fixed by `accounts.json` and step 2 |
+| **The sequence trap fires late, not next** | First write after a restore succeeded; the duplicate key came only once the sequence reached the restored ids. Step 5 rewritten |
+| The rewind is real | 11 logged changes → 11 statements; `txns`, `transfers` and `app_config` fingerprints all back to their pre-damage values, one marker row, zero mirror rows |
+
+**And the snapshot itself was short.** `backup.mjs` read every table with a plain `select`, which
+PostgREST caps at 1,000 rows without saying so. The morning's manifest read `audit_log rows 1000`
+against a table holding **1,129** — a backup missing 129 rows, reported as a success, with a round
+number as the only clue. It pages now and refuses to write a partial snapshot.
 
 **Scope, stated precisely.** `txns`, `app_config`, `receipts`, `recurring` and `transfers` were
 restored in full. `audit_log` was restored as an **18-row stratified sample** — every operation,
@@ -78,8 +98,41 @@ on `audit_log` at all, and only column-list grants elsewhere, so a client-creden
 silently drops `created_at` and the entire audit history. The security model that protects the
 ledger also forbids restoring it.
 
-1. Create an empty project and apply [the nine migrations](../supabase/README.md) in version order.
-2. **Disable the triggers**, or the restore writes history *about itself* and mixes it with the
+**Turn self-serve sign-up off on the new project before any of this.** A fresh Supabase project
+allows registration by default, every read policy here is `using (true)`, and what you are about to
+load is the real ledger. Proven on 2026-09-02 by registering against a rehearsal project that was
+holding a copy: it succeeded. Close the door first.
+
+1. Create an empty project and apply [the twelve migrations](../supabase/README.md) in version
+   order.
+2. **Recreate the accounts, with their original ids.** This step did not exist until 2026-09-02 and
+   without it the restore cannot proceed: `profiles.user_id` references `auth.users(id)`, so
+   loading `profiles.json` into a project with no accounts fails with
+   `23503 violates foreign key constraint "profiles_user_id_fkey"`. Skipping `profiles` instead is
+   worse and silent — an account with no profile row is a **viewer**, so the ledger comes back
+   read-only for everyone and nothing throws.
+
+   `accounts.json` holds the ids and emails. The ids must be preserved exactly: `profiles` and
+   `audit_log.actor` both point at them.
+
+   ```sql
+   insert into auth.users (id, instance_id, aud, role, email, encrypted_password,
+                           email_confirmed_at, created_at, updated_at,
+                           raw_app_meta_data, raw_user_meta_data)
+   values ('<user_id from accounts.json>', '00000000-0000-0000-0000-000000000000',
+           'authenticated', 'authenticated', '<email>', '!password-reset-required',
+           now(), now(), now(), '{"provider":"email","providers":["email"]}', '{}');
+   ```
+
+   Passwords are **not** in the backup and must not be: storing them would put credential hashes
+   into version control. Every account therefore needs its password set again afterwards, from the
+   dashboard. That is the right outcome for a restore anyway.
+
+   An account that has never made an audited change has no recoverable email — `log_change()` is
+   where the addresses come from — and `backup.mjs` prints a warning naming it. Read that address
+   out of the old project's dashboard, or from whoever owns it.
+
+3. **Disable the triggers**, or the restore writes history *about itself* and mixes it with the
    history being restored:
 
    ```sql
@@ -88,31 +141,54 @@ ledger also forbids restoring it.
    alter table public.recurring  disable trigger recurring_audit;
    alter table public.transfers  disable trigger transfers_audit;
    alter table public.app_config disable trigger app_config_audit;
+   alter table public.profiles   disable trigger profiles_audit;
    alter table public.app_config disable trigger app_config_touch;  -- else updated_at becomes now()
    ```
 
-3. Load each file. `json_populate_recordset` maps the saved column shape straight onto the table:
+4. Load each file, `profiles.json` included. `json_populate_recordset` maps the saved column shape
+   straight onto the table:
 
    ```sql
    insert into public.txns select * from json_populate_recordset(null::public.txns, '<txns.json>'::json);
    ```
 
-4. **Fix the sequence.** `audit_log.id` is a `bigserial`, and inserting explicit ids does not advance
-   it. Skip this and the next audited write dies on a duplicate primary key:
+5. **Fix the sequence, and check that you did.** `audit_log.id` is a `bigserial`, and inserting
+   explicit ids does not advance it.
 
    ```sql
    select setval(pg_get_serial_sequence('public.audit_log','id'), (select max(id) from public.audit_log));
+   -- then prove it, because the failure this prevents is invisible for a while:
+   select last_value >= (select max(id) from public.audit_log) as sequence_is_safe
+     from public.audit_log_id_seq;
    ```
 
-5. Re-enable every trigger disabled in step 2.
-6. Verify against `MANIFEST.md`, and compare fingerprints with the source if it still exists:
+   **This step used to say the next audited write would die if you skipped it. That is wrong, and
+   the truth is more dangerous.** Rehearsed on 2026-09-02: with the sequence left at 1, the first
+   write after a restore **succeeds**, because id 1 is free. So does the second, and the hundredth.
+   The collision arrives whenever the sequence finally climbs into the restored block —
+
+   ```
+   23505 duplicate key value violates unique constraint "audit_log_pkey"
+   ```
+
+   — and then it hits *every* audited write on *all six* tables at once, days later, in production,
+   with an error naming a table nobody was touching. A restore rehearsal that ends with "can I
+   still write? yes" **passes while broken.** Assert the sequence, not the write.
+
+6. Re-enable every trigger disabled in step 3.
+7. Verify against `MANIFEST.md`, and compare fingerprints with the source if it still exists:
 
    ```sql
    select md5(string_agg(t::text, chr(10) order by t.id)), count(*), sum(amount) from public.txns t;
+   -- and the one whose absence is silent:
+   select count(*) filter (where role = 'admin') as admins, count(*) as roster from public.profiles;
    ```
 
+   Assert the roster came back **and that its members are administrators**. Four rows of `viewer`
+   and no rows at all leave the application looking identical.
+
 Restoring `audit_log` last is not required once the triggers are off, but it keeps the ids
-contiguous and makes step 4 obviously correct.
+contiguous and makes step 5 obviously correct.
 
 ## The audit log in this folder
 

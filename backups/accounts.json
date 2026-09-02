@@ -1,0 +1,22 @@
+[
+  {
+    "email": "millaveemmanuel@gmail.com",
+    "role": "admin",
+    "user_id": "02155e68-eb65-4089-989e-9a0485100ada"
+  },
+  {
+    "email": null,
+    "role": "admin",
+    "user_id": "7c038387-47e3-4d3a-80f2-dfaeb6201fde"
+  },
+  {
+    "email": "millaveemmanuel15@gmail.com",
+    "role": "admin",
+    "user_id": "8444efad-f65a-4ba1-bde7-39b355c78cbf"
+  },
+  {
+    "email": "aepinza@gmail.com",
+    "role": "admin",
+    "user_id": "e7091e64-a638-4ebb-8ac6-a6ac7ae198f5"
+  }
+]

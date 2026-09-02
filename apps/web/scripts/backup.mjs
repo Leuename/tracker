@@ -65,11 +65,45 @@ console.log('signed in as ' + email)
 
 await mkdir(join(OUT, 'files'), { recursive: true })
 
+/**
+ * Read every row, in pages.
+ *
+ * PostgREST caps a response at 1,000 rows by default and says nothing about it:
+ * no error, no flag, just a short array. `audit_log` crossed 1,000 on
+ * 2026-09-02 and the snapshot that morning wrote exactly `1000` while the table
+ * held 1,129 — a backup missing 129 rows of history, reported as a success.
+ *
+ * The tell was the round number, and it was read past. So this counts first and
+ * then insists on the count: a short read is a failure, not a smaller backup.
+ */
+async function readAll(table) {
+  const { count, error: countError } = await supabase
+    .from(table).select('*', { count: 'exact', head: true })
+  if (countError) throw new Error('Could not count ' + table + ': ' + countError.message)
+
+  const PAGE = 1000
+  const rows = []
+  for (let from = 0; from < (count || 0); from += PAGE) {
+    const { data, error } = await supabase.from(table).select('*').range(from, from + PAGE - 1)
+    if (error) throw new Error('Could not read ' + table + ': ' + error.message)
+    rows.push(...data)
+  }
+  // The assertion is the point of the function. A backup that quietly holds
+  // less than the database is worse than one that fails and says so.
+  if (rows.length !== (count || 0)) {
+    throw new Error('Read ' + rows.length + ' rows from ' + table + ' but it holds ' + count +
+      '. Refusing to write a partial backup.')
+  }
+  return rows
+}
+
 const counts = {}
 for (const table of TABLES) {
-  const { data, error } = await supabase.from(table).select('*')
-  if (error) {
-    console.error('Could not read ' + table + ': ' + error.message)
+  let data
+  try {
+    data = await readAll(table)
+  } catch (e) {
+    console.error(e.message)
     process.exit(1)
   }
   // Sorted by primary key so row order never depends on how Postgres felt.
@@ -87,6 +121,48 @@ for (const table of TABLES) {
   await writeJson(table, rows)
   counts[table] = rows.length
   console.log('  ' + table + ': ' + rows.length + ' rows')
+}
+
+// ---- the accounts themselves -----------------------------------------
+// `profiles` records who is an administrator. It does NOT record that they
+// exist: `profiles.user_id` references `auth.users(id)`, and auth.users is
+// deliberately unreachable from a client — the security probe asserts it and
+// that must stay true. Restoring profiles.json into a fresh project therefore
+// failed outright, proven on 2026-09-02:
+//
+//   23503 violates foreign key constraint "profiles_user_id_fkey"
+//
+// Worse than a hard failure would have been a soft one: an account with no
+// profile row is a viewer (D29), so a restore that skipped the roster hands
+// back a ledger nobody can write to, and throws nothing.
+//
+// The ids are already in profiles.json. What was missing is the email each id
+// belongs to — and that is recoverable without any new privilege, because
+// `log_change()` resolves actor_email at write time and audit_log is readable.
+// So the roster is reconstructed from data this backup already holds, rather
+// than by handing CI a service_role key that D13 deliberately refused.
+// Read from the file just written rather than the network: it is the same rows,
+// already paged and already checked against the table's own count.
+const auditRows = JSON.parse(await readFile(join(OUT, 'audit_log.json'), 'utf8'))
+const emailOf = new Map(
+  auditRows.filter((a) => a.actor && a.actor_email).map((a) => [a.actor, a.actor_email]))
+
+const roster = JSON.parse(await readFile(join(OUT, 'profiles.json'), 'utf8'))
+const accounts = [...roster]
+  .sort((a, b) => String(a.user_id).localeCompare(String(b.user_id)))
+  .map((p) => ({ user_id: p.user_id, role: p.role, email: emailOf.get(p.user_id) || null }))
+await writeJson('accounts', accounts)
+
+// An account that has never written anything has never been named in the log,
+// so its email cannot be recovered this way. Say so loudly rather than shipping
+// a roster with a quiet hole in it: restoring that account needs its address
+// read out of the dashboard by hand.
+const nameless = accounts.filter((a) => !a.email)
+console.log('  accounts: ' + accounts.length + ' in the roster, ' +
+  (accounts.length - nameless.length) + ' with a recoverable email')
+if (nameless.length) {
+  console.log('  WARNING: no email recoverable for ' + nameless.map((a) => a.user_id).join(', '))
+  console.log('           these accounts have never made an audited change. See backups/README.md.')
 }
 
 // ---- stored documents ------------------------------------------------
@@ -137,11 +213,15 @@ await writeFile(join(OUT, 'MANIFEST.md'), [
   '| Taken | ' + new Date().toISOString() + ' |',
   '| Project | ' + (process.env.VITE_SUPABASE_URL || '').replace(/^https:\/\//, '') + ' |',
   ...TABLES.map((t) => '| `' + t + '` rows | ' + counts[t] + ' |'),
+  '| Accounts in the roster | ' + accounts.length +
+    (nameless.length ? ' (' + nameless.length + ' with no recoverable email)' : '') + ' |',
   '| Stored files | ' + onDisk.length + ' |',
   '| Transactions total | ' + peso(sum(txns, 'amount')) + ' |',
   '| Receipts released | ' + peso(sum(receipts, 'amount')) + ' |',
   '',
-  'Restoring is a checkout plus four inserts — see [the README](README.md).',
+  'Restoring means recreating the accounts first, then the rows — see [the README](README.md).',
+  'The accounts step is not optional: without it `profiles` cannot be restored, and without',
+  '`profiles` every account comes back as a viewer.',
   '',
 ].join('\n'))
 

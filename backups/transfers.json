@@ -7,7 +7,7 @@
     "id": 1788313691178,
     "name": "Julius Mars",
     "note": "GZINC009",
-    "status": "pending"
+    "status": "released"
   },
   {
     "amount": 101500,
@@ -17,11 +17,11 @@
     "id": 1788313728904,
     "name": "Thesis LTD",
     "note": "INV NO. 18",
-    "status": "pending"
+    "status": "released"
   },
   {
     "amount": 100000,
-    "co": "ZSM",
+    "co": "GZZ",
     "created_at": "2026-09-02T01:49:16.736655+00:00",
     "cur": "EUR",
     "id": 1788313757081,
@@ -37,7 +37,7 @@
     "id": 1788313826422,
     "name": "North Bridge",
     "note": "NBCB-0008",
-    "status": "pending"
+    "status": "released"
   },
   {
     "amount": 80701.5,
@@ -47,7 +47,7 @@
     "id": 1788313870693,
     "name": "Lumevo",
     "note": "INV 1044",
-    "status": "pending"
+    "status": "released"
   },
   {
     "amount": 80420.5,
@@ -57,7 +57,7 @@
     "id": 1788313906869,
     "name": "Cordelia Commercial",
     "note": "CCB-2026-032",
-    "status": "pending"
+    "status": "released"
   },
   {
     "amount": 4290,
@@ -67,7 +67,7 @@
     "id": 1788318122863,
     "name": "Dominic & Partners",
     "note": "PI/1304/DP/2025",
-    "status": "pending"
+    "status": "released"
   },
   {
     "amount": 79180,
@@ -77,7 +77,7 @@
     "id": 1788318165685,
     "name": "The Lymm Commercial",
     "note": "THLY-0019 - For Out 03 Sept 2026",
-    "status": "onhold"
+    "status": "pending"
   },
   {
     "amount": 78675,
@@ -87,6 +87,6 @@
     "id": 1788318201948,
     "name": "The Lymm Commercial",
     "note": "THLY-0020 - For Out 03 Sept 2026",
-    "status": "onhold"
+    "status": "pending"
   }
 ]
