@@ -439,6 +439,123 @@ app that only a workflow reads is a second source of truth for one boolean, and 
 already shows whether it is on.
 
 
+## D32 — Rolling Back a Minute Is the Audit Log, Not Point-in-Time Recovery
+
+The owner asked on 2026-09-02 for "a migration/backup plan that can roll back a minute before".
+That is point-in-time recovery, which Supabase sells as a Pro add-on; the free plan takes daily
+backups that cannot be downloaded. The answer was: **"since PITR is a Pro add-on, use the
+write-ahead log."**
+
+There already was one. `public.audit_log` stores, for every change, the whole row `before`, the
+whole row `after`, the timestamp and the actor — and a `pg_trigger` read on 2026-09-02 confirmed
+**all six tables carry `log_change()`, `profiles` included**. Nothing that matters is unlogged. The
+table had been treated as attribution and as a per-row undo (D24); it is also a complete
+reconstruction of any second.
+
+`apps/web/scripts/rewind.mjs` is that, with `scripts/rewind-plan.js` holding the pure logic and
+`scripts/rewind-plan.test.js` ten offline assertions.
+
+**Only the oldest entry per row matters.** A wire inserted, edited four times and deleted needs one
+statement, not six: the `before` of its first entry after the cut *is* its state at the cut. Walking
+every entry backwards reaches the same place through five pointless writes and five more chances to
+get an order wrong. Measured against the live log: 202 recorded changes, 76 statements.
+
+**It writes nothing, by construction.** There is no `--apply`. It prints the plan and emits a `.sql`
+file for an operator to run as `postgres`. `authenticated` holds no INSERT on `audit_log` and only
+column-list grants elsewhere, so a client-credentialed rewind would silently drop `created_at` and
+the history — the same reason a restore cannot use the app's credentials (trap 37). The alternative
+is a `service_role` key living somewhere permanent, which a rare operator action does not justify.
+Removing the mode that could do damage is cheaper than guarding it.
+
+**What it does not cover, and this is not a gap to close later by accident.** Stored documents are
+not audited, so a deleted file does not come back; DDL is not covered; and if the project itself is
+lost, `audit_log` goes with it. This is an undo. [Backups](../backups/README.md) is what survives
+losing the project.
+
+Proven end to end on a rehearsal copy: eleven changes, eleven statements, and afterwards the `txns`,
+`transfers` and `app_config` fingerprints all back to their pre-damage values, with one marker row
+and zero mirror rows.
+
+## D33 — A Backup That Cannot Be Restored Is Not a Backup
+
+Two defects found on 2026-09-02 by rehearsing a restore instead of describing one. Both had been
+live for a day or more and neither announced itself.
+
+**The snapshot was short.** `backup.mjs` read every table with a plain `select`, and PostgREST caps
+a response at 1,000 rows without an error or a flag. `audit_log` crossed 1,000 that morning, and the
+manifest recorded `1000` against a table holding **1,129** — 129 rows of history missing from a
+backup reported as a success. The only clue was the round number, and it was read past. Reads are
+paged now, counted first, and a short read **fails the run** rather than writing a smaller backup.
+
+**The roster could not be restored at all.** `profiles.user_id` references `auth.users(id)`, and
+nothing in `backups/` recorded that the accounts exist — only which of them are administrators.
+Restoring into a fresh project failed with `23503`. Skipping `profiles` instead would have been
+silent and worse: an account with no profile row is a viewer (D29), so the ledger returns
+read-only for everybody and nothing throws.
+
+`accounts.json` fixes it with `user_id`, `role` and `email`, and the emails are **reconstructed from
+`audit_log.actor_email`**, which `log_change()` already resolves at write time. That matters: it
+needs no new privilege and no `service_role` key, so D13's refusal to hand CI a full-access
+credential still stands. An account that has never made an audited change has no recoverable
+address; the script names it in a warning rather than shipping a roster with a quiet hole.
+
+**Passwords are not in the backup and must never be.** Storing hashes would put credentials in
+version control. Accounts are recreated with their original UUIDs and their passwords reset, which
+is the right outcome for a restore anyway.
+
+A third correction went into the procedure rather than the code. [Backups](../backups/README.md)
+said skipping `setval` on `audit_log_id_seq` kills the *next* audited write. It does not: the first
+write after a restore succeeds, because the sequence sits at 1 and 1 is free. The collision arrives
+whenever the sequence climbs into the restored block, then hits every audited write on all six
+tables at once. **A restore rehearsal that ends with "can I still write? yes" passes while broken.**
+Assert the sequence, not the write.
+
+## D34 — Revoking `EXECUTE` on `is_viewer()` Is Not Available
+
+The Supabase advisory `authenticated_security_definer_function_executable` offers two remediations
+for `public.is_viewer()`. Tested on 2026-09-02 in a throwaway schema, never against production:
+
+| | |
+|---|---|
+| Write with `EXECUTE` granted | succeeds |
+| Write with `EXECUTE` revoked | **`42501 permission denied for function is_viewer`** |
+| Read with `EXECUTE` revoked | succeeds — the `for select using (true)` policy never calls it |
+| Write with the function in a **non-exposed schema** | succeeds |
+
+Postgres checks `EXECUTE` on a function referenced in an RLS policy against the **querying role**.
+So the advisory's first suggestion would leave every account able to read the whole ledger and
+unable to write a single row, on all six tables and on receipt uploads — the application looking
+almost fine, which is worse than an outage.
+
+**This closes a branch, not the item.** D29's `is_viewer()` keeps its grant for as long as the
+policies call it, whatever `apps/web/src/db.js` does; changing the client to read `profiles`
+directly would change nothing. Two live options remain and neither is chosen: move the function to a
+`private` schema PostgREST does not expose — proven to work — or accept the advisory on the record,
+on the ground that a signed-in account can already read its own `profiles` row and the RPC therefore
+reveals strictly less than a grant made on purpose. See
+[Open Problems and Proposals](Open%20Problems%20and%20Proposals.md).
+
+## D35 — A Rehearsal Project Gets Real Data Only Behind a Closed Door
+
+`tracker-rehearsal` (`bucmcnsjkuprpojhequy`) was created on 2026-09-02 for restore work, after the
+owner paused `zone-offices` to free a free-plan slot. It was loaded with a copy of the real ledger,
+and **a new Supabase project allows self-serve sign-up by default** — verified by registering
+against it successfully. Every read policy in this schema is `using (true)`, so an account was all a
+stranger would have needed. Anonymous access was correctly refused (`42501`, the migrations'
+`revoke all from anon` carrying over), so the exposure required registering, but it existed.
+
+The copied data was deleted the same session, the probe account removed and the throwaway sign-in
+credential disabled; the schema was kept, so re-seeding from `backups/` is one statement.
+
+**The rule, not the incident:** a project that will hold real rows has sign-up turned off *before*
+they are loaded, or it holds no real rows. This is D8's perimeter applied to every copy of the
+ledger rather than only to production, and it is now the first line of the restore procedure.
+
+`zone-offices` is separately out of bounds. It holds a live CRM — 18 tables behind 21 of its own
+migrations — and is not a scratch project. One migration of ours reached it while it was restoring,
+returned `{"success": true}` and **did not land**; it was verified clean four ways afterwards and
+left alone.
+
 ## Guideline Basis
 
 - **AGENT-03** ensures adapter workflows stop rather than invent authorization.

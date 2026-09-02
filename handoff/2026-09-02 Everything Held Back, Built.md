@@ -2,7 +2,7 @@
 title: Everything Held Back, Built
 tags: [handoff, continuation, erp, tracker, supabase, vercel, audit-trail, ci, roles, restore, scheduler, security]
 created: 2026-09-02
-status: current
+status: superseded
 supersedes: "[Telegraphic Transfers and Full-Stack Verification](2026-09-01%20Telegraphic%20Transfers%20and%20Full-Stack%20Verification.md) as the entry point; that note remains the record of phases 14 to 23 and its traps 1 to 43 all still apply"
 related:
   - "[Decisions](../docs/Decisions.md) — D1 to D31, the authority on what is authorised"
@@ -17,7 +17,17 @@ up: "[AI Agent Context](../docs/AI%20Agent%20Context.md)"
 
 # Everything Held Back, Built
 
-**This is the current entry point.** It covers phases 21 to 25 and carries the live facts.
+**Superseded as the entry point** by
+[The Rewind, and a Backup That Was Short](2026-09-02%20The%20Rewind,%20and%20a%20Backup%20That%20Was%20Short.md)
+— start there. This note remains the record of phases 21 to 25 and its traps 44 to 46 all still
+apply.
+
+Two of its claims were corrected the same day by rehearsal rather than by argument: open item 1
+(`is_viewer()`) is answered — revoking `EXECUTE` breaks every write ([Decisions](../docs/Decisions.md)
+D34) — and its closing of item 4 (`profiles` in the backup) was premature: the roster was in the
+snapshot but could not be restored, because `auth.users` was not (D33).
+
+It covers phases 21 to 25.
 
 Every item on the held-back list is built, released and exercised. What is left is smaller, and
 most of it is somebody's decision rather than somebody's work.

@@ -48,12 +48,33 @@ select version, md5(statements[1]) from supabase_migrations.schema_migrations or
 Compare against `printf '%s' "$(cat <file>)" | md5` — the stored statements carry no trailing
 newline, so strip yours before hashing.
 
-## What has not been proven
+## What has been proven
 
-**Nobody has replayed these against an empty project.** They are a faithful record of what
-was applied to *this* database, in order, which is not the same as a rebuild that is known
-to work. Migration 1 creates tables that migration 3 drops and recreates; that replays in
-principle, and in principle is as far as the evidence goes.
+**These replay.** Twice, into empty projects, compared by fingerprint rather than by eye.
+
+| When | Scope | Result |
+|---|---|---|
+| 2026-09-01 | The first nine | 178 catalogue facts, `a18b5dd26e148a1e216068023b0e4403` on both sides |
+| 2026-09-02 | **All twelve**, into `tracker-rehearsal` | **291** facts scoped to `public`, `7d44a32a1ad258f984fb145892e94c97` on both sides |
+
+The 2026-09-02 run is the first replay of `merge_app_config`, `viewer_role` and
+`harden_merge_app_config`, which postdate the earlier rehearsal. The fingerprint covers
+columns, policies, indexes, triggers, table grants, column grants and function bodies.
+
+Migration 1 creates tables that migration 3 drops and recreates. That is no longer "in
+principle": it has been done.
+
+**Scope a catalogue fingerprint to `public`.** An earlier comparison read 177 facts against
+176 and looked like drift; the extra was `realtime.subscription.tr_check_filters`, a
+Supabase platform trigger, because the query excluded `storage%` but not `realtime%`.
+
+## What has still not been proven
+
+A replayed *schema* is not a restored *database*. The data half has its own failure modes and
+two of them were live until 2026-09-02 — the account roster could not be restored at all, and
+the `audit_log` sequence fails days after a restore rather than on the next write. Both are
+written up in [Backups](../backups/README.md) and [Decisions](../docs/Decisions.md) D33; read that
+before rebuilding anything for real.
 
 The Supabase CLI is **not** installed and this folder is not CLI-managed. There is no
 `config.toml` and no linked project. Adopting `supabase link` and `supabase db push` is the

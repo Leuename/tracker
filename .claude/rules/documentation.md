@@ -8,7 +8,7 @@ Keep repository knowledge discoverable, non-duplicative, and agent-agnostic.
 
 Put observations in `docs/Repository Evidence.md`, decisions in `docs/Decisions.md`, continuation in `docs/Handoff.md`, and navigation in `docs/AI Agent Context.md`. Handoffs go in `handoff/`, named `YYYY-MM-DD Title.md`. Scan hidden Markdown, link leaves upward and sideways, use exact relative paths, and keep `.obsidian/` configuration-only.
 
-Every handoff, recap, or continuation package must carry a `## Resume prompt` section holding exactly one copy-pasteable prompt. It names the handoff's exact path and the notes to read with it, carries the governing decisions and traps, states the next task and the checks that close it, and tells the next session to verify state and confirm before acting. One prompt restores the whole state; per-situation or per-task variants are not the convention. A handoff without it is incomplete and must not be reported as done. See [Everything Held Back, Built](../../handoff/2026-09-02%20Everything%20Held%20Back,%20Built.md) for the shape.
+Every handoff, recap, or continuation package must carry a `## Resume prompt` section holding exactly one copy-pasteable prompt. It names the handoff's exact path and the notes to read with it, carries the governing decisions and traps, states the next task and the checks that close it, and tells the next session to verify state and confirm before acting. One prompt restores the whole state; per-situation or per-task variants are not the convention. A handoff without it is incomplete and must not be reported as done. See [The Rewind, and a Backup That Was Short](../../handoff/2026-09-02%20The%20Rewind,%20and%20a%20Backup%20That%20Was%20Short.md) for the shape.
 
 ## Repository Evidence
 

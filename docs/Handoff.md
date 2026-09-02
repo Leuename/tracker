@@ -1169,6 +1169,201 @@ which is marked `superseded` and keeps its traps. Every pointer that named the o
 names the new one. Traps 44 to 46 are added; the four incidents of the session are written up where
 they happened rather than summarised away.
 
+## 2026-09-02 — Verification, and three things that were already broken
+
+Triggered by the resume prompt from
+[Everything Held Back, Built](../handoff/2026-09-02%20Everything%20Held%20Back,%20Built.md): read the
+four packages, verify rather than trust, report drift, wait. The verification found a failing suite;
+chasing it took the day, and the day ended with a backup that had been silently incomplete.
+
+Full narrative in
+[The Rewind, and a Backup That Was Short](../handoff/2026-09-02%20The%20Rewind,%20and%20a%20Backup%20That%20Was%20Short.md).
+This is the pass record.
+
+### The sweep
+
+Green: `npm test` 43/43, `npm run build`, `npm audit` 0, `npm run security` **47 checks, 0 failed**
+with `DEFERRED` confirmed empty by reading `probe.mjs` rather than the exit code, `npm run smoke`
+including the document round-trip, twelve migrations MD5-identical, all four workflows active and
+last-green, both known advisors and no new ones, 623 of 623 local links, `AGENTS.md` byte-identical
+to `CLAUDE.md`, `package.json` `0.6.0` matching `v0.6.0`, production 200.
+
+The ledger fingerprint matched exactly — `f95cd619e877916891cb0f6853f9e041`, 21 rows, ₱226,000.00 —
+before and after every writing suite.
+
+**Drift, all of it the owner working.** `transfers` went 0 → 9: nine real wires entered through the
+production UI by `aepinza@gmail.com` between 01:48 and 03:03 UTC, EUR 261,500 / USD 399,531.10 /
+GBP 4,290. `audit_log` 841 → 927. Later the same day six of those wires were marked `released` at
+10:32, and two payables (GTOI, ZON) completed by Check at 10:34, moving the `txns` fingerprint to
+`05a080127ca18b46dc693edbd22b5168` at the same 21 rows and ₱226,000.00. Postgres had been patched to
+17.6.1.166. **This retires a "believed, but never proven":** the Telegraphic screen has now been
+used by a human, in production, for real money.
+
+`npm run schedule -- --dry-run` could not run as documented — it wants `SCHEDULE_EMAIL` and
+`SCHEDULE_PASSWORD`, `.env.local` has neither, and `schedule.yml` maps them from the `BACKUP_*`
+secrets. Handed an administrator it ran clean.
+
+### The failing suite, and what it actually was
+
+`npm run e2e` failed three times running — twice locally, once against production — each on a
+30-second timeout, a different spec every time: 20/1/6, 7/1/19, 18/2/7. One failure was a bare
+`page.goto`.
+
+The first diagnosis was the network, and it was well evidenced: a trace showed every Supabase call
+returning 200 within 1.8 s, edge logs showed 1,060 requests with zero 429s and a maximum
+`origin_time` of 1,027 ms, and fifteen timed fetches of the production HTML from this machine ranged
+**0.50 s to 17.93 s**. That was true and it was not the cause.
+
+The cause came from the external consultation asking whether `fullyParallel: false` does what its
+comment claims. **It does not.** It serialises tests within a file; `workers` was unset, so
+Playwright ran four, and `app.spec.js` and `functional.spec.js` were executing **concurrently
+against one production ledger** — the shared-ledger race trap 43 was written about, one layer below
+where it was fixed.
+
+| Configuration | Runs | Result |
+|---|---|---|
+| Default, 4 workers | 3 | **0 clean** |
+| `--workers=1` | 2 | **27/27 both times**, 4.2 min and 3.2 min |
+
+`verify.yml` has been running the same race invisibly, its runner's link being fast enough to hide
+it. Not yet fixed: `workers: 1` is proposed, not applied.
+
+### A credential in a test artifact
+
+`trace: 'retain-on-failure'` records `fill()` values verbatim, so each failed run wrote the shared
+account password in plaintext into `apps/web/test-results/*/trace.zip`. Nothing had shipped —
+`test-results/` and `playwright-report/` are gitignored and no workflow uploads artifacts — but the
+mechanism regenerates them on every failure. The artifacts were deleted and the fact recorded in
+memory.
+
+### `zone-offices` is not a scratch project
+
+Round-one proposals suggested rehearsing on it. Restored to look inside, it turned out to hold a
+**live CRM** — 18 tables in `public` behind 21 of its own migrations. One of our migrations was sent
+to it while it was still restoring; it returned `{"success": true}` and **did not land**, the
+instance having been replaced as the restore finished. Luck, not design, and D23's lesson a third
+time. Verified clean four ways afterwards, and left untouched thereafter on the owner's instruction.
+
+### `is_viewer()`, answered by experiment
+
+The Supabase advisory's first remediation — revoke `EXECUTE` — would have broken the application.
+Tested in a throwaway schema, never in production:
+
+| Step | Result |
+|---|---|
+| Insert as `authenticated`, `EXECUTE` granted | succeeds |
+| Insert as `authenticated`, `EXECUTE` revoked | **`42501 permission denied for function is_viewer`** |
+| Select, `EXECUTE` revoked | succeeds — the read policy never calls it |
+| Function moved to a **non-exposed schema**, `EXECUTE` granted there | succeeds |
+
+Postgres checks `EXECUTE` on a function used in an RLS policy against the querying role. Revoking it
+on `baby` would have left every account able to read everything and unable to write anything — the
+app looking almost fine, which is worse. The advisory's *second* remediation, moving the function
+out of the exposed schema, is proven to work. The branch that would have read `profiles` directly
+from `db.js` and revoked the grant is dead: the policies need it regardless of what the client does.
+
+### The external consultation, twice
+
+`codex exec`, `gpt-5.6-sol`, medium effort, as the owner asked. **The first run returned nothing** —
+its mandated code-navigation MCP was unreachable and its own policy forbade falling back to file
+reads, so it read no files and answered no questions, at 47,267 tokens. Re-run with every relevant
+file inlined and MCP disabled, it answered all four and earned its keep: it found the worker race
+above, and it caught a real error in the draft trace fix — `signInWithPassword()` from Node does not
+populate browser storage, so the proposed `globalSetup` would not have worked. It also argued
+against raising the Playwright timeouts, correctly, and that proposal was withdrawn. Where it was
+wrong it was checked rather than followed: its dedicated-scheduler-account advice assumes a role
+model finer than `admin | viewer`, which this schema does not have.
+
+### The rehearsal project
+
+`zone-offices` was paused by the owner, which freed a free-plan slot, and `tracker-rehearsal`
+(`bucmcnsjkuprpojhequy`, `ap-southeast-1`, $0/month) was created for the restore work.
+
+**The twelve migrations rebuild production exactly.** A fingerprint over 291 catalogue facts scoped
+to `public` — columns, policies, indexes, triggers, table grants, column grants, function bodies —
+read `7d44a32a1ad258f984fb145892e94c97` on both sides. First replay ever of `merge_app_config`,
+`viewer_role` and `harden_merge_app_config`. The data came back byte-for-byte, `app_config.updated_at`
+preserved rather than stamped `now()`, and the restore wrote **zero** rows into `audit_log`.
+
+Then it broke.
+
+**The roster cannot be restored.** `profiles.user_id` references `auth.users(id)`, and `backups/`
+held no `auth.users`:
+
+```
+23503 violates foreign key constraint "profiles_user_id_fkey"
+```
+
+Not quiet — impossible. And skipping `profiles` instead would have been quiet and worse: no profile
+row means viewer (D29), so the ledger returns read-only for everyone and nothing throws. The
+accounts can be recreated with their **original UUIDs** by inserting into `auth.users` as
+`postgres`; proven in the same session, after which the roster restored as four admin rows.
+
+**The `setval` trap fires late, not next.** [Backups](../backups/README.md) said the next audited
+write would die. Rehearsed: with the sequence left at 1, the first write after a restore
+**succeeds**, and so does the next. The collision arrives only when the sequence climbs into the
+restored block — `23505 duplicate key value violates unique constraint "audit_log_pkey"` — and then
+hits every audited write on all six tables at once, days later. **A rehearsal ending in "can I still
+write? yes" passes while broken.**
+
+**A new Supabase project has sign-up open by default**, and this one was holding a copy of the real
+ledger behind the same `using (true)` read policies. A probe registered successfully. Anonymous
+access was correctly refused (`42501`). The copied data was deleted immediately, the probe account
+removed, the throwaway credential disabled, and the schema kept so re-seeding is one statement.
+
+### The rewind, built and proven
+
+Built on the owner's instruction — *"since PITR is a Pro add-on, use the write-ahead log"* —
+as `apps/web/scripts/rewind.mjs`, `scripts/rewind-plan.js` and `scripts/rewind-plan.test.js`.
+[Decisions](Decisions.md) D32.
+
+The idea that makes it small: **only the oldest audit entry per row matters.** A wire inserted,
+edited four times and deleted needs one statement, not six. Against the live log, 202 recorded
+changes collapsed to 76 statements.
+
+Proven end to end on the rehearsal copy: three payables deleted, two edited to nonsense, one
+invented, a wire deleted, three cancelled and re-priced, the company list cut from 21 entries to
+one. Eleven changes, eleven statements, applied as `postgres` — afterwards **all three fingerprints
+matched their pre-damage values exactly**, 21 payables and 9 wires back, `updated_at` preserved, one
+marker row in the log and zero mirror rows.
+
+It writes nothing itself. There is no `--apply`; it emits a `.sql` file for a human to run as
+`postgres`, because `authenticated` holds no INSERT on `audit_log` (trap 37) and the alternative is
+a `service_role` key living somewhere permanent. Ten offline assertions, `npm test` 43 → 53.
+
+### The backup was short, and nobody had noticed
+
+Found by running the fixed script rather than by reading it. `backup.mjs` read every table with a
+plain `select`, which **PostgREST caps at 1,000 rows without saying so**. The morning's manifest
+read `audit_log rows 1000` against a table holding **1,129** — a backup missing 129 rows of history,
+reported as a success, with a round number as the only clue. That number had been read past earlier
+the same day.
+
+It counts first, pages, and **refuses to write a partial snapshot** rather than writing a short one.
+Re-run: 1,129. [Decisions](Decisions.md) D33.
+
+### What was changed
+
+| File | Change |
+|---|---|
+| `apps/web/scripts/rewind-plan.js` | New. The pure planner and SQL generator |
+| `apps/web/scripts/rewind-plan.test.js` | New. Ten offline assertions |
+| `apps/web/scripts/rewind.mjs` | New. Reads the log, prints the plan, writes a `.sql` file |
+| `apps/web/scripts/backup.mjs` | Paged reads with a count assertion; `accounts.json`; manifest lines |
+| `apps/web/package.json` | `rewind` script; `test` extended to the new file |
+| `apps/web/.gitignore` | `rewind-*.sql` — generated plans carry whole rows in plain text |
+| `backups/README.md` | Sign-up warning, twelve migrations, the account-recreation step, `profiles_audit`, `setval` as an asserted action, the roster assertion, the 2026-09-02 rehearsal table |
+| `backups/accounts.json` | New. The roster with recoverable emails |
+| `docs/Open Problems and Proposals.md` | New. Eight items, two rounds, nine open questions |
+| `docs/Exchange Rates Proposal.md` | New. The FX fix, re-proposed standalone |
+
+### What was deliberately not done
+
+`workers: 1`, the network preflight, the trace fix, the `SCHEDULE_*` documentation, the second
+nightly backup, the `is_viewer()` move, and everything in
+[Exchange Rates Proposal](Exchange%20Rates%20Proposal.md) are proposed and unapplied, awaiting the
+owner. Nothing was committed.
+
 ## Guideline Basis
 
 - **PG-04** requires a continuation record with exact scope, checks, limitations, and unresolved evidence.
