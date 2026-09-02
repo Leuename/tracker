@@ -8,12 +8,13 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node --test src/logic.test.js src/rows.test.js src/errors.test.js",
+    "test": "node --test src/logic.test.js src/rows.test.js src/errors.test.js scripts/rewind-plan.test.js",
     "smoke": "node --env-file-if-exists=.env.local src/smoke.mjs",
     "e2e": "playwright test",
     "security": "node --env-file-if-exists=.env.local security/probe.mjs",
     "backup": "node --env-file-if-exists=.env.local scripts/backup.mjs",
-    "schedule": "node --env-file-if-exists=.env.local scripts/schedule.mjs"
+    "schedule": "node --env-file-if-exists=.env.local scripts/schedule.mjs",
+    "rewind": "node --env-file-if-exists=.env.local scripts/rewind.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.4",

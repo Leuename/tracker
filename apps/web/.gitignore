@@ -14,3 +14,7 @@ playwright-report
 .env*
 !.env.example
 !.env.production
+
+# Rewind plans are generated from audit_log on demand and carry whole rows of
+# real financial data in plain text. Regenerate one rather than keep it.
+rewind-*.sql
