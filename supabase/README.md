@@ -122,10 +122,23 @@ because no administrator should be able to write here, which is not true of `txn
 The two R7 migrations below were applied to production after rehearsal; every file here,
 `20260903144056_fx_rates` included, is byte-identical to what was applied to production.
 
+**Both were renamed on 2026-09-04 to the versions MCP actually assigned** — `20260903204135` and
+`20260903204751`, read back out of `supabase_migrations.schema_migrations`. They had been written
+in advance as `20260903071500` and `20260903071600`, which is the exact mistake the rule above
+warns about: the folder and the database disagreed about what a version is, and worse, the invented
+timestamps sorted the two files *before* `20260903144056_fx_rates` when the database applied them
+*after* it. A replay in filename order would not have reproduced the sequence that was proven.
+
+Only the filenames changed. Their contents still reference each other by the old names in comments,
+and were deliberately left alone: the byte-for-byte match against the stored statement
+(`eb46987e91c5de212e224e0f2ade1052` and `c606df3049aa21748e7b9aa1e9e6cbcb`) is evidence of what
+actually ran, and editing a comment to tidy a cross-reference would destroy it. Byte-identity is
+the stronger invariant; a stale comment is the cheaper cost.
+
 | File | State |
 |---|---|
-| `20260903071500_private_is_viewer.sql` | Moves `is_viewer()` into a non-exposed `private` schema and repoints all 17 write policies plus `merge_app_config`. Proven on rehearsal and applied to production |
-| `20260903071600_drop_public_is_viewer.sql` | Drops `public.is_viewer()`. Proven on rehearsal and applied to production. **Do not apply it out of order** |
+| `20260903204135_private_is_viewer.sql` | Moves `is_viewer()` into a non-exposed `private` schema and repoints all 17 write policies plus `merge_app_config`. Proven on rehearsal and applied to production |
+| `20260903204751_drop_public_is_viewer.sql` | Drops `public.is_viewer()`. Proven on rehearsal and applied to production. **Do not apply it out of order** |
 
 `fx_rates` needed the same kind of gate while it was unapplied — its two write policies name one
 dedicated account's uid, so the account had to exist first — but that account was created on
