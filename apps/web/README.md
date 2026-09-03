@@ -111,17 +111,19 @@ you push regardless: the gate is a second check, not the first one.
 
 ## Persistence
 
-Data lives in Supabase Postgres, in **one ledger shared by every account**. Four accounts exist
-today and all four are administrators, so whatever one writes, the others see.
+Data lives in Supabase Postgres, in **one ledger shared by every account**. Five accounts exist
+today: four administrators, so whatever one writes the others see, and one dedicated `viewer`
+account that exists only to fetch exchange rates and can write nothing else in the schema.
 
 | Table | Holds |
 |---|---|
 | `txns` | Tracker payables. |
 | `receipts` | Acknowledgement receipts. |
 | `recurring` | Masterlist rules. |
-| `transfers` | Telegraphic transfers. |
+| `transfers` | Telegraphic transfers, and the rate each wire was actually valued at. |
 | `app_config` | One shared `jsonb` row: notes, the company and category lists, and settings. |
-| `audit_log` | Every insert, update and delete on the six tables above, written by a trigger. |
+| `fx_rates` | The daily ECB reference rate for USD, GBP, EUR and AUD, dated and sourced. |
+| `audit_log` | Every insert, update and delete on the tables above, written by a trigger. |
 | `profiles` | One row per account, carrying `admin` or `viewer`. |
 
 Ids stay client-generated with `Date.now()`. Every table has row-level security on and `anon` is
@@ -135,9 +137,14 @@ seventeen of them across `txns`, `receipts`, `recurring`, `transfers`, `app_conf
 `admin` or `viewer`, and `is_viewer()` is a `security definer` function the policies call. An
 account with **no** profile row reads as a viewer, so a missed row costs read-only access rather
 than granting anything. `profiles` is readable but not writable from a client — an account that
-can edit its own role has no role. Today all four accounts are `admin` and no viewer account has
-ever been issued, so the read-only path is proven by demoting and promoting a real account rather
-than by living with one.
+can edit its own role has no role. Four accounts are `admin`; the fifth, the exchange-rates job's
+own sign-in, is `viewer` — the first one this project has issued for real rather than by
+demoting and promoting an administrator to prove the path.
+
+`fx_rates` bends that rule one further step. Its two write policies do not gate on `is_viewer()`
+at all — they name the rates account's uid directly, so no administrator can write a rate even
+though every administrator can write everything else. A rate a user can edit is not a rate, for
+the same reason a role a user can edit is not a role.
 
 Self-serve registration stays disabled in the project's auth settings and accounts are created
 from the Supabase dashboard. This app has no sign-up form, but the form was never the control; the

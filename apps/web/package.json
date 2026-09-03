@@ -14,6 +14,7 @@
     "security": "node --env-file-if-exists=.env.local security/probe.mjs",
     "backup": "node --env-file-if-exists=.env.local scripts/backup.mjs",
     "schedule": "node --env-file-if-exists=.env.local scripts/schedule.mjs",
+    "fx": "node --env-file-if-exists=.env.local scripts/fx.mjs",
     "rewind": "node --env-file-if-exists=.env.local scripts/rewind.mjs"
   },
   "dependencies": {

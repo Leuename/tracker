@@ -49,7 +49,7 @@ const rest = (path, init = {}) =>
   fetch(URL_ + '/rest/v1/' + path, { ...init, headers: { apikey: KEY, ...(init.headers || {}) } })
 
 console.log('\n== 1. Anonymous access ==')
-for (const table of ['txns', 'receipts', 'recurring', 'transfers', 'app_config', 'audit_log', 'profiles']) {
+for (const table of ['txns', 'receipts', 'recurring', 'transfers', 'app_config', 'audit_log', 'profiles', 'fx_rates', 'fx_latest']) {
   const r = await rest(table + '?select=*')
   const body = await r.text()
   check(`anon cannot read ${table}`, r.status === 401 || r.status === 403,
@@ -324,6 +324,66 @@ const c = await (async () => signedIn)()
   try { code = JSON.parse(body).code || null } catch { code = null }
   check('the private schema is refused by PostgREST, not served',
     r.status >= 400 && code === 'PGRST106', 'HTTP ' + r.status + ' ' + (code || body.slice(0, 80)))
+}
+
+// ---- exchange rates -------------------------------------------------
+// The rates table is the one place in this schema where being an administrator
+// grants NOTHING. Every other table gates writes on `not is_viewer()`; these
+// two policies name a single account, so the probe — which signs in as an
+// administrator — must be refused here and nowhere else.
+//
+// Assert the refusal, not the absence of an error: a blocked policy and a
+// missing row both leave you with no row, so each check reads the state back.
+{
+  const row = { cur: 'USD', as_of: '1999-01-04', rate: 1.234567, source: 'sec-probe' }
+  const { error: insErr } = await c.from('fx_rates').insert(row)
+  const { data: landed } = await c.from('fx_rates')
+    .select('cur').eq('as_of', '1999-01-04').maybeSingle()
+  check('an administrator cannot add a rate', !!insErr && !landed,
+    insErr ? insErr.code + ' ' + insErr.message.slice(0, 60) : 'INSERT WAS ACCEPTED')
+}
+{
+  // Against a row that exists, so a refusal cannot be confused with "no match".
+  const { data: real } = await c.from('fx_rates')
+    .select('cur, as_of, rate').order('as_of', { ascending: false }).limit(1).maybeSingle()
+  if (!real) {
+    check('an administrator cannot rewrite a rate', true, 'no rates stored yet — nothing to rewrite')
+  } else {
+    const { error: updErr } = await c.from('fx_rates')
+      .update({ rate: 1.111111 }).eq('cur', real.cur).eq('as_of', real.as_of)
+    const { data: after } = await c.from('fx_rates')
+      .select('rate').eq('cur', real.cur).eq('as_of', real.as_of).maybeSingle()
+    check('an administrator cannot rewrite a rate',
+      Number(after && after.rate) === Number(real.rate),
+      updErr ? updErr.code + ' ' + updErr.message.slice(0, 60) : 'rate is still ' + (after && after.rate))
+  }
+}
+{
+  // `fetched_at` is server-managed and in neither column grant, so a client
+  // cannot claim a rate was fetched at a time it was not. Same shape as
+  // `created_at` on the other four tables (D23).
+  const { error } = await c.from('fx_rates')
+    .insert({ cur: 'USD', as_of: '1999-01-05', rate: 1, source: 'sec-probe', fetched_at: '1999-01-05T00:00:00Z' })
+  check('fx_rates.fetched_at cannot be set by the client', !!error,
+    error ? error.code + ' ' + error.message.slice(0, 60) : 'INSERT WAS ACCEPTED')
+}
+{
+  const { data, error } = await c.from('fx_latest').select('cur, rate, as_of')
+  check('a signed-in account can read the latest rates', !error,
+    error ? error.message.slice(0, 70) : (data || []).length + ' currencies')
+}
+{
+  // The wire's own rate IS client-writable, deliberately: a person may override
+  // the fetched rate, because only they know what the bank actually charged.
+  // This check proves the column grant landed, not that a control is holding.
+  const id = Date.now()
+  const { error: insErr } = await c.from('transfers')
+    .insert({ id, co: 'SEC', name: 'sec-probe rate', cur: 'USD', amount: 1, status: 'cancelled', note: 'E2E-secprobe', rate: 61.5, rate_as_of: '2026-09-02' })
+  const { data: back } = await c.from('transfers').select('rate, rate_as_of').eq('id', id).maybeSingle()
+  check('a wire records the rate it was sent at',
+    !insErr && !!back && Number(back.rate) === 61.5 && back.rate_as_of === '2026-09-02',
+    insErr ? insErr.message.slice(0, 70) : 'rate ' + (back && back.rate) + ' as of ' + (back && back.rate_as_of))
+  await c.from('transfers').delete().eq('id', id)
 }
 
 console.log('\n== 6. Receipt file storage ==')

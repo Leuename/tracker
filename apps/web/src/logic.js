@@ -241,25 +241,51 @@ export const longDate = (d) => {
 export const alphabetical = (list) => [...(list || [])].sort((a, b) => String(a).localeCompare(String(b)))
 
 /**
- * Peso value of one unit of each wire currency.
+ * Peso value of one unit of each wire currency — the LAST resort, not the only
+ * one. `fx_rates` supersedes these daily and a wire's own stored rate
+ * supersedes that; see `rateFor` below for the order.
  *
- * These are STATIC. Nothing here reads a rate feed, and no rate is stored on
- * the row, so the strip totals are an indication of size and not an accounting
- * figure — a wire sent last quarter is valued at today's constant, and the
- * constant is only as fresh as the last time somebody edited this line.
- *
- * Each wire keeps its own currency and amount untouched in the database, so
- * the per-row figures on the sheet are always exact; only the two cross-
- * currency totals depend on this table.
- *
- * ponytail: static table, move to app_config settings (or a stored per-wire
- * rate, which is what accounting would actually want) when the totals start
- * being used as figures rather than as a sense of scale.
+ * They are kept because a rate table that has never been fetched, or a currency
+ * the feed does not publish, still has to produce a number. They are stale by
+ * construction: measured against the ECB fix of 2026-09-02 they run 7% to 15%
+ * low, so anything landing on them understates. That is why `rateFor` reports
+ * which rung it used and the strip says so on screen.
  */
 export const TRANSFER_RATES = { PHP: 1, USD: 58, GBP: 74, EUR: 63, AUD: 38 }
 
-/** A wire's amount converted to pesos, for totalling across currencies. */
-export const inPesos = (w) => Number(w.amount || 0) * (TRANSFER_RATES[w.cur] || 1)
+/**
+ * Which rate values a wire, and where it came from.
+ *
+ * Three rungs, most specific first:
+ *
+ *   1. the rate stored ON the wire — what it was actually sent at. A released
+ *      wire must keep the value it had the day it went out, so once this is set
+ *      nothing may re-price it. This is the whole point of storing it.
+ *   2. today's `fx_rates` row for that currency — for a wire not yet sent, and
+ *      for anything entered before rates existed.
+ *   3. `TRANSFER_RATES` — a currency the feed does not carry, or a database
+ *      with no rates in it yet.
+ *
+ * `w.rate` is compared against null rather than truthiness: a stored 0 is a
+ * nonsense rate, but so is silently falling through to a constant that values
+ * the wire at 58× what somebody deliberately wrote down. Zero is honoured and
+ * shows as zero, which is visible; a silent fallback is not.
+ */
+export const rateFor = (w, rates) => {
+  if (w && w.rate != null && w.rate !== '') return { rate: Number(w.rate), src: 'wire', asOf: w.rate_as_of || null }
+  const live = (rates || {})[w && w.cur]
+  if (live && live.rate != null) return { rate: Number(live.rate), src: 'feed', asOf: live.as_of || null }
+  return { rate: TRANSFER_RATES[w && w.cur] || 1, src: 'constant', asOf: null }
+}
+
+/**
+ * A wire's amount converted to pesos, for totalling across currencies.
+ *
+ * `rates` is the `fx_latest` map — `{ USD: { rate, as_of }, … }`. Omitting it
+ * is not an error: the chain simply falls to the constants, which is what every
+ * caller did before rates existed.
+ */
+export const inPesos = (w, rates) => Number(w.amount || 0) * rateFor(w, rates).rate
 
 /** '$38,200' — a wire always prints in the currency it is actually sent in. */
 export const curFmt = (cur, n, symbols) =>
@@ -271,12 +297,23 @@ export const curFmt = (cur, n, symbols) =>
  * Cancelled and on-hold wires are deliberately excluded from both: a cancelled
  * wire stays on the sheet for the audit trail but is not money going anywhere,
  * and one on hold is not yet committed either.
+ *
+ * `asOf` is the OLDEST date any counted wire was priced at, and null when even
+ * one of them fell through to a constant. The strip prints it, so a total
+ * carrying one unpriced wire cannot claim a date it does not deserve — the
+ * weakest rung decides what the figure may say about itself.
  */
-export const transferTotals = (transfers = []) => {
+export const transferTotals = (transfers = [], rates) => {
   const pending = transfers.filter((w) => w.status === 'pending')
   const released = transfers.filter((w) => w.status === 'released')
-  const sum = (rows) => rows.reduce((a, w) => a + inPesos(w), 0)
-  return { pending: sum(pending), pendingCount: pending.length, released: sum(released) }
+  const counted = [...pending, ...released]
+  const sum = (rows) => rows.reduce((a, w) => a + inPesos(w, rates), 0)
+
+  const seen = counted.map((w) => rateFor(w, rates))
+  const dates = seen.map((r) => r.asOf)
+  const asOf = counted.length && dates.every(Boolean) ? dates.sort()[0] : null
+
+  return { pending: sum(pending), pendingCount: pending.length, released: sum(released), asOf }
 }
 
 /**

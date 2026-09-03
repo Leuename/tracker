@@ -1,8 +1,9 @@
 import { useActions } from '../actions.js'
 import { CSYM, CUR } from '../data.js'
 import { Field, Modal, Select } from '../ui.jsx'
+import RateField from './RateField.jsx'
 
-const EMPTY = { co: '', name: '', cur: 'USD', amount: '', status: 'pending', note: '' }
+const EMPTY = { co: '', name: '', cur: 'USD', amount: '', status: 'pending', note: '', rate: '', rate_as_of: '' }
 
 const STATUSES = [
   { v: 'pending', label: 'Pending' },
@@ -52,6 +53,8 @@ export default function AddTransfer() {
           </select>
         </Field>
       </div>
+
+      <RateField w={w} cur={w.cur} live={(state.fxRates || {})[w.cur]} onChange={setTel('rate')} />
 
       <Field label="Note" hint="optional">
         <input className="field" placeholder="Reference, purchase order, or why it is waiting"

@@ -52,7 +52,7 @@ async function start() {
   const defaults = configOf(initialState)
   await supabase.from('app_config').insert({ id: true, data: defaults }).then(ok)
   return {
-    txns: [], receipts: [], recurring: [], transfers: [], ...defaults, notes: [],
+    txns: [], receipts: [], recurring: [], transfers: [], fxRates: {}, ...defaults, notes: [],
     // Whoever reaches this line is an administrator: creating the config row is
     // an INSERT on app_config, and only "administrators may create the settings"
     // permits one — a viewer would have thrown above. Saying so explicitly
@@ -104,11 +104,15 @@ async function isAdmin() {
 
 /** Read the shared dataset, seeding it on the workspace's first run. */
 async function read() {
-  const [txns, receipts, recurring, transfers, config, admin] = await Promise.all([
+  const [txns, receipts, recurring, transfers, fx, config, admin] = await Promise.all([
     supabase.from('txns').select('*').order('id', { ascending: false }).then(ok),
     supabase.from('receipts').select('*').order('id').then(ok),
     supabase.from('recurring').select('*').order('id').then(ok),
     supabase.from('transfers').select('*').order('id').then(ok),
+    // `fx_latest`, not `fx_rates`: the view is one row per currency and stays
+    // that size, while the table grows by four rows every working day and would
+    // cross PostgREST's silent 1,000-row cap inside a year.
+    supabase.from('fx_latest').select('cur, rate, as_of').then(ok),
     supabase.from('app_config').select('data').maybeSingle().then(ok),
     // The same question every policy asks, read from the same table the policy
     // reads, so the screen and the row-level security agree about who this is.
@@ -133,6 +137,11 @@ async function read() {
     receipts: receipts.map(fromReceipt),
     recurring: recurring.map(fromRecurring),
     transfers: transfers.map(fromTransfer),
+    // `{ USD: { rate, as_of }, … }` — what `rateFor` in logic.js takes as its
+    // second rung. An empty object is a valid state, not a failure: it is what
+    // a database with no rates yet looks like, and every wire then falls
+    // through to TRANSFER_RATES exactly as it did before rates existed.
+    fxRates: Object.fromEntries((fx || []).map((r) => [r.cur, { rate: Number(r.rate), as_of: r.as_of }])),
     notes: cfg.notes || initialState.notes,
     // Held a–z on the way in, so a row written before the lists were sorted
     // still displays in order without needing a migration to rewrite it.

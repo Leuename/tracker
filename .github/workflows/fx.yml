@@ -1,0 +1,73 @@
+# Fetch the day's ECB exchange rates and store them in `fx_rates`.
+#
+# Separate from Schedule for two reasons. The cadence differs, and — the reason
+# that matters — so does the identity. Schedule signs in as an administrator
+# because it writes payables. This job must not be able to do that: it uses a
+# dedicated account whose `profiles.role` is `viewer`, so `is_viewer()` refuses
+# it on every table in the ledger, and a single policy naming its uid lets it
+# write `fx_rates` and nothing else. No administrator writes rates.
+#
+# It does not use a service_role key. That key ignores row-level security on
+# every table and can TRUNCATE, so it would be the highest-authority secret in
+# this repository — a far larger loss than the account below, which can do
+# strictly less than any human one.
+name: FX rates
+
+on:
+  schedule:
+    # 10:00 and 16:00 in Manila, as asked for.
+    #
+    # Both land BEFORE the ECB publishes, which is about 16:00 CET — 14:00 UTC,
+    # 22:00 in Manila. So both runs see the PREVIOUS working day's fix and the
+    # rate on screen is always one working day old. That is deliberate and was
+    # decided with the arithmetic in front of us: a T+1 reference rate is a
+    # normal convention, and the ECB publishes only once a day in any case, so
+    # a second run could never be a second number.
+    #
+    # What the second run buys is repair. A failed or missed 10:00 run is fixed
+    # by 16:00 instead of waiting a day. Because the script writes only when a
+    # value actually differs, a run with nothing to do writes nothing at all —
+    # no row, no audit entry.
+    - cron: '0 2 * * *'   # 10:00 Manila
+    - cron: '0 8 * * *'   # 16:00 Manila
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Fetch and report, write nothing'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fx
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          # 22 or newer: supabase-js reaches for a native WebSocket at
+          # createClient and Node 20 has none.
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - run: npm ci
+        working-directory: apps/web
+
+      - name: Fetch and store rates
+        run: npm run fx ${{ inputs.dry_run && '-- --dry-run' || '' }}
+        working-directory: apps/web
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          # The rates account. NOT an administrator, and deliberately not the
+          # account Backup and Schedule share.
+          FX_EMAIL: ${{ secrets.FX_EMAIL }}
+          FX_PASSWORD: ${{ secrets.FX_PASSWORD }}

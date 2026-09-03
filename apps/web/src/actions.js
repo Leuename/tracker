@@ -388,13 +388,50 @@ export function useActions() {
   // The sheet edits currency, status and note in place, the way the masterlist
   // does, so those go through the same coalescing queue: one write per row
   // after typing stops, not one per keystroke in the note field.
-  const TEL_BLANK = () => ({ co: '', name: '', cur: 'USD', amount: '', status: 'pending', note: '' })
+  const TEL_BLANK = () => ({ co: '', name: '', cur: 'USD', amount: '', status: 'pending', note: '', rate: '', rate_as_of: '' })
 
-  const openTransfer = () => set({ telOpen: true, telError: '', tel: TEL_BLANK() })
+  /**
+   * The rate a form should open with, from the stored `fx_latest` map.
+   *
+   * Pre-filled as a real value rather than shown as a placeholder, so what is
+   * on screen is what gets stored. A wire that saved with no rate would fall
+   * back to the feed on every later render and quietly re-price itself when the
+   * peso moved — the exact problem storing a rate exists to prevent.
+   *
+   * Empty when the feed has no row for that currency. The wire then saves
+   * unpriced and falls through to TRANSFER_RATES, which is honest: the app has
+   * no rate to offer and should not invent one.
+   */
+  const rateDefault = (cur) => {
+    const live = (state.fxRates || {})[cur]
+    return live && live.rate != null
+      ? { rate: String(live.rate), rate_as_of: live.as_of || '' }
+      : { rate: '', rate_as_of: '' }
+  }
+
+  const openTransfer = () => set({ telOpen: true, telError: '', tel: { ...TEL_BLANK(), ...rateDefault('USD') } })
   const closeTransfer = () => set({ telOpen: false, telError: '' })
+
+  /**
+   * Two keys are not plain text boxes.
+   *
+   * Changing the currency re-defaults the rate: a rate typed for USD is
+   * meaningless against EUR, so carrying it across would be worse than
+   * discarding it.
+   *
+   * Typing a rate re-dates it to today. The number is no longer the ECB fix it
+   * was pre-filled with, so it must stop claiming that fix's date — a
+   * hand-entered bank rate is a rate applying now.
+   */
+  const telPatch = (k, v, cur) => {
+    if (k === 'cur') return { cur: v, ...rateDefault(v) }
+    if (k === 'rate') return { rate: v, rate_as_of: TODAY }
+    return { [k]: v }
+  }
+
   const setTel = (k) => (e) => {
     const v = e.target.value
-    set((s) => ({ tel: { ...(s.tel || TEL_BLANK()), [k]: v }, telError: '' }))
+    set((s) => ({ tel: { ...(s.tel || TEL_BLANK()), ...telPatch(k, v) }, telError: '' }))
   }
 
   const saveTransfer = () => {
@@ -411,6 +448,9 @@ export function useActions() {
     const row = {
       id: Date.now(), co: w.co, name: w.name.trim(), cur: w.cur,
       amount: amt, status: w.status, note: w.note.trim(),
+      // Empty stays empty rather than becoming 0: `rows.js` turns '' into null,
+      // meaning "never priced", while a stored 0 would mean "worth nothing".
+      rate: w.rate, rate_as_of: w.rate_as_of,
     }
     set((s) => ({ transfers: [...s.transfers, row], telOpen: false, telError: '' }))
     save(db.insertTransfer(row), 'the new transfer')
@@ -424,13 +464,21 @@ export function useActions() {
   }
 
   const openTransferRow = (w) => () => {
-    const e = { co: w.co, name: w.name, cur: w.cur, amount: String(w.amount), status: w.status, note: w.note || '' }
+    // A wire priced already opens with its own rate. One that was never priced
+    // — every wire that existed before rates shipped — opens with today's feed
+    // rate offered, so pricing the backlog is opening a row and saving it. The
+    // offer is only stored if somebody saves, and it is editable first.
+    const priced = w.rate != null && w.rate !== ''
+    const e = {
+      co: w.co, name: w.name, cur: w.cur, amount: String(w.amount), status: w.status, note: w.note || '',
+      ...(priced ? { rate: String(w.rate), rate_as_of: w.rate_as_of || '' } : rateDefault(w.cur)),
+    }
     set({ telEditOpen: true, telEditId: w.id, telEdit: e, telEditOrig: e, telEditError: '' })
   }
 
   const setTelE = (k) => (e) => {
     const v = e.target.value
-    set((s) => ({ telEdit: { ...(s.telEdit || TEL_BLANK()), [k]: v }, telEditError: '' }))
+    set((s) => ({ telEdit: { ...(s.telEdit || TEL_BLANK()), ...telPatch(k, v) }, telEditError: '' }))
   }
 
   const saveTransferEdit = () => {
@@ -444,6 +492,7 @@ export function useActions() {
     const next = {
       ...state.transfers.find((w) => w.id === id),
       co: e.co, name: e.name.trim(), cur: e.cur, amount: amt, status: e.status, note: e.note.trim(),
+      rate: e.rate, rate_as_of: e.rate_as_of,
     }
     cancelRow('transfers', id)
     set((s) => ({ transfers: s.transfers.map((w) => w.id === id ? next : w), telEditOpen: false, telEditError: '' }))

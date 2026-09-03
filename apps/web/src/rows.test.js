@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  CONFIG_KEYS, configOf, forUpdate, fromReceipt, fromRecurring, fromTxn, toReceipt, toRecurring, toTxn, configPatch,
+  CONFIG_KEYS, configOf, forUpdate, fromReceipt, fromRecurring, fromTransfer, fromTxn, toReceipt, toRecurring, toTransfer, toTxn, configPatch,
 } from './rows.js'
 import { initialState } from './data.js'
 
@@ -152,4 +152,39 @@ test('configPatch compares by value, not by reference', () => {
 
   const edited = { ...prev, notes: [{ t: 'a', done: true }] }
   assert.deepEqual(configPatch(prev, edited), { notes: [{ t: 'a', done: true }] })
+})
+
+// ---- a wire's stored rate --------------------------------------------
+// null means "never priced", and it has to survive the round trip as null.
+// Writing 0 instead would mean "worth nothing", which values the wire at zero
+// pesos instead of falling back to the feed.
+
+const wire = { id: 1, co: 'GTOI', name: 'Acme', cur: 'USD', amount: 1000, status: 'pending', note: '' }
+
+test('a wire round-trips the rate it was sent at', () => {
+  const priced = { ...wire, rate: 62.5453, rate_as_of: '2026-09-02' }
+  const back = fromTransfer(toTransfer(priced))
+  assert.equal(back.rate, 62.5453)
+  assert.equal(back.rate_as_of, '2026-09-02')
+})
+
+test('an unpriced wire keeps its rate null, not zero', () => {
+  const back = fromTransfer(toTransfer(wire))
+  assert.equal(back.rate, null)
+  assert.equal(back.rate_as_of, null)
+})
+
+test('an empty rate off a form is stored as null rather than 0', () => {
+  const typed = { ...wire, rate: '', rate_as_of: '' }
+  assert.equal(toTransfer(typed).rate, null)
+  assert.equal(toTransfer(typed).rate_as_of, null)
+})
+
+test('a rate arriving as a string comes back as a number', () => {
+  // numeric columns come off PostgREST as strings, the same way amount does.
+  assert.equal(fromTransfer({ ...wire, rate: '62.545300', rate_as_of: '2026-09-02' }).rate, 62.5453)
+})
+
+test('a deliberate zero rate is kept, because it is visibly wrong', () => {
+  assert.equal(fromTransfer(toTransfer({ ...wire, rate: 0 })).rate, 0)
 })

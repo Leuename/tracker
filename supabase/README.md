@@ -12,7 +12,7 @@ up: "[AI Agent Context](../docs/AI%20Agent%20Context.md)"
 
 # Supabase schema
 
-The twelve migrations that built the hosted project, in the order they were applied.
+The thirteen migrations that built the hosted project, in the order they were applied.
 
 Until 2026-09-01 these existed **only** inside the Supabase project. The repository had no
 schema source of truth, so losing the project lost the shape of the data as well as the
@@ -32,6 +32,7 @@ data. They are versioned here now.
 | `20260901165841_merge_app_config` | `merge_app_config(patch)`, so two people editing different settings stop clobbering each other ([D28](../docs/Decisions.md)) |
 | `20260901170544_viewer_role` | `profiles`, `is_viewer()`, and every write policy rewritten behind it ([D29](../docs/Decisions.md)) |
 | `20260901170754_harden_merge_app_config` | Makes a refused config merge raise `42501` instead of returning 0 ([D30](../docs/Decisions.md)) |
+| `20260903144056_fx_rates` | `fx_rates`, the `fx_latest` view, and `transfers.rate`/`rate_as_of`. No administrator can write a rate — its two write policies name one dedicated account's uid instead of gating on `is_viewer()`, because a rate a user can edit is not a rate |
 
 ## How these were produced
 
@@ -68,6 +69,12 @@ principle": it has been done.
 176 and looked like drift; the extra was `realtime.subscription.tr_check_filters`, a
 Supabase platform trigger, because the query excluded `storage%` but not `realtime%`.
 
+`20260903144056_fx_rates` postdates both replays above and has not been through one: it is
+proven live on production — write refused for an administrator, permitted for the rates
+account, `fx_latest` readable, all checked directly and via `npm run security` — but not proven
+to replay cleanly into an empty project the way the first twelve are. The next full replay
+should cover it.
+
 ## What has still not been proven
 
 A replayed *schema* is not a restored *database*. The data half has its own failure modes and
@@ -97,16 +104,29 @@ plus separate write policies predicated on `not public.is_viewer()`, because a s
 `apps/web/scripts/backup.mjs`; its own checks in `apps/web/security/probe.mjs`; and its own
 `log_change()` trigger (D24).
 
+`fx_rates` is the one deliberate exception to the `not is_viewer()` write pattern: a rate a
+user can edit is not a rate, so its write policies name one dedicated account's uid instead of
+gating on role at all. Copying that shape onto an ordinary table would be a mistake — it exists
+because no administrator should be able to write here, which is not true of `txns`,
+`receipts`, `recurring` or `transfers`.
+
 ## Pending, written but not applied
 
-Two migrations sit in `migrations/` that **no database has ever run**. Every other file here is
-byte-identical to what was applied; these two are not, and the folder's usual invariant — apply in
-version order and the schema rebuilds — does **not** hold while they are present.
+Two migrations sit in `migrations/` that **no database has ever run**. Every other file here,
+`20260903144056_fx_rates` included, is byte-identical to what was applied; these two are not, and
+the folder's usual invariant — apply in version order and the schema rebuilds — does **not** hold
+while they are present.
 
 | File | State |
 |---|---|
 | `20260903071500_private_is_viewer.sql` | Moves `is_viewer()` into a non-exposed `private` schema and repoints all 17 write policies plus `merge_app_config`. Keeps `public.is_viewer()` deliberately. Unapplied, and unproven even on the rehearsal project |
 | `20260903071600_drop_public_is_viewer.sql` | Drops `public.is_viewer()`. **Do not apply it out of order** |
+
+`fx_rates` needed the same kind of gate while it was unapplied — its two write policies name one
+dedicated account's uid, so the account had to exist first — but that account was created on
+2026-09-03 and the migration has since been applied and proven live, so it moved up into the main
+table above. It is independent of the two `is_viewer` migrations below and was applied without
+touching either.
 
 **The ordering is load-bearing.** While a deployed frontend still calls `/rest/v1/rpc/is_viewer`,
 dropping the function breaks sign-in for everybody. The sequence is: apply migration 1 → deploy the

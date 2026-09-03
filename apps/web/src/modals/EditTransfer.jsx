@@ -1,8 +1,9 @@
 import { useActions } from '../actions.js'
 import { CSYM, CUR } from '../data.js'
 import { Field, Modal, Select } from '../ui.jsx'
+import RateField from './RateField.jsx'
 
-const EMPTY = { co: '', name: '', cur: 'USD', amount: '', status: 'pending', note: '' }
+const EMPTY = { co: '', name: '', cur: 'USD', amount: '', status: 'pending', note: '', rate: '', rate_as_of: '' }
 
 const STATUSES = [
   { v: 'pending', label: 'Pending' },
@@ -56,6 +57,8 @@ export default function EditTransfer() {
           </select>
         </Field>
       </div>
+
+      <RateField w={e} cur={e.cur} live={(state.fxRates || {})[e.cur]} onChange={setTelE('rate')} />
 
       <Field label="Note" hint="optional">
         <input className="field" value={e.note} onChange={setTelE('note')} />

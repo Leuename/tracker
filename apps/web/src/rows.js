@@ -70,14 +70,25 @@ export const forUpdate = (row) => {
  * `cur` and not in pesos. Nothing here converts; see TRANSFER_RATES in
  * logic.js for the display-only conversion the totals use.
  */
+/**
+ * `rate` and `rate_as_of` are nullable and null is meaningful: this wire has
+ * never been priced, so it falls back to the feed and then to the constants.
+ * An empty string off a form is the same thing, so it is normalised to null
+ * rather than written as 0 — a stored 0 means "worth nothing", which is a
+ * different claim entirely.
+ */
+const nrate = (v) => (v === '' || v === null || v === undefined ? null : Number(v))
+
 export const toTransfer = (w) => ({
   id: w.id, co: w.co, name: w.name, cur: w.cur,
   amount: w.amount, status: w.status, note: ns(w.note),
+  rate: nrate(w.rate), rate_as_of: w.rate_as_of || null,
 })
 
 export const fromTransfer = (r) => ({
   id: Number(r.id), co: r.co, name: r.name, cur: r.cur,
   amount: Number(r.amount), status: r.status, note: ns(r.note),
+  rate: nrate(r.rate), rate_as_of: r.rate_as_of || null,
 })
 
 export const CONFIG_KEYS = ['notes', 'companies', 'categories', 'settings']

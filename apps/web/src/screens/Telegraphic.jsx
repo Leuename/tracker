@@ -1,6 +1,6 @@
 import { useActions } from '../actions.js'
 import { CSYM, CUR, TAG } from '../data.js'
-import { curFmt, fmt, transferTotals } from '../logic.js'
+import { curFmt, dstr, fmt, transferTotals } from '../logic.js'
 
 const COLS = '84px 172px 92px 132px 124px minmax(200px,1fr) 92px'
 
@@ -13,7 +13,15 @@ const STATUSES = [
 
 export default function Telegraphic() {
   const { state, openTransfer, updTel, openTransferRow, askRemoveTransfer } = useActions()
-  const totals = transferTotals(state.transfers)
+  const totals = transferTotals(state.transfers, state.fxRates)
+
+  // A number whose provenance is invisible is how this started: five constants
+  // with no date, running 7% to 15% low. `asOf` is null when even one counted
+  // wire fell through to those constants, and the strip then says so instead of
+  // claiming a date the figure has not earned.
+  const priced = totals.asOf
+    ? 'at ECB rates of ' + dstr(totals.asOf) + ' ' + totals.asOf.slice(0, 4)
+    : 'indicative — not all wires are priced'
 
   return (
     <div className="screen">
@@ -34,6 +42,8 @@ export default function Telegraphic() {
         <span className="spacer" />
         <span className="dim">Released</span>
         <span style={{ fontWeight: 700, color: '#5C8F72' }}>{fmt(totals.released)}</span>
+        <span className="dim">·</span>
+        <span className="dim">{priced}</span>
       </div>
 
       <div className="sheet" style={{ background: 'var(--surface)' }}>

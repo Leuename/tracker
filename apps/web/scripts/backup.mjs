@@ -32,7 +32,10 @@ import { supabase } from '../src/supabase.js'
 const HERE = dirname(fileURLToPath(import.meta.url))
 const OUT = join(HERE, '..', '..', '..', 'backups')
 const BUCKET = 'receipts'
-const TABLES = ['txns', 'receipts', 'recurring', 'transfers', 'app_config', 'audit_log', 'profiles']
+// `fx_rates` grows by four rows every working day, so it crosses PostgREST's
+// silent 1,000-row cap inside its first year. `readAll` below pages and asserts
+// the count, which is exactly the fix `audit_log` needed on 2026-09-02.
+const TABLES = ['txns', 'receipts', 'recurring', 'transfers', 'app_config', 'audit_log', 'profiles', 'fx_rates']
 
 const email = process.env.BACKUP_EMAIL
 const password = process.env.BACKUP_PASSWORD

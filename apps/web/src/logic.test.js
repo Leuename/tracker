@@ -3,7 +3,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { CSYM, initialState, MAX_OCC, TODAY } from './data.js'
 import {
-  addDays, alphabetical, buildGeneratedRows, curFmt, dstr, eff, inPesos, monthKeys, occurrences, openingView, parsePeriod, periodLabel, ruleLabel, transferTotals, visibleRows, windowDays, viewerActions, VIEWER_MAY} from './logic.js'
+  addDays, alphabetical, buildGeneratedRows, curFmt, dstr, eff, inPesos, monthKeys, occurrences, openingView, parsePeriod, periodLabel, rateFor, ruleLabel, transferTotals, visibleRows, windowDays, viewerActions, VIEWER_MAY} from './logic.js'
 
 const rent = { co: 'GTOI', cat: 'Rental Expense', freq: 'Monthly', desc: 'Warehouse B monthly rent', dueDate: '2026-08-24', amount: 45000 }
 
@@ -196,13 +196,71 @@ test('transfer totals convert to pesos and exclude what is not going anywhere', 
 })
 
 test('transferTotals is safe on an empty ledger', () => {
-  assert.deepEqual(transferTotals([]), { pending: 0, pendingCount: 0, released: 0 })
-  assert.deepEqual(transferTotals(), { pending: 0, pendingCount: 0, released: 0 })
+  assert.deepEqual(transferTotals([]), { pending: 0, pendingCount: 0, released: 0, asOf: null })
+  assert.deepEqual(transferTotals(), { pending: 0, pendingCount: 0, released: 0, asOf: null })
 })
 
 test('an unknown currency falls back to 1:1 rather than dropping the amount', () => {
   assert.equal(inPesos({ cur: 'ZZZ', amount: 250 }), 250)
   assert.equal(inPesos({ cur: 'USD', amount: 0 }), 0)
+})
+
+// ---- the rate fallback chain -----------------------------------------
+// Three rungs, and which one answered matters as much as the number: a total
+// built on a constant must not print a date claiming it came from the ECB.
+
+const FEED = { USD: { rate: 62.5453, as_of: '2026-09-02' }, EUR: { rate: 72.415, as_of: '2026-09-02' } }
+
+test('a rate stored on the wire beats the feed and the constant', () => {
+  const w = { cur: 'USD', amount: 100, rate: 60, rate_as_of: '2026-08-01' }
+  assert.deepEqual(rateFor(w, FEED), { rate: 60, src: 'wire', asOf: '2026-08-01' })
+  assert.equal(inPesos(w, FEED), 6000)
+})
+
+test('a wire with no stored rate takes the feed, not the constant', () => {
+  const w = { cur: 'USD', amount: 100 }
+  assert.deepEqual(rateFor(w, FEED), { rate: 62.5453, src: 'feed', asOf: '2026-09-02' })
+  assert.equal(inPesos(w, FEED), 6254.53)
+})
+
+test('a currency the feed does not carry falls through to the constant', () => {
+  assert.deepEqual(rateFor({ cur: 'GBP', amount: 1 }, FEED), { rate: 74, src: 'constant', asOf: null })
+  assert.deepEqual(rateFor({ cur: 'ZZZ', amount: 1 }, FEED), { rate: 1, src: 'constant', asOf: null })
+})
+
+test('no feed at all still values every wire, the way it did before rates existed', () => {
+  assert.equal(inPesos({ cur: 'USD', amount: 100 }), 5800)
+  assert.equal(inPesos({ cur: 'USD', amount: 100 }, {}), 5800)
+})
+
+test('a stored rate of zero is honoured, never silently replaced by a constant', () => {
+  // Zero is wrong, but it is wrong VISIBLY. Falling through would value the
+  // wire at 58x what somebody deliberately wrote down, and say nothing.
+  const w = { cur: 'USD', amount: 100, rate: 0 }
+  assert.equal(rateFor(w, FEED).src, 'wire')
+  assert.equal(inPesos(w, FEED), 0)
+})
+
+test('an empty-string rate off a form is not a rate', () => {
+  assert.equal(rateFor({ cur: 'USD', amount: 100, rate: '' }, FEED).src, 'feed')
+})
+
+test('totals report the oldest date they were priced at', () => {
+  const rows = [
+    { cur: 'USD', amount: 100, status: 'released', rate: 62, rate_as_of: '2026-08-20' },
+    { cur: 'EUR', amount: 100, status: 'pending' }, // feed, 2026-09-02
+  ]
+  assert.equal(transferTotals(rows, FEED).asOf, '2026-08-20')
+})
+
+test('one wire on a constant strips the date off the whole total', () => {
+  // GBP is not in FEED, so it lands on a constant and the total may not claim
+  // a source it did not entirely come from.
+  const rows = [
+    { cur: 'USD', amount: 100, status: 'pending' },
+    { cur: 'GBP', amount: 100, status: 'pending' },
+  ]
+  assert.equal(transferTotals(rows, FEED).asOf, null)
 })
 
 test('a wire prints in its own currency, not in pesos', () => {

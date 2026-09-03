@@ -132,6 +132,10 @@ export const initialState = {
   receipts,
   recurring,
   transfers: [],
+  // The fx_latest map, `{ USD: { rate, as_of }, … }`. Empty until the rates job
+  // has run: every wire then falls through to TRANSFER_RATES, which is exactly
+  // what happened before rates existed.
+  fxRates: {},
   notes: [
     { t: 'Follow up BIR receipt — GTOI', done: false, linked: true },
     { t: 'Ask ZON for the signed lease copy', done: false, linked: false },
