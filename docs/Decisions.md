@@ -655,6 +655,58 @@ Do not reorder `app.spec.js` casually. Changing `App.jsx`'s `signOut()` to `{ sc
 would remove the constraint — that is a live, user-visible behaviour change and is the owner's call,
 not a test-suite convenience.
 
+## D42 — Rates Are Written by a Named Account, Not by `not is_viewer()`
+
+Every other write policy in this schema follows one shape: `for insert/update ... with check (not
+public.is_viewer())`. `fx_rates`, shipped 2026-09-03, breaks that shape on purpose — its two write
+policies name one account's `uid` directly (`(select auth.uid()) = '<uuid>'::uuid`) and grant it
+nothing else in the schema. `is_viewer()` was never called.
+
+The reason: `not is_viewer()` means "any administrator," and all four administrators can already
+write every other table. A rate a user can edit is not a rate, for the same reason a role a user can
+edit is not a role (D29) — so admin status was deliberately made irrelevant to this one table. The
+account holding that `uid` has `profiles.role = 'viewer'`, so `is_viewer()` still refuses it
+everywhere else in the schema; it can write exactly two columns of one table and nothing more.
+
+Consequence for the "five things a new table needs" rule in `supabase/README.md`: `fx_rates` is the
+one documented exception. Copying its policy shape onto an ordinary table would be a bug, not a
+pattern — it exists because writing here should be closed to every administrator, which is not true
+anywhere else in this schema.
+
+## D43 — The FX Job Runs Twice Daily, Landing Before ECB Publication Both Times, Deliberately
+
+The owner asked for two runs a day, 10:00 and 16:00 Manila. The ECB publishes its one daily
+reference fix at roughly 16:00 CET — 14:00 UTC, 22:00 Manila — so **both** requested times land
+before that day's publication and both see the *previous* working day's fix. Raised explicitly and
+confirmed by the owner rather than silently reinterpreted: `.github/workflows/fx.yml` runs at
+`0 2` and `0 8` UTC exactly, and the rate shown in the app is always one working day (T+1) old.
+
+This is a normal accounting convention, not a defect, and the second run is not a second number —
+ECB publishes once — it is a **retry**: if the 02:00 UTC run fails or the Action queue is delayed,
+08:00 UTC repairs it within six hours instead of leaving a stale rate for a full day. Because
+`fx.mjs` writes only when a fetched value differs from what is stored (see D38's carry-forward
+reasoning, same shape), a run with nothing new to report writes zero rows and fires no audit
+trigger — proven in production on 2026-09-03: a same-day rerun logged
+`Already stored for 2026-09-03 — nothing to write.` and left `audit_log` untouched.
+
+## D44 — Password Rotation for the Rates Account Is Deferred, With a Standing Reminder
+
+`admin@admin.com` / `admin` is live on production (`jusifpditdigqdjiwdaj`) as the `fx_rates`-writing
+account, `uid 14f0d1af-f37a-4936-b278-e280bcb25129`, created 2026-09-03. Supabase's own sign-in
+response already flags it: `"weak_password":{"message":"Password should be at least 6 characters."}`
+— accepted anyway, because the dashboard's minimum is advisory, not enforced at the API layer.
+
+The credential pair is the most commonly guessed one on the internet, and while `is_viewer()` keeps
+it from writing anything but `fx_rates`, every read policy in this schema is still `using(true)` —
+so this login can read the entire ledger, same as any other signed-in account. Rotating it costs
+nothing structurally: same `uid`, same policies, only `FX_PASSWORD` in `.env.local` and the
+`FX_PASSWORD` GitHub secret change together.
+
+The owner deferred rotating it explicitly — "we are live and testing at the same time, we will not
+change password yet" — and asked to be reminded. This joins the existing deferred-rotation list (the
+project password and Vercel token, both deferred per the git-workflow rule). **Do not rotate this
+password without being asked**; do raise it again once the exchange-rates work has settled.
+
 ## Guideline Basis
 
 - **AGENT-03** ensures adapter workflows stop rather than invent authorization.
