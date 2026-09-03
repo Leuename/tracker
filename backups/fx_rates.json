@@ -1,0 +1,30 @@
+[
+  {
+    "as_of": "2026-09-03",
+    "cur": "USD",
+    "fetched_at": "2026-09-03T14:43:59.729133+00:00",
+    "rate": 62.509686,
+    "source": "ECB via frankfurter.dev"
+  },
+  {
+    "as_of": "2026-09-03",
+    "cur": "GBP",
+    "fetched_at": "2026-09-03T14:43:59.729133+00:00",
+    "rate": 84.370461,
+    "source": "ECB via frankfurter.dev"
+  },
+  {
+    "as_of": "2026-09-03",
+    "cur": "EUR",
+    "fetched_at": "2026-09-03T14:43:59.729133+00:00",
+    "rate": 72.605,
+    "source": "ECB via frankfurter.dev"
+  },
+  {
+    "as_of": "2026-09-03",
+    "cur": "AUD",
+    "fetched_at": "2026-09-03T14:43:59.729133+00:00",
+    "rate": 44.965009,
+    "source": "ECB via frankfurter.dev"
+  }
+]

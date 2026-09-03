@@ -18,5 +18,10 @@
     "created_at": "2026-09-01T17:05:44.607992+00:00",
     "role": "admin",
     "user_id": "8444efad-f65a-4ba1-bde7-39b355c78cbf"
+  },
+  {
+    "created_at": "2026-09-03T14:40:23.445607+00:00",
+    "role": "viewer",
+    "user_id": "14f0d1af-f37a-4936-b278-e280bcb25129"
   }
 ]

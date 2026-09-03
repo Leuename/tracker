@@ -5,6 +5,11 @@
     "user_id": "02155e68-eb65-4089-989e-9a0485100ada"
   },
   {
+    "email": "admin@admin.com",
+    "role": "viewer",
+    "user_id": "14f0d1af-f37a-4936-b278-e280bcb25129"
+  },
+  {
     "email": "mikmiktabs@gmail.com",
     "role": "admin",
     "user_id": "7c038387-47e3-4d3a-80f2-dfaeb6201fde"
