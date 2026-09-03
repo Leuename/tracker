@@ -25,14 +25,17 @@ Every command below is backed by `package.json` in this directory.
 | `npm run dev` | Development server on http://localhost:5173. |
 | `npm run build` | Production bundle into `dist/`. |
 | `npm run preview` | Serves the built bundle. |
-| `npm test` | `node --test src/logic.test.js src/rows.test.js src/errors.test.js` — 39 assertions over the recurrence, period, row-mapping and error rules. Runs offline. No test framework. |
-| `npm run e2e` | 27 Playwright specs. Needs `E2E_EMAIL` and `E2E_PASSWORD`; `E2E_BASE_URL` points them at a deployment. Without them the suite **skips and exits 0** — set `E2E_REQUIRE_CREDENTIALS=1` to make that a failure instead. |
-| `npm run security` | 41-check security probe against Supabase and the deployment. One check fails by decision: self-serve sign-up is deferred. |
-| `npm run smoke` | End-to-end check against the live Supabase project. Needs the network and `SMOKE_EMAIL` / `SMOKE_PASSWORD` for one of the two issued accounts. It writes to the shared ledger, so run it before real data goes in. |
+| `npm test` | `node --test src/logic.test.js src/rows.test.js src/errors.test.js scripts/rewind-plan.test.js` — 53 assertions over the recurrence, period, row-mapping, error and rewind-plan rules. Runs offline. No test framework. |
+| `npm run e2e` | 27 Playwright specs, behind a `setup` project that signs in once and saves the session. Needs `E2E_EMAIL` and `E2E_PASSWORD`; `E2E_BASE_URL` points them at a deployment. Without them the suite **skips and exits 0** — set `E2E_REQUIRE_CREDENTIALS=1` to make that a failure instead. They write to the shared ledger, so `playwright.config.js` pins `workers: 1` — `fullyParallel: false` alone only serialises within a file. |
+| `npm run security` | 47-check security probe against Supabase and the deployment. Checks named in `DEFERRED` still run and print, tagged `DEFER`, without failing the suite; that list is empty today, so all 47 pass. A green run is not proof on its own — read the deferred count. |
+| `npm run schedule` | Generates this month's recurring payables and reports what is overdue. Signs in as an administrator and **writes to the ledger**, so it needs `SCHEDULE_EMAIL` and `SCHEDULE_PASSWORD`. Idempotent — `buildGeneratedRows` skips a payable that already exists. `npm run schedule -- --dry-run` reports what it would do and writes nothing. |
+| `npm run backup` | Snapshot every table into `backups/`, paging past PostgREST's 1,000-row cap and asserting the count. Reads only; needs `BACKUP_EMAIL` / `BACKUP_PASSWORD`. Run nightly by `.github/workflows/backup.yml`. |
+| `npm run rewind -- --since <ISO>` | Reconstruct the ledger as it stood at any second, from `audit_log`. Writes nothing to the database — it prints the plan and emits a `.sql` file to apply as `postgres`. Generated plans are git-ignored; they carry whole rows in plain text. |
+| `npm run smoke` | End-to-end check against the live Supabase project. Needs the network and `SMOKE_EMAIL` / `SMOKE_PASSWORD` for one of the issued accounts. It writes to the shared ledger, so run it before real data goes in. |
 
 ## Configuration
 
-Copy `.env.example` to `.env.local` and fill in both values:
+Copy `.env.example` to `.env.local`. The two the app itself needs:
 
 | Variable | Is |
 |---|---|
@@ -43,43 +46,102 @@ Both ship inside the browser bundle by design. Row access is enforced by row-lev
 policies in the database, not by keeping the key secret. **Never put the `service_role` or any
 secret key in this file** — Vite sends every `VITE_`-prefixed variable to the client.
 
+The scripts need credentials of their own, which are **not** `VITE_`-prefixed and never reach the
+bundle. `.env.example` names them; put the values in `.env.local`, which is git-ignored.
+
+| Variable | For | Privilege |
+|---|---|---|
+| `SCHEDULE_EMAIL` / `SCHEDULE_PASSWORD` | `npm run schedule` | An administrator. The scheduler **writes** to the ledger; a viewer account makes the run go red with `42501`. |
+| `BACKUP_EMAIL` / `BACKUP_PASSWORD` | `npm run backup` | Any account. The backup only reads, through RLS. |
+| `E2E_EMAIL` / `E2E_PASSWORD` | `npm run e2e` | An issued account. |
+
+Try the scheduler without touching anything:
+
+```bash
+SCHEDULE_EMAIL=… SCHEDULE_PASSWORD=… npm run schedule -- --dry-run
+```
+
+**There is no fallback between these credentials, deliberately.** `.github/workflows/schedule.yml`
+maps `SCHEDULE_EMAIL`/`SCHEDULE_PASSWORD` from the `BACKUP_EMAIL`/`BACKUP_PASSWORD` repository
+secrets, so today one account does both jobs — but that is a mapping written down in the workflow,
+not a default in the code. A code-level fallback would hide the fact that one of these credentials
+writes to a live financial ledger and the other does not.
+
+### The Playwright sign-in state, and why a trace is a credential
+
+`E2E_PASSWORD` is typed exactly once per run, by the `setup` project in
+`e2e/auth.setup.js`, which is the one project with `trace: 'off'`. Every other spec starts from
+the session it saves and never touches the form. Two in `app.spec.js` are the deliberate
+exceptions — the gate spec and the wrong-password spec, whose whole purpose is the form; they
+override the saved state with an empty one, and the wrong-password spec types a literal.
+
+**The saved state file is itself a credential.** It holds an access token and a refresh token in
+cleartext, so it is written under `test-results/`, which both `.gitignore` files already cover.
+Do not move it somewhere a commit can reach, and do not attach one to anything.
+
+**A Playwright trace is a credential until proven otherwise: never attach one to an issue, a pull
+request or a message.** A trace records every `fill()` value verbatim alongside screenshots of the
+form, and Playwright has no evidenced way to redact one input while keeping the rest of the trace —
+so this is a discipline, not a setting. `trace: 'retain-on-failure'` stays on, because a trace is
+how a failure against a live ledger gets diagnosed; what changed is that the password no longer
+enters one.
+
 ## Deployment
 
-Pushed to `Leuename/tracker` (private) and deployed by Vercel to
-**https://tracker-six-flax.vercel.app** on every push to `main`.
+Pushed to `Leuename/tracker` (private) and deployed to
+**https://tracker-six-flax.vercel.app**. A push to `main` deploys to production — there is no
+staging environment.
 
 `.env.production` is committed on purpose — both values are public by design and ship in the
 bundle regardless. A `service_role` or any other secret key must never join them.
 
-**The gate is one secret away from real.** `vercel.json` now carries
-`"git": { "deploymentEnabled": { "main": false } }`, so Vercel stops deploying pushes to `main`
-once that file is pushed, and `.github/workflows/ci.yml` runs the checks and then deploys with the
-Vercel CLI. It cannot deploy until `VERCEL_TOKEN`, `VERCEL_ORG_ID` and `VERCEL_PROJECT_ID` are set
-as repository secrets — until they are, a push to `main` reaches nothing. `npm test`,
-`npm run e2e`, and `npm run build` still have to pass *before* you push.
+**The deploy runs behind a gate, not from Vercel's git integration.** `vercel.json` carries
+`"git": { "deploymentEnabled": { "main": false } }`, so Vercel does not deploy pushes to `main`
+itself; `.github/workflows/ci.yml` runs `npm ci`, `npm test`, `npm run build` and
+`npm audit --audit-level=high`, and only then deploys with the Vercel CLI. GitHub checks cannot
+gate Vercel, which is why the deploy had to move here rather than simply being reported on.
+`VERCEL_TOKEN`, `VERCEL_ORG_ID` and `VERCEL_PROJECT_ID` are set as repository secrets and the gate
+has run green.
+
+The suites that write to the production ledger — `npm run e2e`, `npm run security`,
+`npm run smoke` — are deliberately **not** in that gate. There is one Supabase project, and
+`E2E_BASE_URL` changes which site the tests drive, not which database they hit. They run in
+`.github/workflows/verify.yml`, nightly and on demand. Run `npm test` and `npm run build` before
+you push regardless: the gate is a second check, not the first one.
 
 ## Persistence
 
-Data lives in Supabase Postgres, in **one ledger shared by both accounts** — an admin and an
-executive, with equal powers. Whatever one writes, the other sees.
+Data lives in Supabase Postgres, in **one ledger shared by every account**. Four accounts exist
+today and all four are administrators, so whatever one writes, the others see.
 
 | Table | Holds |
 |---|---|
 | `txns` | Tracker payables. |
 | `receipts` | Acknowledgement receipts. |
 | `recurring` | Masterlist rules. |
+| `transfers` | Telegraphic transfers. |
 | `app_config` | One shared `jsonb` row: notes, the company and category lists, and settings. |
+| `audit_log` | Every insert, update and delete on the six tables above, written by a trigger. |
+| `profiles` | One row per account, carrying `admin` or `viewer`. |
 
-Ids stay client-generated with `Date.now()`. Every table has row-level security on with one
-policy — `for all to authenticated using (true) with check (true)` — and `anon` is revoked
-outright, because none of this data is public.
+Ids stay client-generated with `Date.now()`. Every table has row-level security on and `anon` is
+revoked outright, because none of this data is public. The single
+`for all to authenticated using (true)` policy the first migrations used is gone: reads are open
+to any signed-in account, and **every write policy is predicated on `not is_viewer()`** —
+seventeen of them across `txns`, `receipts`, `recurring`, `transfers`, `app_config` and
+`storage.objects`.
 
-**Being signed in is the whole of the authorization.** That is safe only because self-serve
-registration is disabled in the project's auth settings and the two accounts are created from the
-Supabase dashboard. This app has no sign-up form, but the form was never the control; the server
-setting is. Re-enabling sign-up without first giving the policies a real predicate would let
-anyone who registers read every payable and salary line. A narrower executive role, if one is
-ever wanted, belongs in those predicates — not in a hidden button.
+**There is a real role, and it defaults closed.** `public.profiles` holds one row per account with
+`admin` or `viewer`, and `is_viewer()` is a `security definer` function the policies call. An
+account with **no** profile row reads as a viewer, so a missed row costs read-only access rather
+than granting anything. `profiles` is readable but not writable from a client — an account that
+can edit its own role has no role. Today all four accounts are `admin` and no viewer account has
+ever been issued, so the read-only path is proven by demoting and promoting a real account rather
+than by living with one.
+
+Self-serve registration stays disabled in the project's auth settings and accounts are created
+from the Supabase dashboard. This app has no sign-up form, but the form was never the control; the
+server setting is.
 
 Writes are optimistic. A screen updates from the reducer immediately and the matching row is
 sent afterwards; a failure raises a toast rather than rolling the screen back. Masterlist edits
@@ -134,6 +196,8 @@ Five screens behind a fixed left rail, all sharing one in-memory store.
 | `src/rows.test.js` | Round-trip assertions over that translation — the check that catches a lost check number or a blanked due date before a reload does. |
 | `src/db.js` | Every query, and the first-run seed. |
 | `src/smoke.mjs` | The live end-to-end check behind `npm run smoke`. |
+| `e2e/auth.setup.js` | The `setup` project: signs in once per run with tracing off and saves the session, so no spec ever types the password into a trace. |
+| `e2e/auth-state.js` | Where those saved sessions live, and why the file is a credential. |
 | `e2e/app.spec.js` | Session and gate specs. Read-only. |
 | `e2e/functional.spec.js` | Every write path, driven through the UI and then verified in Postgres. These do write, so they tag every row and sweep all `E2E-` tags before and after — a failed assertion must not leave residue in a live ledger. |
 | `e2e/db.js` | Test-side database access and the cleanup sweep. |
@@ -174,17 +238,24 @@ the prototype's choice; it is preserved rather than corrected.
 
 ## Limits
 
-- **Last write wins, and now there are two people.** If the admin and the executive edit the same
+- **Last write wins, and there are four people.** If two accounts edit the same
   row at once, one silently overwrites the other. Neither screen refreshes when the other writes;
   there is no conflict detection and no realtime subscription. A reload is the only way to see
   someone else's changes.
-- **No audit trail.** Three accounts share one ledger with equal rights, and nothing records who
-  changed what. Rows carry `created_at` but no `updated_by`.
-- **Two settings were removed rather than implemented**: generating recurring payables on the 1st
-  of the month, and notifying a holder after 14 days. Both need work to happen while nobody has
-  the app open, and there is no scheduler. They belong back the day one exists.
-- **No deployment.** The app runs from `npm run dev` or a locally served `dist/`. Nothing
-  publishes it. See [Repository Evidence](../../docs/Repository%20Evidence.md).
+- **The audit trail is server-side only, and there is no screen for it.** `public.audit_log`
+  records every insert, update and delete on all six tables through a `log_change()` trigger, and
+  `npm run rewind -- --since <ISO>` reconstructs the ledger as it stood at any second from it.
+  Nothing may delete from it, by design. What is missing is a way to read it in the app: rows
+  still carry `created_at` and no `updated_by`, so "who changed this row" is a database query, not
+  something a screen answers.
+- **The scheduler generates, but only half-notifies.** `npm run schedule` runs daily from
+  `.github/workflows/schedule.yml`, generates this month's recurring payables through the same
+  `buildGeneratedRows` the Generate button uses, and reports what is overdue. The reporting
+  channel is the GitHub Actions job summary and nothing else — there is no email or SMS provider
+  on this project, so "notify a holder after 14 days" still has no way to reach a person.
+- **One environment.** Production is the only deployment and the Supabase project behind it is the
+  only database, so `npm run e2e`, `npm run security` and `npm run smoke` all write to the real
+  ledger. `E2E_BASE_URL` changes which site the tests drive, not which database they hit.
 - **Two prototype affordances are still inert**, exactly as drawn: the "+ Add receipt" button
   raises a toast rather than a form, and the liquidation drop zone accepts no file.
 - **Three settings are decorative.** `trkShowGrandTotal` and `trkOverdueRed` are wired;

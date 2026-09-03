@@ -147,36 +147,86 @@ const auditRows = JSON.parse(await readFile(join(OUT, 'audit_log.json'), 'utf8')
 const emailOf = new Map(
   auditRows.filter((a) => a.actor && a.actor_email).map((a) => [a.actor, a.actor_email]))
 
+// An account that has never made an audited change is named nowhere in the log,
+// so this run cannot derive its email — and never will, because the script signs
+// in as `authenticated`, which cannot read `auth.users`. Deriving alone would
+// therefore keep overwriting a known address with null on every single run, and
+// an account with no address cannot be recreated at all: the restore comes back
+// three of four, silently, with the fourth person locked out.
+//
+// So the previous snapshot is a source too. Whatever this run can derive wins —
+// an email that changed must not be pinned to a stale one — and anything it
+// cannot derive is carried forward from the file already on disk. A known email
+// is never replaced with null.
+const previous = new Map()
+try {
+  for (const a of JSON.parse(await readFile(join(OUT, 'accounts.json'), 'utf8'))) {
+    if (a.email) previous.set(a.user_id, a.email)
+  }
+} catch { /* no snapshot yet, or an unreadable one: derive what we can */ }
+
 const roster = JSON.parse(await readFile(join(OUT, 'profiles.json'), 'utf8'))
 const accounts = [...roster]
   .sort((a, b) => String(a.user_id).localeCompare(String(b.user_id)))
-  .map((p) => ({ user_id: p.user_id, role: p.role, email: emailOf.get(p.user_id) || null }))
+  .map((p) => ({
+    user_id: p.user_id,
+    role: p.role,
+    email: emailOf.get(p.user_id) || previous.get(p.user_id) || null,
+  }))
 await writeJson('accounts', accounts)
 
-// An account that has never written anything has never been named in the log,
-// so its email cannot be recovered this way. Say so loudly rather than shipping
-// a roster with a quiet hole in it: restoring that account needs its address
-// read out of the dashboard by hand.
+// Warn only about what is still missing after the merge — an address recovered
+// from the previous snapshot is not a hole, and reporting it as one would train
+// everyone to ignore the line.
 const nameless = accounts.filter((a) => !a.email)
 console.log('  accounts: ' + accounts.length + ' in the roster, ' +
-  (accounts.length - nameless.length) + ' with a recoverable email')
+  (accounts.length - nameless.length) + ' with a known email')
 if (nameless.length) {
-  console.log('  WARNING: no email recoverable for ' + nameless.map((a) => a.user_id).join(', '))
-  console.log('           these accounts have never made an audited change. See backups/README.md.')
+  console.log('  WARNING: no email for ' + nameless.map((a) => a.user_id).join(', '))
+  console.log('           never named in audit_log and not in the previous snapshot; read the')
+  console.log('           address out of the Auth dashboard by hand. See backups/README.md.')
 }
 
 // ---- stored documents ------------------------------------------------
+/**
+ * List a storage prefix, in pages.
+ *
+ * `storage.list()` carries the same silent 1,000-row ceiling that truncated
+ * `audit_log` (see readAll above): ask for 1,000, get exactly 1,000, and there
+ * is no error and no flag to say more were waiting. Both listings below used to
+ * pass `{ limit: 1000 }` once and take whatever came back, which is F1 one
+ * directory over — it has never bitten only because the bucket has been empty
+ * at every backup ever taken.
+ *
+ * `readAll`'s shape cannot be reused here: it counts first with PostgREST's
+ * `{ count: 'exact', head: true }` and pages with `.range()`, and the storage
+ * API offers neither — there is no way to ask how many objects a prefix holds.
+ * So the assertion is the weaker one available: a full page means there may be
+ * more, and only a short page proves the end. Both call sites go through this
+ * function so a fix cannot reach one and miss the other again.
+ */
+const PAGE = 1000
+async function listAll(prefix) {
+  const all = []
+  for (let offset = 0; ; offset += PAGE) {
+    const { data, error } = await supabase.storage.from(BUCKET)
+      .list(prefix, { limit: PAGE, offset })
+    if (error) throw new Error('Could not list storage at "' + prefix + '": ' + error.message)
+    all.push(...(data || []))
+    if (!data || data.length < PAGE) return all
+  }
+}
+
 // Objects sit one folder per receipt id, so listing has to walk two levels.
 const listed = []
-const { data: folders, error: listError } = await supabase.storage.from(BUCKET).list('', { limit: 1000 })
-if (listError) {
-  console.error('Could not list storage: ' + listError.message)
+try {
+  for (const folder of await listAll('')) {
+    if (folder.id) { listed.push(folder.name); continue } // a file at the root
+    for (const f of await listAll(folder.name)) listed.push(folder.name + '/' + f.name)
+  }
+} catch (e) {
+  console.error(e.message)
   process.exit(1)
-}
-for (const folder of folders || []) {
-  if (folder.id) { listed.push(folder.name); continue } // a file at the root
-  const { data: inner } = await supabase.storage.from(BUCKET).list(folder.name, { limit: 1000 })
-  for (const f of inner || []) listed.push(folder.name + '/' + f.name)
 }
 
 let fetched = 0

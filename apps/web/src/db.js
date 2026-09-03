@@ -63,19 +63,59 @@ async function start() {
   }
 }
 
+/**
+ * Is the signed-in account an administrator?
+ *
+ * This used to be `supabase.rpc('is_viewer')`. The function it called was
+ * `security definer` and reachable at `/rest/v1/rpc/is_viewer`, which a
+ * Supabase advisor flagged; it now lives in the `private` schema, which
+ * PostgREST does not expose, so there is no endpoint left to call. Revoking
+ * EXECUTE instead was tested and is not available — Postgres checks it against
+ * the querying role, so every write would fail 42501 while reads kept working
+ * ([Decisions] D34).
+ *
+ * The roster is the right place to ask anyway: `authenticated` holds SELECT on
+ * `public.profiles` deliberately, so the app can grey out what a viewer cannot
+ * use. No new privilege is needed here.
+ *
+ * **Pessimistic in exactly the way the database function is.** No session, no
+ * profile row, a row with any other role, or an error of any kind all mean
+ * viewer. Only a row that says `admin` grants anything, so every failure path
+ * greys the app out rather than opening it up — matching the function's
+ * `coalesce(…, true)`, which makes an account created in the dashboard and
+ * forgotten about a viewer rather than a silent administrator.
+ *
+ * The app only *reflects* this. The enforcement is the policy: a client that
+ * lied to itself would still be refused by the database.
+ */
+async function isAdmin() {
+  try {
+    const { data: sess } = await supabase.auth.getSession()
+    const uid = sess && sess.session && sess.session.user && sess.session.user.id
+    if (!uid) return false
+    const { data, error } = await supabase.from('profiles')
+      .select('role').eq('user_id', uid).maybeSingle()
+    if (error) return false
+    return !!data && data.role === 'admin'
+  } catch {
+    return false
+  }
+}
+
 /** Read the shared dataset, seeding it on the workspace's first run. */
 async function read() {
-  const [txns, receipts, recurring, transfers, config, viewer] = await Promise.all([
+  const [txns, receipts, recurring, transfers, config, admin] = await Promise.all([
     supabase.from('txns').select('*').order('id', { ascending: false }).then(ok),
     supabase.from('receipts').select('*').order('id').then(ok),
     supabase.from('recurring').select('*').order('id').then(ok),
     supabase.from('transfers').select('*').order('id').then(ok),
     supabase.from('app_config').select('data').maybeSingle().then(ok),
-    // The same question every policy asks. Read from the database rather than
-    // inferred here, so the screen and the row-level security agree about who
-    // this is — and note the app only *reflects* this. The enforcement is the
-    // policy; a client that lied to itself would still be refused.
-    supabase.rpc('is_viewer').then(ok),
+    // The same question every policy asks, read from the same table the policy
+    // reads, so the screen and the row-level security agree about who this is.
+    // Swallows its own failures on purpose — see `isAdmin`. An auth failure is
+    // still surfaced, because the five reads above it in this list throw on one
+    // and `retryOnce` refreshes the session and runs the whole read again.
+    isAdmin(),
   ])
 
   // No config row is the one reliable marker of a never-used workspace:
@@ -84,7 +124,11 @@ async function read() {
 
   const cfg = config.data || {}
   return {
-    readOnly: viewer === true,
+    // `!== true`, not `!`: anything that is not an explicit administrator is
+    // read-only. `initialState.readOnly` is true and every path out of `load`
+    // must set this key deliberately, or the app refuses every action until the
+    // page is reloaded (trap 45).
+    readOnly: admin !== true,
     txns: txns.map(fromTxn),
     receipts: receipts.map(fromReceipt),
     recurring: recurring.map(fromRecurring),

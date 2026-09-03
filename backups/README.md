@@ -250,9 +250,24 @@ a restore script nobody has ever run is not a safety net.
 
 - **Schema.** The tables, policies and grants live in `supabase/migrations/`, versioned
   separately. A full rebuild is migrations first, then these rows.
-- **Accounts.** Supabase Auth users are not exported. They are recreated in the dashboard.
-- **A tested restore.** Nobody has performed one against an empty project. Until somebody
-  has, this is a backup that is *believed* to work.
+- **The Auth users themselves.** `accounts.json` exports the roster — `user_id`, `role` and
+  the email each id belongs to — but not `auth.users` rows, and not passwords. The accounts are
+  still recreated by hand, from that file, with their original ids (step 2). And the file can
+  only recreate an account whose **email is known**: an address is recovered from `audit_log`,
+  where an account that has never made an audited change is never named. The backup carries the
+  last known address forward rather than replacing it with null, so a gap has to be filled once,
+  by hand, from the Auth dashboard — but until it is filled that account cannot be restored at
+  all, and the roster comes back short without saying so.
+- **A re-rehearsed restore.** One rehearsal has been performed, on 2026-09-02 against
+  `tracker-rehearsal` — the table above is its record. It proved the twelve migrations rebuild
+  production exactly and that the ledger returns byte-for-byte. It **failed** to restore the
+  roster (`23503`, because `backups/` held no `auth.users`) and it showed that the `audit_log`
+  sequence fails days later rather than on the next write.
+
+  The three fixes that came out of it — the paged reads with their count assertion, this
+  `accounts.json`, and the `setval` step with its assertion — have **not been exercised since
+  they were written.** So what is proven is the schema and the row data; the roster and the
+  sequence are a corrected procedure that nobody has yet run end to end.
 
 A push to `main` is a production deploy, so the nightly commit would rebuild the site every night
 for nothing. `apps/web/vercel.json` therefore carries:

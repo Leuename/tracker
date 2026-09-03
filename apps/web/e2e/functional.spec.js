@@ -4,16 +4,13 @@ import * as D from './db.js'
 test.skip(!D.haveCredentials(), 'Set E2E_EMAIL, E2E_PASSWORD and the two VITE_ variables.')
 test.describe.configure({ mode: 'serial' }) // one shared ledger; parallel specs would collide
 
-const EMAIL = process.env.E2E_EMAIL
-const PASSWORD = process.env.E2E_PASSWORD
-
+// The session comes from the storage state e2e/auth.setup.js saves once per run
+// with tracing off; nothing in this file types a password. The old fallback that
+// filled the form when it was visible is gone on purpose — this is the suite
+// that fails most often, and a `fill()` here is a password in a failure trace.
+// A snapshot that did not load now fails here loudly instead.
 async function signIn(page) {
   await page.goto('/')
-  if (await page.getByLabel('Email').isVisible().catch(() => false)) {
-    await page.getByLabel('Email').fill(EMAIL)
-    await page.getByLabel('Password').fill(PASSWORD)
-    await page.getByRole('button', { name: 'Sign in' }).click()
-  }
   await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible({ timeout: 25_000 })
 }
 

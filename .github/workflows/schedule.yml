@@ -38,9 +38,9 @@ jobs:
   run:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           # 22 or newer: supabase-js reaches for a native WebSocket at
           # createClient and Node 20 has none.

@@ -11,8 +11,19 @@ name: Backup
 
 on:
   schedule:
+    # Twice a day, evenly spaced, so the worst case between a change and the
+    # snapshot that holds it is 12 hours rather than 24.
+    #
+    # The spacing is the whole point, so do not "tidy" these hours. 18:00 + 06:00
+    # gives two 12 h gaps. 18:00 + 09:00 — which was floated first — gives 9 h
+    # and 15 h, so it makes the worst case 15 h while looking like an
+    # improvement. Two runs only help by how far apart they are.
+    #
     # 18:00 UTC = 02:00 in Manila, after the working day.
     - cron: '0 18 * * *'
+    # 06:00 UTC = 14:00 in Manila, mid-afternoon, so a morning's work is captured
+    # before the evening run rather than surviving on one copy until 02:00.
+    - cron: '0 6 * * *'
   workflow_dispatch: # so a run can be forced from the Actions tab
 
 # Needed to push the snapshot back. Nothing else is granted.
@@ -27,9 +38,9 @@ jobs:
   snapshot:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           # 22 or newer: supabase-js reaches for a native WebSocket at
           # createClient, and Node 20 has none, so the script dies on import

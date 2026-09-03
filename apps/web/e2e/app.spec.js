@@ -1,38 +1,46 @@
 import { expect, test } from '@playwright/test'
 import { haveCredentials } from './db.js'
+import { REFRESH_STATE } from './auth-state.js'
 
 const EMAIL = process.env.E2E_EMAIL
-const PASSWORD = process.env.E2E_PASSWORD
 
 // Shared with functional.spec.js so there is one gate, and so E2E_REQUIRE_CREDENTIALS
 // turns a silent skip into a red build here too. See haveCredentials in db.js.
 test.skip(!haveCredentials(), 'Set E2E_EMAIL, E2E_PASSWORD and the two VITE_ variables.')
 
-// The gate has no sign-up form by design, so every test starts by signing in.
+// The gate has no sign-up form by design, but nothing here types a password any
+// more: the session comes from the saved storage state that e2e/auth.setup.js
+// writes with tracing off. A spec that reached the form would put the password
+// back into every failure trace, so this deliberately has no fallback — a state
+// that did not load fails loudly here instead.
 async function signIn(page) {
   await page.goto('/')
-  await page.getByLabel('Email').fill(EMAIL)
-  await page.getByLabel('Password').fill(PASSWORD)
-  await page.getByRole('button', { name: 'Sign in' }).click()
-  // Hydration from Supabase sits between the click and the first screen.
+  // Hydration from Supabase sits between the load and the first screen.
   await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible({ timeout: 15_000 })
 }
 
-test('the gate blocks the app until a session exists', async ({ page }) => {
-  await page.goto('/')
-  await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible()
-  // No self-serve registration: accounts are issued from the Supabase dashboard.
-  await expect(page.getByText('Accounts are issued by the administrator.')).toBeVisible()
-  await expect(page.getByRole('navigation', { name: 'Sections' })).toBeHidden()
-})
+// The two specs that must still drive the form, so they override the saved
+// session with an empty one. Exercising the gate is their entire purpose, and
+// the wrong-password spec types a literal, which is safe for a trace to record.
+test.describe('the sign-in form', () => {
+  test.use({ storageState: { cookies: [], origins: [] } })
 
-test('a wrong password is refused and the app stays closed', async ({ page }) => {
-  await page.goto('/')
-  await page.getByLabel('Email').fill(EMAIL)
-  await page.getByLabel('Password').fill('definitely-not-the-password')
-  await page.getByRole('button', { name: 'Sign in' }).click()
-  await expect(page.getByRole('alert')).toBeVisible()
-  await expect(page.getByRole('navigation', { name: 'Sections' })).toBeHidden()
+  test('the gate blocks the app until a session exists', async ({ page }) => {
+    await page.goto('/')
+    await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible()
+    // No self-serve registration: accounts are issued from the Supabase dashboard.
+    await expect(page.getByText('Accounts are issued by the administrator.')).toBeVisible()
+    await expect(page.getByRole('navigation', { name: 'Sections' })).toBeHidden()
+  })
+
+  test('a wrong password is refused and the app stays closed', async ({ page }) => {
+    await page.goto('/')
+    await page.getByLabel('Email').fill(EMAIL)
+    await page.getByLabel('Password').fill('definitely-not-the-password')
+    await page.getByRole('button', { name: 'Sign in' }).click()
+    await expect(page.getByRole('alert')).toBeVisible()
+    await expect(page.getByRole('navigation', { name: 'Sections' })).toBeHidden()
+  })
 })
 
 test('the dashboard totals the payables it loaded', async ({ page }) => {
@@ -71,6 +79,56 @@ test('every screen loads its own data', async ({ page }) => {
   await expect(page.getByText('Recurring payables')).toBeVisible()
 })
 
+// Isolated state, and ordered ahead of the sign-out spec below. Two reasons,
+// both of which would otherwise poison a shared snapshot even at one worker:
+//
+//   1. Forcing a refresh ROTATES the refresh token. The saved snapshot on disk
+//      keeps the old one, which the server has now spent, so anything reusing it
+//      later holds a credential that fails the moment it needs to refresh. Its
+//      own session, written by a second sign-in in the setup project, means the
+//      rotation reaches nothing else.
+//   2. supabase-js `signOut()` defaults to `scope: 'global'` and revokes EVERY
+//      refresh token this account holds. The sign-out spec below therefore has
+//      to run after this one, or this spec's refresh is rejected. Order within a
+//      file is declaration order, which `fullyParallel: false` preserves.
+test.describe('token refresh', () => {
+  test.use({ storageState: REFRESH_STATE })
+
+  test('an expired token recovers by refreshing, without the user noticing', async ({ page }) => {
+    // The failure a tab left open past the access token's hour actually hits:
+    //   GET /rest/v1/recurring -> 401 {"code":"PGRST303","message":"JWT expired"}
+    // Because `anon` holds no privilege, that is a hard 401 rather than an empty
+    // result, so the app has to refresh the token and retry or it strands.
+    //
+    // The gate is the refresh itself, not a request count: React StrictMode
+    // double-invokes effects in dev, so "fail the first request per table" would
+    // be quietly rescued by the second mount and prove nothing.
+    let refreshed = false
+    await page.route('**/auth/v1/token**', async (route) => {
+      if (route.request().url().includes('refresh_token')) refreshed = true
+      await route.continue()
+    })
+    await page.route('**/rest/v1/**', async (route) => {
+      if (refreshed) { await route.continue(); return }
+      await route.fulfill({
+        status: 401,
+        contentType: 'application/json',
+        body: JSON.stringify({ code: 'PGRST303', details: null, hint: null, message: 'JWT expired' }),
+      })
+    })
+
+    await signIn(page) // asserts the Dashboard appears anyway
+    expect(refreshed, 'the app should have refreshed its token').toBe(true)
+    await expect(page.getByText(/Couldn.t load the data/)).toBeHidden()
+  })
+})
+
+// Last in this file on purpose: the app's Sign out calls supabase-js
+// `signOut()`, whose default scope is 'global', so it revokes every refresh
+// token this account holds — including the ones inside both saved snapshots.
+// Nothing after it may force a refresh. functional.spec.js runs on the access
+// token minted minutes earlier by the setup project and never refreshes, so it
+// is unaffected; a new spec that refreshes would need its own session.
 test('the session survives a reload, and signing out ends it', async ({ page }) => {
   await signIn(page)
   await page.reload()
@@ -82,30 +140,3 @@ test('the session survives a reload, and signing out ends it', async ({ page }) 
   await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible()
 })
 
-test('an expired token recovers by refreshing, without the user noticing', async ({ page }) => {
-  // The failure a tab left open past the access token's hour actually hits:
-  //   GET /rest/v1/recurring -> 401 {"code":"PGRST303","message":"JWT expired"}
-  // Because `anon` holds no privilege, that is a hard 401 rather than an empty
-  // result, so the app has to refresh the token and retry or it strands.
-  //
-  // The gate is the refresh itself, not a request count: React StrictMode
-  // double-invokes effects in dev, so "fail the first request per table" would
-  // be quietly rescued by the second mount and prove nothing.
-  let refreshed = false
-  await page.route('**/auth/v1/token**', async (route) => {
-    if (route.request().url().includes('refresh_token')) refreshed = true
-    await route.continue()
-  })
-  await page.route('**/rest/v1/**', async (route) => {
-    if (refreshed) { await route.continue(); return }
-    await route.fulfill({
-      status: 401,
-      contentType: 'application/json',
-      body: JSON.stringify({ code: 'PGRST303', details: null, hint: null, message: 'JWT expired' }),
-    })
-  })
-
-  await signIn(page) // asserts the Dashboard appears anyway
-  expect(refreshed, 'the app should have refreshed its token').toBe(true)
-  await expect(page.getByText(/Couldn.t load the data/)).toBeHidden()
-})

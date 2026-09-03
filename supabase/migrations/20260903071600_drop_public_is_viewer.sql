@@ -1,0 +1,55 @@
+-- DO NOT APPLY THIS YET. Not to production, not to the rehearsal.
+--
+-- The order matters, and getting it wrong signs everybody out:
+--
+--   1. Apply `20260903071500_private_is_viewer.sql`. Policies now consult
+--      `private.is_viewer()`; `public.is_viewer()` still exists and still
+--      answers over `/rest/v1/rpc/is_viewer`, which is what the deployed
+--      frontend calls on every load.
+--   2. Deploy the `apps/web/src/db.js` change, which reads the caller's own
+--      `public.profiles` row instead of calling that RPC. Confirm the live
+--      deployment is serving it.
+--   3. Only then apply this migration.
+--
+-- Between steps 1 and 2 the RPC has no callers left in the database — nothing
+-- but the browser bundle still asks for it. Applying this before step 2 makes
+-- `read()` in the old bundle throw on every sign-in, for every account, until
+-- each of them happens to reload into the new bundle. Applying it after step 2
+-- removes the last endpoint the advisory names and changes nothing else.
+--
+-- Applying it out of order is recoverable — the rollback block below puts the
+-- function straight back — but it is an outage for everyone signed in at the
+-- time, on a system holding real money, so do not rely on that.
+
+drop function if exists public.is_viewer();
+
+-- rollback:
+--   Recreates the function exactly as `20260901170544_viewer_role.sql` did,
+--   including the grants. It restores the RPC endpoint the Supabase advisory is
+--   about, which is the point: this is the escape hatch if an old bundle is
+--   still in somebody's tab.
+--
+--   Policies are NOT re-pointed by this rollback. They keep consulting
+--   `private.is_viewer()`, which is correct and is what
+--   `20260903071500_private_is_viewer.sql` left behind.
+--
+--   create or replace function public.is_viewer()
+--   returns boolean
+--   language sql
+--   stable
+--   security definer
+--   set search_path = ''
+--   as $$
+--     select coalesce(
+--       (select p.role = 'viewer' from public.profiles p where p.user_id = (select auth.uid())),
+--       true)
+--   $$;
+--
+--   revoke all on function public.is_viewer() from public, anon;
+--   grant execute on function public.is_viewer() to authenticated;
+--
+--   Then verify, because {"success": true} proves the SQL ran and nothing more:
+--     select p.proname, n.nspname from pg_proc p
+--       join pg_namespace n on n.oid = p.pronamespace
+--      where p.proname = 'is_viewer';
+--     -- expect both `private` and `public` after a rollback, `private` alone after the drop

@@ -261,9 +261,69 @@ const c = await (async () => signedIn)()
   // An account with no profile row is a viewer, not an administrator. Asserted
   // on the function rather than on a real account, since making one would mean
   // creating a user; is_viewer() is what every policy actually consults.
+  //
+  // R7 moves that function into the `private` schema, which PostgREST does not
+  // expose, so this RPC answers only until the second migration lands. Once it
+  // is gone the question is answered where `db.js` now asks it — the caller's
+  // own roster row, read just above. Both states pass; nothing else does, and
+  // in particular `PGRST202` is required rather than "some error", because a
+  // 42501 here is the D34 outage and must never read as a move.
   const { data: viewerNow, error: fnErr } = await c.rpc('is_viewer')
-  check('is_viewer() answers for the caller', !fnErr && viewerNow === false,
-    fnErr ? fnErr.code : 'is_viewer=' + viewerNow)
+  const answers = !fnErr && viewerNow === false
+  const movedOut = !!fnErr && fnErr.code === 'PGRST202' && !!mine && mine.role === 'admin'
+  check('is_viewer() answers for the caller', answers || movedOut,
+    fnErr ? fnErr.code + ', roster says ' + (mine ? mine.role : 'nothing') : 'is_viewer=' + viewerNow)
+}
+
+{
+  // R7 / D34, and the reason this pair exists rather than one `!!error` check.
+  //
+  // The advisor's first remediation — revoke EXECUTE on is_viewer() from
+  // `authenticated` — was tested on 2026-09-02 and breaks every write in the
+  // application while every read keeps working, because Postgres checks EXECUTE
+  // on a function used in an RLS policy against the querying role. From this
+  // endpoint's side that revocation and the intended move look the same: both
+  // are "an error". Only one of them is the fix.
+  //
+  // So assert the refusal, not the absence of an answer. 200 is the state
+  // before the move; 404/PGRST202 is the state after it, the function having no
+  // endpoint left in an exposed schema. 42501 or 403 is the outage.
+  const r = await rest('rpc/is_viewer', {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + good, 'Content-Type': 'application/json' },
+    body: '{}',
+  })
+  const body = await r.text()
+  let code = null
+  try { code = JSON.parse(body).code || null } catch { code = null }
+  const present = r.status === 200
+  const notExposed = r.status === 404 && code === 'PGRST202'
+  check('the is_viewer RPC is absent or answers, never refused for want of EXECUTE',
+    present || notExposed, 'HTTP ' + r.status + ' ' + (code || body.slice(0, 60)))
+}
+{
+  // The other half of the ambiguity: a 404 above proves the endpoint is not
+  // there, not that the function is out of reach. PostgREST serves whatever
+  // schemas it is configured with, and asking for one it is not configured with
+  // must be refused by name — `PGRST106`, "the schema must be one of the
+  // following" — rather than quietly honoured. If this ever starts returning a
+  // row, `private` has been added to the exposed schema list and moving the
+  // function bought nothing.
+  const r = await rest('rpc/is_viewer', {
+    method: 'POST',
+    headers: {
+      Authorization: 'Bearer ' + good,
+      'Content-Type': 'application/json',
+      'Content-Profile': 'private',
+      'Accept-Profile': 'private',
+    },
+    body: '{}',
+  })
+  const body = await r.text()
+  let code = null
+  try { code = JSON.parse(body).code || null } catch { code = null }
+  check('the private schema is refused by PostgREST, not served',
+    r.status >= 400 && code === 'PGRST106', 'HTTP ' + r.status + ' ' + (code || body.slice(0, 80)))
 }
 
 console.log('\n== 6. Receipt file storage ==')

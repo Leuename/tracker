@@ -97,6 +97,91 @@ plus separate write policies predicated on `not public.is_viewer()`, because a s
 `apps/web/scripts/backup.mjs`; its own checks in `apps/web/security/probe.mjs`; and its own
 `log_change()` trigger (D24).
 
+## Pending, written but not applied
+
+Two migrations sit in `migrations/` that **no database has ever run**. Every other file here is
+byte-identical to what was applied; these two are not, and the folder's usual invariant — apply in
+version order and the schema rebuilds — does **not** hold while they are present.
+
+| File | State |
+|---|---|
+| `20260903071500_private_is_viewer.sql` | Moves `is_viewer()` into a non-exposed `private` schema and repoints all 17 write policies plus `merge_app_config`. Keeps `public.is_viewer()` deliberately. Unapplied, and unproven even on the rehearsal project |
+| `20260903071600_drop_public_is_viewer.sql` | Drops `public.is_viewer()`. **Do not apply it out of order** |
+
+**The ordering is load-bearing.** While a deployed frontend still calls `/rest/v1/rpc/is_viewer`,
+dropping the function breaks sign-in for everybody. The sequence is: apply migration 1 → deploy the
+`apps/web/src/db.js` change that reads `public.profiles` directly → *then* apply migration 2. The
+`db.js` change is already in the tree and is safe on its own, because it needs no privilege the app
+did not already hold.
+
+Prove both on `tracker-rehearsal` before either reaches production, and read the catalogue back
+afterwards: `{"success": true}` proves the SQL ran, not that it achieved anything.
+
+## Rollbacks
+
+**Every new migration ships a `-- rollback:` block in the same file.** This is prospective, and
+it says nothing about the twelve already here: none of them is reversible, none is being
+retrofitted, and pretending otherwise would be worse than the gap. The convention starts with the
+next migration written.
+
+One file, both directions. A rollback kept in a second file drifts from the change it undoes, or
+is written months later by somebody reconstructing what the first one did — which is the moment a
+rollback is least trustworthy. Written beside the forward statements it is reviewed with them.
+
+The block goes at the end of the file, entirely inside SQL comments so the migration itself still
+applies as one statement list:
+
+```sql
+create table public.fx_rates (
+  code       text        primary key,
+  rate       numeric     not null,
+  fetched_at timestamptz not null default now()
+);
+
+revoke all on public.fx_rates from anon, authenticated;
+grant select on public.fx_rates to authenticated;
+
+-- rollback:
+--   drop table if exists public.fx_rates;
+```
+
+Say what cannot be undone rather than leaving it out. A `drop column` loses its data, and a
+rollback block that recreates the column returns the schema and not the rows:
+
+```sql
+-- rollback:
+--   alter table public.txns add column note text;
+--   -- The column comes back empty. The values are only in backups/txns.json
+--   -- and audit_log; see backups/README.md.
+```
+
+### Applying one
+
+Rolling back is as manual as applying: there is no CLI, no linked project and no `supabase db
+push` here (see above), so this is a supervised operation, not a command.
+
+1. Read the block out of the migration file. **Read it, do not run it blind** — check it against
+   what the forward migration actually did, because the schema has moved since.
+2. Run the statements as `postgres` in the Supabase SQL editor. `authenticated` cannot drop or
+   alter these objects, and a client-credentialed attempt fails in ways that look like something
+   else.
+3. Delete the version row so the folder and the database agree again:
+
+   ```sql
+   delete from supabase_migrations.schema_migrations where version = '20260901170544';
+   ```
+
+4. **Verify against the catalogue.** `{"success": true}` proves the SQL ran, not that it achieved
+   anything — read `information_schema` (or the fingerprint query used for a replay) and confirm
+   the objects are actually gone. This has misled this project before.
+5. Delete the migration file, or write a new forward migration that supersedes it. Leaving a
+   rolled-back file in the folder puts the repository back where it started: a folder that no
+   longer describes the database.
+
+A rolled-back migration whose table held rows is a data loss as well as a schema change. Take a
+`npm run backup` first — it is a minute — and check the counts in `backups/MANIFEST.md` before
+and after.
+
 ## Guideline Basis
 
 - **PG-02** documents only what checked-in evidence supports; nothing here claims a runnable CLI workflow.
