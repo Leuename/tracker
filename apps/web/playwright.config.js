@@ -41,7 +41,8 @@ export default defineConfig({
   // time, fullyParallel is what keeps a single file in written order.
   fullyParallel: false,
   workers: 1,
-  retries: 0,
+  retries: process.env.CI ? 0 : 1,
+  globalSetup: './e2e/network-preflight.js',
   reporter: 'list',
   use: {
     baseURL,
