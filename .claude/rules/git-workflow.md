@@ -8,7 +8,7 @@ Avoid inventing repository history while defining reviewable future changes.
 
 The **repository root** is the project root as of 2026-09-01, remote `Leuename/tracker` (private), branch `main`. It was `apps/web/` alone until the re-root; nothing is untracked now except what `.gitignore` names. Use focused changes and concise imperative subjects; PRs should cite affected paths, checks, source gaps, issues, and screenshots for visual work.
 
-**A push to `main` deploys to production.** There is no staging branch and no CI gate, so `npm test`, `npm run e2e`, and `npm run build` are the checks that have to pass before pushing, not after.
+**A push to `main` starts the CI gate, and a successful gate deploys to production.** There is no staging branch, so run `npm test`, `npm run e2e`, `npm run security`, and `npm run build` before pushing; `npm run security` remains a local pre-push check because it writes to production.
 
 ### Release tags
 

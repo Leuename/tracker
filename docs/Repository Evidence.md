@@ -49,6 +49,11 @@ Releases are annotated tags, `v0.2.0` through `v0.6.0`, matching `apps/web/packa
 
 Seven tables exist in the database as of 2026-09-01: `txns`, `receipts`, `recurring`, `transfers`, `app_config`, `audit_log` and `profiles`. Row-level security is enabled on all seven. The five ledger tables each carry a `for select using (true)` policy plus separate insert, update and delete policies predicated on `not public.is_viewer()`, so a `viewer` account reads everything and writes nothing; `audit_log` has a `for select` policy only, and `authenticated` holds `SELECT` on it and nothing else — confirmed against `information_schema.role_table_grants` after the migration, which is how a surviving TRUNCATE grant was caught and revoked. `anon` holds no privilege on any of the six. No server-managed column is writable by a client on any table, verified directly against `information_schema.role_column_grants`.
 
+**Six released wires carry historical exchange-rate provenance as of 2026-09-03.** Guarded,
+ID-scoped authenticated updates set their ECB 2026-09-02 PHP-per-unit rates to EUR `72.415`, USD
+`62.545345`, or GBP `84.330965`, with `rate_as_of = 2026-09-02`; the trigger recorded the writes as
+`audit_log` ids 1475–1480. The other three wires remain pending with both columns null by design.
+
 **Self-serve sign-up is disabled** as of 2026-09-02, closed by the owner in the Supabase dashboard after being open since 2026-08-31. Verified directly rather than through the app: `POST /auth/v1/signup` returns `422 {"error_code":"signup_disabled"}`. This matters more than one check passing — because authorization is "being signed in" and every policy is `using (true)`, account creation is the only boundary the access model has. The security probe no longer mints a `sec-probe-*` account on each run, because it cannot.
 
 A restore was performed on 2026-09-01 into an empty project. Every `txns` row came back byte-for-byte — `md5(string_agg(t::text))` identical at `f95cd619e877916891cb0f6853f9e041`, 21 rows, ₱226,000.00 — with `created_at` and `app_config.updated_at` at their original values rather than `now()`, and a write afterwards produced audit row 223, continuing from the restored maximum. `audit_log` was restored as an 18-row stratified sample rather than all 222; restoring `files/` remains untested, there being no stored documents. See [backups/README.md](../backups/README.md) for the procedure and its two non-obvious steps.
@@ -69,7 +74,15 @@ Two Supabase security advisors stand open as of 2026-09-02, both `WARN`. `public
 
 **`supabase.auth.signOut()` defaults to `scope: 'global'`**, confirmed 2026-09-03 in the installed dependency at `node_modules/@supabase/auth-js/dist/main/GoTrueClient.js:3405`, which carries its own warning comment. `apps/web/src/App.jsx:58` calls it with no argument, so signing out on one device revokes every refresh token that account holds. Unchanged; it is a live behavioural question for the owner.
 
-**Schema parity between production and `tracker-rehearsal` is exact**, measured 2026-09-03 over 821 catalogue facts scoped to `public` — columns, policies, indexes, triggers, table grants, column grants and function bodies: `9878b2dbf88b626ad943aad0aff31901` on both sides.
+**R7 is applied to production.** The rehearsal and production projects now have 15 migrations:
+`fx_rates`, `private_is_viewer`, and `drop_public_is_viewer` were applied exactly. In production,
+the public RPC is absent (`404` / `PGRST202`), the private schema is refused (`406` / `PGRST106`),
+all 17 write policies plus `merge_app_config` use `private.is_viewer()`, and the 56-check security
+probe passes. Rolled-back administrator and viewer simulations passed with row counts unchanged;
+the ledger is unchanged. The deployed production bundle contains zero `is_viewer` RPC calls.
+
+The safe order was migration 1, confirm the deployment and reload open tabs, then migration 2 and
+the 56-check `npm run security` probe.
 
 **The sequence failure was reproduced rather than described**, 2026-09-03 on the rehearsal project: with `audit_log_id_seq` left behind, an audited write failed `23505 duplicate key value violates unique constraint "audit_log_pkey"`; after the prescribed `setval` the same write was accepted.
 

@@ -707,6 +707,18 @@ change password yet" — and asked to be reminded. This joins the existing defer
 project password and Vercel token, both deferred per the git-workflow rule). **Do not rotate this
 password without being asked**; do raise it again once the exchange-rates work has settled.
 
+## D45 — Released Wires Carry Their Historical Rate
+
+The owner authorized a one-time backfill on 2026-09-03 for only the six released wires. They now
+carry the ECB 2026-09-02 PHP-per-unit rates — EUR `72.415`, USD `62.545345`, and GBP `84.330965` —
+with `rate_as_of = 2026-09-02`. The three pending wires keep `rate` and `rate_as_of` null until
+release; a pending amount has not moved and must not acquire historical provenance early.
+
+Applied as six guarded, ID-scoped authenticated updates and recorded by the database trigger as
+`audit_log` ids 1475–1480. Reversal is setting those two columns back to null on the same six rows,
+or generating the corresponding rewind plan. The purpose is narrow: released totals use the rate
+that belonged to the wire when it became real, rather than today's rate or a prototype constant.
+
 ## Guideline Basis
 
 - **AGENT-03** ensures adapter workflows stop rather than invent authorization.

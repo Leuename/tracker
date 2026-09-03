@@ -12,7 +12,8 @@ up: "[AI Agent Context](../docs/AI%20Agent%20Context.md)"
 
 # Supabase schema
 
-The thirteen migrations that built the hosted project, in the order they were applied.
+The fifteen migrations that built the hosted production project, in the order they were applied.
+`tracker-rehearsal` has also applied the two R7 migrations below, for fifteen total.
 
 Until 2026-09-01 these existed **only** inside the Supabase project. The repository had no
 schema source of truth, so losing the project lost the shape of the data as well as the
@@ -69,11 +70,17 @@ principle": it has been done.
 176 and looked like drift; the extra was `realtime.subscription.tr_check_filters`, a
 Supabase platform trigger, because the query excluded `storage%` but not `realtime%`.
 
-`20260903144056_fx_rates` postdates both replays above and has not been through one: it is
-proven live on production — write refused for an administrator, permitted for the rates
-account, `fx_latest` readable, all checked directly and via `npm run security` — but not proven
-to replay cleanly into an empty project the way the first twelve are. The next full replay
-should cover it.
+`tracker-rehearsal` still has all fifteen migrations applied: `fx_rates`,
+`private_is_viewer`, and `drop_public_is_viewer` were applied exactly. Production now has
+fifteen migrations: `private_is_viewer` and `drop_public_is_viewer` are applied, the public RPC
+is absent (`404` / `PGRST202`), the private schema is refused (`406` / `PGRST106`), all 17 write
+policies plus `merge_app_config` use `private.is_viewer()`, and the 56-check security probe passes.
+The ledger is unchanged.
+
+The rehearsal leaves the public RPC absent (`404` / `PGRST202`) and the private schema
+unexposed (`406` / `PGRST106`). All 17 write policies and `merge_app_config` use
+`private.is_viewer()`. Rolled-back administrator and viewer simulations passed with row counts
+unchanged, and the deployed production bundle contains zero `is_viewer` RPC calls.
 
 ## What has still not been proven
 
@@ -110,17 +117,15 @@ gating on role at all. Copying that shape onto an ordinary table would be a mist
 because no administrator should be able to write here, which is not true of `txns`,
 `receipts`, `recurring` or `transfers`.
 
-## Pending, written but not applied
+## R7 migrations
 
-Two migrations sit in `migrations/` that **no database has ever run**. Every other file here,
-`20260903144056_fx_rates` included, is byte-identical to what was applied; these two are not, and
-the folder's usual invariant — apply in version order and the schema rebuilds — does **not** hold
-while they are present.
+The two R7 migrations below were applied to production after rehearsal; every file here,
+`20260903144056_fx_rates` included, is byte-identical to what was applied to production.
 
 | File | State |
 |---|---|
-| `20260903071500_private_is_viewer.sql` | Moves `is_viewer()` into a non-exposed `private` schema and repoints all 17 write policies plus `merge_app_config`. Keeps `public.is_viewer()` deliberately. Unapplied, and unproven even on the rehearsal project |
-| `20260903071600_drop_public_is_viewer.sql` | Drops `public.is_viewer()`. **Do not apply it out of order** |
+| `20260903071500_private_is_viewer.sql` | Moves `is_viewer()` into a non-exposed `private` schema and repoints all 17 write policies plus `merge_app_config`. Proven on rehearsal and applied to production |
+| `20260903071600_drop_public_is_viewer.sql` | Drops `public.is_viewer()`. Proven on rehearsal and applied to production. **Do not apply it out of order** |
 
 `fx_rates` needed the same kind of gate while it was unapplied — its two write policies name one
 dedicated account's uid, so the account had to exist first — but that account was created on
@@ -134,8 +139,10 @@ dropping the function breaks sign-in for everybody. The sequence is: apply migra
 `db.js` change is already in the tree and is safe on its own, because it needs no privilege the app
 did not already hold.
 
-Prove both on `tracker-rehearsal` before either reaches production, and read the catalogue back
-afterwards: `{"success": true}` proves the SQL ran, not that it achieved anything.
+The safe production order was migration 1, confirm the deployed frontend and reload open tabs,
+then migration 2 followed by the 56-check `npm run security` probe. Read the catalogue back after
+each application: `{"success": true}`
+proves the SQL ran, not that it achieved anything.
 
 ## Rollbacks
 
