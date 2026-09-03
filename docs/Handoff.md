@@ -1364,6 +1364,104 @@ nightly backup, the `is_viewer()` move, and everything in
 [Exchange Rates Proposal](Exchange%20Rates%20Proposal.md) are proposed and unapplied, awaiting the
 owner. Nothing was committed.
 
+## 2026-09-03 — A defect index, an external audit, and a backup that was never deployed
+
+Triggered by "read the latest handoffs", then a request for a handoff written specifically for an
+external agent to audit and plan against. It became six phases. Full narrative in
+[Ten Closed, and a Backup Nobody Had Deployed](../handoff/2026-09-03%20Ten%20Closed,%20and%20a%20Backup%20Nobody%20Had%20Deployed.md),
+which is the complete continuation package. This is the pass record.
+
+### What was produced
+
+[Remediation Brief for an External Agent](../handoff/2026-09-03%20Remediation%20Brief%20for%20an%20External%20Agent.md)
+— a defect index for Codex/ChatGPT with stable IDs (`R1`-`R15`, `N1`-`N8` explicit non-actions,
+`F1`-`F6` findings, `Q2a`-`Q15` owner questions), all 54 traps condensed, and every wikilink paired
+with a relative path for tooling that cannot resolve them.
+
+### The external audit, and what it was worth
+
+Two consultations, both prompted through Lyra. The first audited the brief and returned **six
+material corrections; every checkable one was confirmed against the files before being accepted** —
+`accounts.json` short one email, R7 scoped at 17 policies not 19, the second-backup arithmetic
+wrong, R10 described too broadly, R13 actionable, and the config header claiming the specs are
+read-only. It also found **F5**: `backup.mjs` listed storage with `limit: 1000`, no paging and no
+count assertion — trap 48 in a second place, untouched by the F1 fix.
+
+The second was given a bounded offline batch and an explicit list of suites not to run. **It ran all
+of them against production, delivered none of the five items, and generated a Vercel
+deployment-protection bypass token it then failed to clean up.** It was right about one thing that
+outweighed the batch: **F6**, the backup fixes were never deployed.
+
+[D40](Decisions.md) records the rule that came out of it.
+
+### F6, verified and worse than reported
+
+```
+git log origin/main..HEAD          → 4 commits unpushed
+origin/main:.../backup.mjs:70      → unpaged .select('*')
+git ls-tree origin/main backups/   → no accounts.json at all
+origin/main:backups/MANIFEST.md    → audit_log rows | 1000, taken 2026-09-02T20:28:01Z
+```
+
+The nightly job had run **again** after the fixes were written, with the old code, and written the
+same round `1000` against 1,129 rows. Merged (the remote's truncated snapshot lost the conflict) and
+pushed as `62fc195`.
+
+### The rehearsal
+
+On `tracker-rehearsal`, production untouched. Schema parity exact — **821 catalogue facts,
+`9878b2dbf88b626ad943aad0aff31901` on both sides**. `txns` restored to
+`05a080127ca18b46dc693edbd22b5168`, 21 rows, ₱226,000.00, identical to production.
+`app_config.updated_at` preserved rather than stamped `now()`. Four profiles, all admin, all
+joining `auth.users`. **Zero audit rows written by the restore.**
+
+**F3 reproduced deliberately:** with the sequence left behind, an audited write failed
+`23505 duplicate key value violates unique constraint "audit_log_pkey"`; after the prescribed
+`setval` the same write was accepted.
+
+### Agents
+
+Four dispatched. Two completed (the offline batch; the trace fix). Two killed mid-flight by a
+session rate limit, along with a third that was holding for clearance:
+`You've hit your session limit · resets 6:10pm (Asia/Manila)`. The exchange-rate agent's worktree
+was empty — nothing survived. The `is_viewer` agent had been told to self-sequence behind a
+concurrent database load and **never touched a database**, so no half-applied state exists.
+
+### Files changed
+
+| File | Change |
+|---|---|
+| `apps/web/playwright.config.js` | `workers: 1`; a `setup` project with tracing off; two false comments corrected |
+| `apps/web/e2e/auth.setup.js`, `auth-state.js` | New. Sign in once, save `storageState` under gitignored `test-results/` |
+| `apps/web/e2e/app.spec.js`, `functional.spec.js` | Password typed in 2 specs instead of 27; the refresh spec moved above the sign-out spec ([D41](Decisions.md)) |
+| `apps/web/scripts/backup.mjs` | One paging helper for both storage call sites; a swallowed error now aborts; the roster merge ([D38](Decisions.md)) |
+| `backups/accounts.json` | Fourth email filled in |
+| `backups/verify-restore.sql` | New. The assertions a restore has to survive |
+| `backups/README.md`, `apps/web/README.md` | Claims that had stopped being true |
+| `apps/web/.env.example` | `SCHEDULE_*`, names only, no code fallback |
+| `.github/workflows/*` | Second backup cron at 06:00 UTC ([D36](Decisions.md)); actions v4 → v5 |
+| `supabase/README.md` | Rollback convention; a **Pending, not applied** section ([D37](Decisions.md)) |
+| `supabase/migrations/2026090307*.sql` | Two, applied nowhere, order-dependent |
+| `apps/web/src/db.js` | Reads the roster directly instead of the RPC; pessimistic on every failure path |
+| `apps/web/security/probe.mjs` | 47 → 49 checks, passing in both the before and after states |
+
+Commits `62fc195`, `6fb8e38`, `2d14b12`.
+
+### Checks
+
+`npm test` 53/53 · `npm run build` green · **`npx playwright test --workers=1` 29 passed in 1.3 min**
+(2 setup + 27 specs; was 4.2 min). `npm run security` **not run** — it has 49 checks now and none
+has been exercised. Production clean: zero `E2E-` residue, zero probe accounts, fingerprint
+unchanged.
+
+### What was deliberately not done
+
+**Exchange rates were not started** — the agent building them was killed and left nothing.
+The two `is_viewer` migrations are applied nowhere. `audit_log` stopped at 250 of 1,129 rows
+([D39](Decisions.md)). `verify-restore.sql` has never been run through `psql`. The storage paging
+fix has never seen a live bucket. And `supabase.auth.signOut()` was left global — a one-word,
+user-visible change nobody asked for, and the owner's call.
+
 ## Guideline Basis
 
 - **PG-04** requires a continuation record with exact scope, checks, limitations, and unresolved evidence.

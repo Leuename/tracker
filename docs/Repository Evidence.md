@@ -61,6 +61,20 @@ Two Supabase security advisors stand open as of 2026-09-02, both `WARN`. `public
 
 **The `setval` step in [backups/README.md](../backups/README.md) was wrong about timing**, corrected 2026-09-02 after rehearsal: with the sequence left unfixed the first audited write after a restore **succeeds**, and the `23505 duplicate key value violates unique constraint "audit_log_pkey"` arrives only once the sequence climbs into the restored ids — then on every audited write across all six tables at once.
 
+**A fix in the working tree was not a fix in the system.** Observed 2026-09-03: four commits carrying the paging and roster fixes sat unpushed on `main` while `origin/main` still held the unpaged `.select('*')` and **no `backups/accounts.json` at all`**. The scheduled job ran again at 2026-09-02T20:28:01Z (`119c615`) and wrote `audit_log rows 1000` against 1,129. Every suite was green throughout, because every check in this repository reads the working tree and nothing compares `origin/main` with `HEAD`. Pushed 2026-09-03.
+
+**The storage listing carried the same 1,000-row ceiling**, found 2026-09-03. `backup.mjs` called `storage.list()` twice with `limit: 1000`, no paging, no assertion, and the inner call discarded its error entirely. It had never bitten because the bucket has been empty at every backup taken. Both call sites go through one paging helper now. The storage API exposes **no count**, so the `{ count: 'exact', head: true }` assertion used for table reads cannot be copied to it — the strongest available assertion is that a full page means more may follow.
+
+**An account with no audited change had no recoverable email.** `backup.mjs` derives the roster's addresses from `audit_log`, so `mikmiktabs@gmail.com` was written as `null` on every run and could never be recovered by any future run. Read out of production `auth.users` on 2026-09-03; the script now carries known addresses forward between runs.
+
+**`supabase.auth.signOut()` defaults to `scope: 'global'`**, confirmed 2026-09-03 in the installed dependency at `node_modules/@supabase/auth-js/dist/main/GoTrueClient.js:3405`, which carries its own warning comment. `apps/web/src/App.jsx:58` calls it with no argument, so signing out on one device revokes every refresh token that account holds. Unchanged; it is a live behavioural question for the owner.
+
+**Schema parity between production and `tracker-rehearsal` is exact**, measured 2026-09-03 over 821 catalogue facts scoped to `public` — columns, policies, indexes, triggers, table grants, column grants and function bodies: `9878b2dbf88b626ad943aad0aff31901` on both sides.
+
+**The sequence failure was reproduced rather than described**, 2026-09-03 on the rehearsal project: with `audit_log_id_seq` left behind, an audited write failed `23505 duplicate key value violates unique constraint "audit_log_pkey"`; after the prescribed `setval` the same write was accepted.
+
+**`delete from auth.users` is blocked in the agent environment**, even scoped to explicit ids, so the account-recreation half of a restore has still never been exercised.
+
 ## Interpretation Boundary
 
 Names and mock data in the exported CRM interface are presentation evidence only, and the same holds for the seed rows transcribed into `apps/web/src/data.js`.

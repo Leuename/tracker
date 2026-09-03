@@ -556,6 +556,105 @@ migrations — and is not a scratch project. One migration of ours reached it wh
 returned `{"success": true}` and **did not land**; it was verified clean four ways afterwards and
 left alone.
 
+## D36 — The Second Daily Backup Is at 06:00 UTC
+
+`backup.yml` ran once a day at 18:00 UTC, so the worst-case unbacked-up window was about 24 hours.
+A second run was approved in principle on 2026-09-02 at **09:00 UTC**, and the arithmetic behind
+that hour was wrong: 18:00 plus 09:00 gives gaps of 9 hours and **15 hours**, so the worst case
+becomes 15 — better than 24, but the number quoted was 9.
+
+**06:00 UTC** gives two even 12-hour gaps and is the hour applied. The arithmetic is in the
+workflow comment so nobody "improves" it back.
+
+Corrected by an external audit on 2026-09-03 and verified before adopting.
+
+## D37 — An Unapplied Migration May Live in the Folder, Named as Such
+
+`supabase/migrations/` has one invariant: every file is byte-identical to a statement that was
+applied, and replaying them in version order rebuilds the schema. Two migrations written on
+2026-09-03 — `private_is_viewer` and `drop_public_is_viewer` — break it, because neither has been
+run anywhere.
+
+Leaving them uncommitted risked losing them; committing them silently would let a future replay
+apply them in order and **drop `public.is_viewer()` while a deployed frontend still calls the RPC**,
+breaking sign-in for everyone.
+
+So they are committed, and `supabase/README.md` gains a **Pending, written but not applied**
+section that names them, says no database has run them, and spells out the ordering: apply migration
+1 → deploy the `db.js` change → then migration 2. The invariant is suspended in writing rather than
+broken in silence.
+
+## D38 — The Roster Backup Carries Known Emails Forward
+
+`backup.mjs` derives account emails from `audit_log` actor entries, because it signs in as
+`authenticated` and cannot read `auth.users`. An account that has never made an audited change is
+therefore named nowhere, and its email was written as `null` on **every** run — permanently, since
+no future run can derive it either.
+
+Without an email an account cannot be recreated, so the restore returns three of four and the
+fourth person is locked out, silently ([D33](#d33--a-backup-that-cannot-be-restored-is-not-a-backup),
+trap 49).
+
+The script now reads the previous `accounts.json` before writing. What this run derives wins — an
+address that changed must not be pinned to a stale one — and anything it cannot derive is carried
+forward. **A known email is never overwritten with `null`.** The warning line reports only what is
+still missing after the merge.
+
+The fourth address, `mikmiktabs@gmail.com`, was read out of production `auth.users` on 2026-09-03
+and written in directly.
+
+## D39 — A Bulk Restore Is an Operator Job, Not an Agent's
+
+`backups/audit_log.json` is 781 KB across 1,129 rows. An agent tool payload takes roughly 35 KB, so
+restoring it means about 23 chunks; an attempt on 2026-09-03 failed at five when a session limit
+ended it, leaving 250 rows loaded.
+
+The mechanism, the fidelity and the sequence behaviour are all proven at that volume, and the
+remaining question — whether a large file transfers — is a property of the **transport**, not of the
+procedure. An operator restoring for real uses `psql` with the project's connection string, which an
+agent does not have.
+
+**`backups/README.md` should name `psql \copy` for `audit_log`**, and a rehearsal that stops short
+of full volume for this reason is complete rather than partial, provided it says so.
+
+## D40 — An External Agent's Report Is Input, Not State
+
+Two consultations now have produced findings that were true when written and false hours later: a
+Supabase sign-up setting reported open that was already closed, and a repository HEAD that had moved.
+A third, on 2026-09-01, returned six answers of which three would have misled if followed. A fourth,
+on 2026-09-02, returned nothing at all at a cost of 47,267 tokens because its code-navigation server
+was unreachable and its policy forbade reading files.
+
+The 2026-09-03 audit was genuinely valuable — six material corrections, every checkable one
+confirmed against the files, plus a finding nobody was looking for (the storage listing carrying the
+same 1,000-row ceiling that truncated `audit_log`).
+
+**The rule:** treat an external report as a hypothesis set. Verify each claim against the repository
+or the live system before acting, and specifically before "fixing" something the report says is
+broken — it may already be fixed, and a confident correction to a correct state is its own defect.
+Inline the evidence in the prompt; the difference between the useless consultation and the useful
+ones was entirely whether the agent could read the files.
+
+## D41 — The Session-Mutating e2e Specs Are Ordered, and That Ordering Is Load-Bearing
+
+The e2e suite stopped typing the shared password in 25 of 27 specs on 2026-09-03: a setup project
+signs in once with tracing disabled and saves `storageState`. Two things make that state fragile,
+and both were found while building it:
+
+- A forced token refresh **rotates** the refresh token, so the saved snapshot goes stale. The
+  expired-token spec forces one deliberately. It gets its own session.
+- `supabase.auth.signOut()` defaults to `scope: 'global'`, so the sign-out spec revokes **every**
+  refresh token the account holds — isolation included. Only ordering defends against that.
+
+The refresh spec therefore runs **before** the sign-out spec. Declaration order plus
+`fullyParallel: false` makes that a guarantee rather than an accident. `functional.spec.js` runs
+after the revocation and survives on an access token minted minutes earlier; it would break if a run
+exceeded the token's hour or a new spec forced a refresh.
+
+Do not reorder `app.spec.js` casually. Changing `App.jsx`'s `signOut()` to `{ scope: 'local' }`
+would remove the constraint — that is a live, user-visible behaviour change and is the owner's call,
+not a test-suite convenience.
+
 ## Guideline Basis
 
 - **AGENT-03** ensures adapter workflows stop rather than invent authorization.

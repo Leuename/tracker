@@ -192,6 +192,10 @@ about itself that nobody has exercised.
 
 ## 5. The remediation index
 
+> **Superseded as the entry point** by [[2026-09-03 Ten Closed, and a Backup Nobody Had Deployed]],
+> the complete continuation package. This note remains the defect index and its IDs are still the
+> ones to cite.
+>
 > **Status, end of 2026-09-03.** Ten items closed and pushed as `6fb8e38`: R1, R4, R5, R6, R13,
 > R15, F5, F6, Q12, and R2 in the part that matters. What remains is listed under *Still open*
 > below. The table that follows is the original index; rows carry their outcome.
