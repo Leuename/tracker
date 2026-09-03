@@ -1,0 +1,9 @@
+# The reports under here are evidence: a handoff points at them by path, and a
+# reader who clones the repository must be able to follow that link. They were
+# ignored wholesale (`*`) until 2026-09-04, which meant every reference in
+# `handoff/2026-09-04 Open Items Execution Progress.md` resolved only inside the
+# one working tree that produced it — the same shape as trap 55, arrived at by
+# configuration rather than by forgetting to push.
+#
+# So: keep the notes, drop what git can regenerate.
+*.diff

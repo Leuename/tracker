@@ -8,7 +8,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node --test src/logic.test.js src/rows.test.js src/errors.test.js scripts/rewind-plan.test.js",
+    "test": "node --test src/logic.test.js src/rows.test.js src/errors.test.js scripts/rewind-plan.test.js e2e/network-preflight.test.js",
     "smoke": "node --env-file-if-exists=.env.local src/smoke.mjs",
     "e2e": "playwright test",
     "security": "node --env-file-if-exists=.env.local security/probe.mjs",

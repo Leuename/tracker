@@ -66124,5 +66124,1248 @@
     "op": "UPDATE",
     "row_id": null,
     "tbl": "app_config"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "amount": 1,
+      "co": "GTOI",
+      "created_at": "2026-09-03T20:42:45.324249+00:00",
+      "cur": "USD",
+      "id": 1788468165193,
+      "name": "SEC transfer probe",
+      "note": "",
+      "rate": null,
+      "rate_as_of": null,
+      "status": "pending"
+    },
+    "at": "2026-09-03T20:42:45.324249+00:00",
+    "before": null,
+    "id": 1557,
+    "op": "INSERT",
+    "row_id": 1788468165193,
+    "tbl": "transfers"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": null,
+    "at": "2026-09-03T20:42:45.502588+00:00",
+    "before": {
+      "amount": 1,
+      "co": "GTOI",
+      "created_at": "2026-09-03T20:42:45.324249+00:00",
+      "cur": "USD",
+      "id": 1788468165193,
+      "name": "SEC transfer probe",
+      "note": "",
+      "rate": null,
+      "rate_as_of": null,
+      "status": "pending"
+    },
+    "id": 1558,
+    "op": "DELETE",
+    "row_id": 1788468165193,
+    "tbl": "transfers"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "amount": 1,
+      "cat": "Other",
+      "check_no": null,
+      "co": "GTOI",
+      "created_at": "2026-09-03T20:42:45.724361+00:00",
+      "description": "SEC audit probe",
+      "done": null,
+      "due": null,
+      "id": 1788468165617,
+      "notes": null,
+      "pay_type": null,
+      "period": "",
+      "status": "pending"
+    },
+    "at": "2026-09-03T20:42:45.724361+00:00",
+    "before": null,
+    "id": 1559,
+    "op": "INSERT",
+    "row_id": 1788468165617,
+    "tbl": "txns"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": null,
+    "at": "2026-09-03T20:42:45.782962+00:00",
+    "before": {
+      "amount": 1,
+      "cat": "Other",
+      "check_no": null,
+      "co": "GTOI",
+      "created_at": "2026-09-03T20:42:45.724361+00:00",
+      "description": "SEC audit probe",
+      "done": null,
+      "due": null,
+      "id": 1788468165617,
+      "notes": null,
+      "pay_type": null,
+      "period": "",
+      "status": "pending"
+    },
+    "id": 1560,
+    "op": "DELETE",
+    "row_id": 1788468165617,
+    "tbl": "txns"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "amount": 1,
+      "co": "SEC",
+      "created_at": "2026-09-03T20:42:47.109926+00:00",
+      "cur": "USD",
+      "id": 1788468166982,
+      "name": "sec-probe rate",
+      "note": "E2E-secprobe",
+      "rate": 61.5,
+      "rate_as_of": "2026-09-02",
+      "status": "cancelled"
+    },
+    "at": "2026-09-03T20:42:47.109926+00:00",
+    "before": null,
+    "id": 1561,
+    "op": "INSERT",
+    "row_id": 1788468166982,
+    "tbl": "transfers"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": null,
+    "at": "2026-09-03T20:42:47.220403+00:00",
+    "before": {
+      "amount": 1,
+      "co": "SEC",
+      "created_at": "2026-09-03T20:42:47.109926+00:00",
+      "cur": "USD",
+      "id": 1788468166982,
+      "name": "sec-probe rate",
+      "note": "E2E-secprobe",
+      "rate": 61.5,
+      "rate_as_of": "2026-09-02",
+      "status": "cancelled"
+    },
+    "id": 1562,
+    "op": "DELETE",
+    "row_id": 1788468166982,
+    "tbl": "transfers"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "amount": 1,
+      "co": "GTOI",
+      "created_at": "2026-09-03T20:48:46.422575+00:00",
+      "cur": "USD",
+      "id": 1788468526264,
+      "name": "SEC transfer probe",
+      "note": "",
+      "rate": null,
+      "rate_as_of": null,
+      "status": "pending"
+    },
+    "at": "2026-09-03T20:48:46.422575+00:00",
+    "before": null,
+    "id": 1563,
+    "op": "INSERT",
+    "row_id": 1788468526264,
+    "tbl": "transfers"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": null,
+    "at": "2026-09-03T20:48:46.600875+00:00",
+    "before": {
+      "amount": 1,
+      "co": "GTOI",
+      "created_at": "2026-09-03T20:48:46.422575+00:00",
+      "cur": "USD",
+      "id": 1788468526264,
+      "name": "SEC transfer probe",
+      "note": "",
+      "rate": null,
+      "rate_as_of": null,
+      "status": "pending"
+    },
+    "id": 1564,
+    "op": "DELETE",
+    "row_id": 1788468526264,
+    "tbl": "transfers"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "amount": 1,
+      "cat": "Other",
+      "check_no": null,
+      "co": "GTOI",
+      "created_at": "2026-09-03T20:48:46.841452+00:00",
+      "description": "SEC audit probe",
+      "done": null,
+      "due": null,
+      "id": 1788468526722,
+      "notes": null,
+      "pay_type": null,
+      "period": "",
+      "status": "pending"
+    },
+    "at": "2026-09-03T20:48:46.841452+00:00",
+    "before": null,
+    "id": 1565,
+    "op": "INSERT",
+    "row_id": 1788468526722,
+    "tbl": "txns"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": null,
+    "at": "2026-09-03T20:48:46.906006+00:00",
+    "before": {
+      "amount": 1,
+      "cat": "Other",
+      "check_no": null,
+      "co": "GTOI",
+      "created_at": "2026-09-03T20:48:46.841452+00:00",
+      "description": "SEC audit probe",
+      "done": null,
+      "due": null,
+      "id": 1788468526722,
+      "notes": null,
+      "pay_type": null,
+      "period": "",
+      "status": "pending"
+    },
+    "id": 1566,
+    "op": "DELETE",
+    "row_id": 1788468526722,
+    "tbl": "txns"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "amount": 1,
+      "co": "SEC",
+      "created_at": "2026-09-03T20:48:48.325397+00:00",
+      "cur": "USD",
+      "id": 1788468528188,
+      "name": "sec-probe rate",
+      "note": "E2E-secprobe",
+      "rate": 61.5,
+      "rate_as_of": "2026-09-02",
+      "status": "cancelled"
+    },
+    "at": "2026-09-03T20:48:48.325397+00:00",
+    "before": null,
+    "id": 1567,
+    "op": "INSERT",
+    "row_id": 1788468528188,
+    "tbl": "transfers"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": null,
+    "at": "2026-09-03T20:48:48.443656+00:00",
+    "before": {
+      "amount": 1,
+      "co": "SEC",
+      "created_at": "2026-09-03T20:48:48.325397+00:00",
+      "cur": "USD",
+      "id": 1788468528188,
+      "name": "sec-probe rate",
+      "note": "E2E-secprobe",
+      "rate": 61.5,
+      "rate_as_of": "2026-09-02",
+      "status": "cancelled"
+    },
+    "id": 1568,
+    "op": "DELETE",
+    "row_id": 1788468528188,
+    "tbl": "transfers"
+  },
+  {
+    "actor": "8444efad-f65a-4ba1-bde7-39b355c78cbf",
+    "actor_email": "millaveemmanuel15@gmail.com",
+    "after": {
+      "data": {
+        "categories": [
+          "Accounting Services",
+          "Advertising Expense",
+          "Alan Expense",
+          "Consultancy Fee",
+          "Credit card",
+          "General Expense",
+          "Jack Expense",
+          "Legal Services",
+          "Other",
+          "Petty Cash Fund",
+          "Rental Expense",
+          "Salary & Wages",
+          "Withholding Taxes"
+        ],
+        "companies": [
+          "ANG",
+          "BAR",
+          "BSC",
+          "CUPA",
+          "DNN",
+          "FEPA",
+          "GTOI",
+          "GZZ",
+          "HAL",
+          "MCR",
+          "MIC",
+          "OPT",
+          "SHK",
+          "TOR",
+          "VAR",
+          "VER",
+          "VNQ",
+          "WDO",
+          "ZON",
+          "ZPH",
+          "ZSM"
+        ],
+        "notes": [
+          {
+            "done": false,
+            "linked": false,
+            "t": "File Gov't Contributio Payments"
+          },
+          {
+            "done": false,
+            "linked": false,
+            "t": "Remind Ms sa mga unpaid govt payments"
+          },
+          {
+            "done": true,
+            "linked": false,
+            "t": "write tele for tomorrow"
+          },
+          {
+            "done": false,
+            "linked": false,
+            "t": "ZONE Liquidations - Jan to May put account codes"
+          },
+          {
+            "done": false,
+            "linked": false,
+            "t": "ZONE - if refunds, tag as Security Deposit"
+          }
+        ],
+        "settings": {
+          "ackDefaultStatus": "Pending",
+          "ackRequirePhoto": false,
+          "dashDefaultScope": "All companies",
+          "dashShowNotes": true,
+          "dashWindow": "Next 30 days",
+          "mlDefaultFreq": "Monthly",
+          "trkGroupDefault": "Company",
+          "trkOverdueRed": true,
+          "trkShowGrandTotal": true,
+          "warnDuplicate": true
+        }
+      },
+      "id": true,
+      "updated_at": "2026-09-03T20:56:14.833368+00:00"
+    },
+    "at": "2026-09-03T20:56:14.833368+00:00",
+    "before": {
+      "data": {
+        "categories": [
+          "Accounting Services",
+          "Advertising Expense",
+          "Alan Expense",
+          "Consultancy Fee",
+          "Credit card",
+          "General Expense",
+          "Jack Expense",
+          "Legal Services",
+          "Other",
+          "Petty Cash Fund",
+          "Rental Expense",
+          "Salary & Wages",
+          "Withholding Taxes"
+        ],
+        "companies": [
+          "ANG",
+          "BAR",
+          "BSC",
+          "CUPA",
+          "DNN",
+          "FEPA",
+          "GTOI",
+          "GZZ",
+          "HAL",
+          "MCR",
+          "MIC",
+          "OPT",
+          "SHK",
+          "TOR",
+          "VAR",
+          "VER",
+          "VNQ",
+          "WDO",
+          "ZON",
+          "ZPH",
+          "ZSM"
+        ],
+        "notes": [
+          {
+            "done": false,
+            "linked": false,
+            "t": "File Gov't Contributio Payments"
+          },
+          {
+            "done": false,
+            "linked": false,
+            "t": "Remind Ms sa mga unpaid govt payments"
+          },
+          {
+            "done": true,
+            "linked": false,
+            "t": "write tele for tomorrow"
+          },
+          {
+            "done": false,
+            "linked": false,
+            "t": "ZONE Liquidations - Jan to May put account codes"
+          },
+          {
+            "done": false,
+            "linked": false,
+            "t": "ZONE - if refunds, tag as Security Deposit"
+          }
+        ],
+        "settings": {
+          "ackDefaultStatus": "Pending",
+          "ackRequirePhoto": false,
+          "dashDefaultScope": "All companies",
+          "dashShowNotes": true,
+          "dashWindow": "Next 30 days",
+          "mlDefaultFreq": "Monthly",
+          "trkGroupDefault": "Company",
+          "trkOverdueRed": true,
+          "trkShowGrandTotal": true,
+          "warnDuplicate": true
+        }
+      },
+      "id": true,
+      "updated_at": "2026-09-03T19:06:10.758065+00:00"
+    },
+    "id": 1569,
+    "op": "UPDATE",
+    "row_id": null,
+    "tbl": "app_config"
+  },
+  {
+    "actor": "02155e68-eb65-4089-989e-9a0485100ada",
+    "actor_email": "millaveemmanuel@gmail.com",
+    "after": {
+      "amount": 1234.5,
+      "cat": "Other",
+      "check_no": null,
+      "co": "GTOI",
+      "created_at": "2026-09-03T21:30:08.169303+00:00",
+      "description": "smoke row",
+      "done": null,
+      "due": "2026-09-30",
+      "id": 1788471008026,
+      "notes": null,
+      "pay_type": null,
+      "period": "Sep 2026",
+      "status": "pending"
+    },
+    "at": "2026-09-03T21:30:08.169303+00:00",
+    "before": null,
+    "id": 1570,
+    "op": "INSERT",
+    "row_id": 1788471008026,
+    "tbl": "txns"
+  },
+  {
+    "actor": "02155e68-eb65-4089-989e-9a0485100ada",
+    "actor_email": "millaveemmanuel@gmail.com",
+    "after": {
+      "amount": 1234.5,
+      "cat": "Other",
+      "check_no": "004182",
+      "co": "GTOI",
+      "created_at": "2026-09-03T21:30:08.169303+00:00",
+      "description": "smoke row",
+      "done": "2026-09-01",
+      "due": "2026-09-30",
+      "id": 1788471008026,
+      "notes": null,
+      "pay_type": "Check",
+      "period": "Sep 2026",
+      "status": "completed"
+    },
+    "at": "2026-09-03T21:30:08.252012+00:00",
+    "before": {
+      "amount": 1234.5,
+      "cat": "Other",
+      "check_no": null,
+      "co": "GTOI",
+      "created_at": "2026-09-03T21:30:08.169303+00:00",
+      "description": "smoke row",
+      "done": null,
+      "due": "2026-09-30",
+      "id": 1788471008026,
+      "notes": null,
+      "pay_type": null,
+      "period": "Sep 2026",
+      "status": "pending"
+    },
+    "id": 1571,
+    "op": "UPDATE",
+    "row_id": 1788471008026,
+    "tbl": "txns"
+  },
+  {
+    "actor": "02155e68-eb65-4089-989e-9a0485100ada",
+    "actor_email": "millaveemmanuel@gmail.com",
+    "after": {
+      "actual": null,
+      "amount": 2000,
+      "co": "VAR",
+      "created_at": "2026-09-03T21:30:08.318418+00:00",
+      "date": null,
+      "description": "smoke advance",
+      "file_path": null,
+      "id": 1788471008178,
+      "name": "smoke holder",
+      "status": "released"
+    },
+    "at": "2026-09-03T21:30:08.318418+00:00",
+    "before": null,
+    "id": 1572,
+    "op": "INSERT",
+    "row_id": 1788471008178,
+    "tbl": "receipts"
+  },
+  {
+    "actor": "02155e68-eb65-4089-989e-9a0485100ada",
+    "actor_email": "millaveemmanuel@gmail.com",
+    "after": {
+      "actual": 999,
+      "amount": 2000,
+      "co": "VAR",
+      "created_at": "2026-09-03T21:30:08.318418+00:00",
+      "date": "2026-09-01",
+      "description": "smoke advance",
+      "file_path": null,
+      "id": 1788471008178,
+      "name": "smoke holder",
+      "status": "liquidated"
+    },
+    "at": "2026-09-03T21:30:08.390631+00:00",
+    "before": {
+      "actual": null,
+      "amount": 2000,
+      "co": "VAR",
+      "created_at": "2026-09-03T21:30:08.318418+00:00",
+      "date": null,
+      "description": "smoke advance",
+      "file_path": null,
+      "id": 1788471008178,
+      "name": "smoke holder",
+      "status": "released"
+    },
+    "id": 1573,
+    "op": "UPDATE",
+    "row_id": 1788471008178,
+    "tbl": "receipts"
+  },
+  {
+    "actor": "02155e68-eb65-4089-989e-9a0485100ada",
+    "actor_email": "millaveemmanuel@gmail.com",
+    "after": {
+      "amount": 3400,
+      "co": "ZON",
+      "created_at": "2026-09-03T21:30:08.461272+00:00",
+      "cur": "GBP",
+      "id": 1788471008318,
+      "name": "smoke beneficiary",
+      "note": "smoke wire",
+      "rate": null,
+      "rate_as_of": null,
+      "status": "pending"
+    },
+    "at": "2026-09-03T21:30:08.461272+00:00",
+    "before": null,
+    "id": 1574,
+    "op": "INSERT",
+    "row_id": 1788471008318,
+    "tbl": "transfers"
+  },
+  {
+    "actor": "02155e68-eb65-4089-989e-9a0485100ada",
+    "actor_email": "millaveemmanuel@gmail.com",
+    "after": {
+      "amount": 3400,
+      "co": "ZON",
+      "created_at": "2026-09-03T21:30:08.461272+00:00",
+      "cur": "GBP",
+      "id": 1788471008318,
+      "name": "smoke beneficiary",
+      "note": "smoke wire released",
+      "rate": null,
+      "rate_as_of": null,
+      "status": "released"
+    },
+    "at": "2026-09-03T21:30:08.536917+00:00",
+    "before": {
+      "amount": 3400,
+      "co": "ZON",
+      "created_at": "2026-09-03T21:30:08.461272+00:00",
+      "cur": "GBP",
+      "id": 1788471008318,
+      "name": "smoke beneficiary",
+      "note": "smoke wire",
+      "rate": null,
+      "rate_as_of": null,
+      "status": "pending"
+    },
+    "id": 1575,
+    "op": "UPDATE",
+    "row_id": 1788471008318,
+    "tbl": "transfers"
+  },
+  {
+    "actor": "02155e68-eb65-4089-989e-9a0485100ada",
+    "actor_email": "millaveemmanuel@gmail.com",
+    "after": {
+      "data": {
+        "categories": [
+          "Accounting Services",
+          "Advertising Expense",
+          "Alan Expense",
+          "Consultancy Fee",
+          "Credit card",
+          "General Expense",
+          "Jack Expense",
+          "Legal Services",
+          "Other",
+          "Petty Cash Fund",
+          "Rental Expense",
+          "Salary & Wages",
+          "Withholding Taxes",
+          "Smoke Category"
+        ],
+        "companies": [
+          "ANG",
+          "BAR",
+          "BSC",
+          "CUPA",
+          "DNN",
+          "FEPA",
+          "GTOI",
+          "GZZ",
+          "HAL",
+          "MCR",
+          "MIC",
+          "OPT",
+          "SHK",
+          "TOR",
+          "VAR",
+          "VER",
+          "VNQ",
+          "WDO",
+          "ZON",
+          "ZPH",
+          "ZSM"
+        ],
+        "notes": [
+          {
+            "done": false,
+            "linked": false,
+            "t": "File Gov't Contributio Payments"
+          },
+          {
+            "done": false,
+            "linked": false,
+            "t": "Remind Ms sa mga unpaid govt payments"
+          },
+          {
+            "done": true,
+            "linked": false,
+            "t": "write tele for tomorrow"
+          },
+          {
+            "done": false,
+            "linked": false,
+            "t": "ZONE Liquidations - Jan to May put account codes"
+          },
+          {
+            "done": false,
+            "linked": false,
+            "t": "ZONE - if refunds, tag as Security Deposit"
+          }
+        ],
+        "settings": {
+          "ackDefaultStatus": "Pending",
+          "ackRequirePhoto": false,
+          "dashDefaultScope": "All companies",
+          "dashShowNotes": true,
+          "dashWindow": "Next 30 days",
+          "mlDefaultFreq": "Monthly",
+          "trkGroupDefault": "Company",
+          "trkOverdueRed": true,
+          "trkShowGrandTotal": true,
+          "warnDuplicate": true
+        }
+      },
+      "id": true,
+      "updated_at": "2026-09-03T21:30:08.599732+00:00"
+    },
+    "at": "2026-09-03T21:30:08.599732+00:00",
+    "before": {
+      "data": {
+        "categories": [
+          "Accounting Services",
+          "Advertising Expense",
+          "Alan Expense",
+          "Consultancy Fee",
+          "Credit card",
+          "General Expense",
+          "Jack Expense",
+          "Legal Services",
+          "Other",
+          "Petty Cash Fund",
+          "Rental Expense",
+          "Salary & Wages",
+          "Withholding Taxes"
+        ],
+        "companies": [
+          "ANG",
+          "BAR",
+          "BSC",
+          "CUPA",
+          "DNN",
+          "FEPA",
+          "GTOI",
+          "GZZ",
+          "HAL",
+          "MCR",
+          "MIC",
+          "OPT",
+          "SHK",
+          "TOR",
+          "VAR",
+          "VER",
+          "VNQ",
+          "WDO",
+          "ZON",
+          "ZPH",
+          "ZSM"
+        ],
+        "notes": [
+          {
+            "done": false,
+            "linked": false,
+            "t": "File Gov't Contributio Payments"
+          },
+          {
+            "done": false,
+            "linked": false,
+            "t": "Remind Ms sa mga unpaid govt payments"
+          },
+          {
+            "done": true,
+            "linked": false,
+            "t": "write tele for tomorrow"
+          },
+          {
+            "done": false,
+            "linked": false,
+            "t": "ZONE Liquidations - Jan to May put account codes"
+          },
+          {
+            "done": false,
+            "linked": false,
+            "t": "ZONE - if refunds, tag as Security Deposit"
+          }
+        ],
+        "settings": {
+          "ackDefaultStatus": "Pending",
+          "ackRequirePhoto": false,
+          "dashDefaultScope": "All companies",
+          "dashShowNotes": true,
+          "dashWindow": "Next 30 days",
+          "mlDefaultFreq": "Monthly",
+          "trkGroupDefault": "Company",
+          "trkOverdueRed": true,
+          "trkShowGrandTotal": true,
+          "warnDuplicate": true
+        }
+      },
+      "id": true,
+      "updated_at": "2026-09-03T20:56:14.833368+00:00"
+    },
+    "id": 1576,
+    "op": "UPDATE",
+    "row_id": null,
+    "tbl": "app_config"
+  },
+  {
+    "actor": "02155e68-eb65-4089-989e-9a0485100ada",
+    "actor_email": "millaveemmanuel@gmail.com",
+    "after": {
+      "data": {
+        "categories": [
+          "Accounting Services",
+          "Advertising Expense",
+          "Alan Expense",
+          "Consultancy Fee",
+          "Credit card",
+          "General Expense",
+          "Jack Expense",
+          "Legal Services",
+          "Other",
+          "Petty Cash Fund",
+          "Rental Expense",
+          "Salary & Wages",
+          "Withholding Taxes"
+        ],
+        "companies": [
+          "ANG",
+          "BAR",
+          "BSC",
+          "CUPA",
+          "DNN",
+          "FEPA",
+          "GTOI",
+          "GZZ",
+          "HAL",
+          "MCR",
+          "MIC",
+          "OPT",
+          "SHK",
+          "TOR",
+          "VAR",
+          "VER",
+          "VNQ",
+          "WDO",
+          "ZON",
+          "ZPH",
+          "ZSM"
+        ],
+        "notes": [
+          {
+            "done": false,
+            "linked": false,
+            "t": "File Gov't Contributio Payments"
+          },
+          {
+            "done": false,
+            "linked": false,
+            "t": "Remind Ms sa mga unpaid govt payments"
+          },
+          {
+            "done": true,
+            "linked": false,
+            "t": "write tele for tomorrow"
+          },
+          {
+            "done": false,
+            "linked": false,
+            "t": "ZONE Liquidations - Jan to May put account codes"
+          },
+          {
+            "done": false,
+            "linked": false,
+            "t": "ZONE - if refunds, tag as Security Deposit"
+          }
+        ],
+        "settings": {
+          "ackDefaultStatus": "Pending",
+          "ackRequirePhoto": false,
+          "dashDefaultScope": "All companies",
+          "dashShowNotes": true,
+          "dashWindow": "Next 30 days",
+          "mlDefaultFreq": "Monthly",
+          "trkGroupDefault": "Company",
+          "trkOverdueRed": true,
+          "trkShowGrandTotal": true,
+          "warnDuplicate": true
+        }
+      },
+      "id": true,
+      "updated_at": "2026-09-03T21:30:08.823826+00:00"
+    },
+    "at": "2026-09-03T21:30:08.823826+00:00",
+    "before": {
+      "data": {
+        "categories": [
+          "Accounting Services",
+          "Advertising Expense",
+          "Alan Expense",
+          "Consultancy Fee",
+          "Credit card",
+          "General Expense",
+          "Jack Expense",
+          "Legal Services",
+          "Other",
+          "Petty Cash Fund",
+          "Rental Expense",
+          "Salary & Wages",
+          "Withholding Taxes",
+          "Smoke Category"
+        ],
+        "companies": [
+          "ANG",
+          "BAR",
+          "BSC",
+          "CUPA",
+          "DNN",
+          "FEPA",
+          "GTOI",
+          "GZZ",
+          "HAL",
+          "MCR",
+          "MIC",
+          "OPT",
+          "SHK",
+          "TOR",
+          "VAR",
+          "VER",
+          "VNQ",
+          "WDO",
+          "ZON",
+          "ZPH",
+          "ZSM"
+        ],
+        "notes": [
+          {
+            "done": false,
+            "linked": false,
+            "t": "File Gov't Contributio Payments"
+          },
+          {
+            "done": false,
+            "linked": false,
+            "t": "Remind Ms sa mga unpaid govt payments"
+          },
+          {
+            "done": true,
+            "linked": false,
+            "t": "write tele for tomorrow"
+          },
+          {
+            "done": false,
+            "linked": false,
+            "t": "ZONE Liquidations - Jan to May put account codes"
+          },
+          {
+            "done": false,
+            "linked": false,
+            "t": "ZONE - if refunds, tag as Security Deposit"
+          }
+        ],
+        "settings": {
+          "ackDefaultStatus": "Pending",
+          "ackRequirePhoto": false,
+          "dashDefaultScope": "All companies",
+          "dashShowNotes": true,
+          "dashWindow": "Next 30 days",
+          "mlDefaultFreq": "Monthly",
+          "trkGroupDefault": "Company",
+          "trkOverdueRed": true,
+          "trkShowGrandTotal": true,
+          "warnDuplicate": true
+        }
+      },
+      "id": true,
+      "updated_at": "2026-09-03T21:30:08.599732+00:00"
+    },
+    "id": 1577,
+    "op": "UPDATE",
+    "row_id": null,
+    "tbl": "app_config"
+  },
+  {
+    "actor": "02155e68-eb65-4089-989e-9a0485100ada",
+    "actor_email": "millaveemmanuel@gmail.com",
+    "after": null,
+    "at": "2026-09-03T21:30:10.863675+00:00",
+    "before": {
+      "amount": 3400,
+      "co": "ZON",
+      "created_at": "2026-09-03T21:30:08.461272+00:00",
+      "cur": "GBP",
+      "id": 1788471008318,
+      "name": "smoke beneficiary",
+      "note": "smoke wire released",
+      "rate": null,
+      "rate_as_of": null,
+      "status": "released"
+    },
+    "id": 1578,
+    "op": "DELETE",
+    "row_id": 1788471008318,
+    "tbl": "transfers"
+  },
+  {
+    "actor": "02155e68-eb65-4089-989e-9a0485100ada",
+    "actor_email": "millaveemmanuel@gmail.com",
+    "after": null,
+    "at": "2026-09-03T21:30:10.923545+00:00",
+    "before": {
+      "amount": 1234.5,
+      "cat": "Other",
+      "check_no": "004182",
+      "co": "GTOI",
+      "created_at": "2026-09-03T21:30:08.169303+00:00",
+      "description": "smoke row",
+      "done": "2026-09-01",
+      "due": "2026-09-30",
+      "id": 1788471008026,
+      "notes": null,
+      "pay_type": "Check",
+      "period": "Sep 2026",
+      "status": "completed"
+    },
+    "id": 1579,
+    "op": "DELETE",
+    "row_id": 1788471008026,
+    "tbl": "txns"
+  },
+  {
+    "actor": "02155e68-eb65-4089-989e-9a0485100ada",
+    "actor_email": "millaveemmanuel@gmail.com",
+    "after": null,
+    "at": "2026-09-03T21:30:11.107713+00:00",
+    "before": {
+      "actual": 999,
+      "amount": 2000,
+      "co": "VAR",
+      "created_at": "2026-09-03T21:30:08.318418+00:00",
+      "date": "2026-09-01",
+      "description": "smoke advance",
+      "file_path": null,
+      "id": 1788471008178,
+      "name": "smoke holder",
+      "status": "liquidated"
+    },
+    "id": 1580,
+    "op": "DELETE",
+    "row_id": 1788471008178,
+    "tbl": "receipts"
+  },
+  {
+    "actor": "02155e68-eb65-4089-989e-9a0485100ada",
+    "actor_email": "millaveemmanuel@gmail.com",
+    "after": {
+      "data": {
+        "categories": [
+          "Accounting Services",
+          "Advertising Expense",
+          "Alan Expense",
+          "Consultancy Fee",
+          "Credit card",
+          "General Expense",
+          "Jack Expense",
+          "Legal Services",
+          "Other",
+          "Petty Cash Fund",
+          "Rental Expense",
+          "Salary & Wages",
+          "Withholding Taxes"
+        ],
+        "companies": [
+          "ANG",
+          "BAR",
+          "BSC",
+          "CUPA",
+          "DNN",
+          "FEPA",
+          "GTOI",
+          "GZZ",
+          "HAL",
+          "MCR",
+          "MIC",
+          "OPT",
+          "SHK",
+          "TOR",
+          "VAR",
+          "VER",
+          "VNQ",
+          "WDO",
+          "ZON",
+          "ZPH",
+          "ZSM"
+        ],
+        "notes": [
+          {
+            "done": false,
+            "linked": false,
+            "t": "File Gov't Contributio Payments"
+          },
+          {
+            "done": false,
+            "linked": false,
+            "t": "Remind Ms sa mga unpaid govt payments"
+          },
+          {
+            "done": true,
+            "linked": false,
+            "t": "write tele for tomorrow"
+          },
+          {
+            "done": false,
+            "linked": false,
+            "t": "ZONE Liquidations - Jan to May put account codes"
+          },
+          {
+            "done": false,
+            "linked": false,
+            "t": "ZONE - if refunds, tag as Security Deposit"
+          }
+        ],
+        "settings": {
+          "ackDefaultStatus": "Pending",
+          "ackRequirePhoto": false,
+          "dashDefaultScope": "All companies",
+          "dashShowNotes": true,
+          "dashWindow": "Next 30 days",
+          "mlDefaultFreq": "Monthly",
+          "trkGroupDefault": "Company",
+          "trkOverdueRed": true,
+          "trkShowGrandTotal": true,
+          "warnDuplicate": true
+        }
+      },
+      "id": true,
+      "updated_at": "2026-09-03T21:30:11.404694+00:00"
+    },
+    "at": "2026-09-03T21:30:11.404694+00:00",
+    "before": {
+      "data": {
+        "categories": [
+          "Accounting Services",
+          "Advertising Expense",
+          "Alan Expense",
+          "Consultancy Fee",
+          "Credit card",
+          "General Expense",
+          "Jack Expense",
+          "Legal Services",
+          "Other",
+          "Petty Cash Fund",
+          "Rental Expense",
+          "Salary & Wages",
+          "Withholding Taxes"
+        ],
+        "companies": [
+          "ANG",
+          "BAR",
+          "BSC",
+          "CUPA",
+          "DNN",
+          "FEPA",
+          "GTOI",
+          "GZZ",
+          "HAL",
+          "MCR",
+          "MIC",
+          "OPT",
+          "SHK",
+          "TOR",
+          "VAR",
+          "VER",
+          "VNQ",
+          "WDO",
+          "ZON",
+          "ZPH",
+          "ZSM"
+        ],
+        "notes": [
+          {
+            "done": false,
+            "linked": false,
+            "t": "File Gov't Contributio Payments"
+          },
+          {
+            "done": false,
+            "linked": false,
+            "t": "Remind Ms sa mga unpaid govt payments"
+          },
+          {
+            "done": true,
+            "linked": false,
+            "t": "write tele for tomorrow"
+          },
+          {
+            "done": false,
+            "linked": false,
+            "t": "ZONE Liquidations - Jan to May put account codes"
+          },
+          {
+            "done": false,
+            "linked": false,
+            "t": "ZONE - if refunds, tag as Security Deposit"
+          }
+        ],
+        "settings": {
+          "ackDefaultStatus": "Pending",
+          "ackRequirePhoto": false,
+          "dashDefaultScope": "All companies",
+          "dashShowNotes": true,
+          "dashWindow": "Next 30 days",
+          "mlDefaultFreq": "Monthly",
+          "trkGroupDefault": "Company",
+          "trkOverdueRed": true,
+          "trkShowGrandTotal": true,
+          "warnDuplicate": true
+        }
+      },
+      "id": true,
+      "updated_at": "2026-09-03T21:30:08.823826+00:00"
+    },
+    "id": 1581,
+    "op": "UPDATE",
+    "row_id": null,
+    "tbl": "app_config"
+  },
+  {
+    "actor": "02155e68-eb65-4089-989e-9a0485100ada",
+    "actor_email": "millaveemmanuel@gmail.com",
+    "after": {
+      "actual": null,
+      "amount": 0,
+      "co": "F5",
+      "created_at": "2026-09-03T21:30:59.960617+00:00",
+      "date": null,
+      "description": "F5/R10 linked backup restore proof",
+      "file_path": "1788471059637/task-2-storage-proof.pdf",
+      "id": 1788471059637,
+      "name": "Task 2 storage proof",
+      "status": "released"
+    },
+    "at": "2026-09-03T21:30:59.960617+00:00",
+    "before": null,
+    "id": 1582,
+    "op": "INSERT",
+    "row_id": 1788471059637,
+    "tbl": "receipts"
   }
 ]
