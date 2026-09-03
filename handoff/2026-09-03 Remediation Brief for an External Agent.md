@@ -192,6 +192,38 @@ about itself that nobody has exercised.
 
 ## 5. The remediation index
 
+> **Status, end of 2026-09-03.** Ten items closed and pushed as `6fb8e38`: R1, R4, R5, R6, R13,
+> R15, F5, F6, Q12, and R2 in the part that matters. What remains is listed under *Still open*
+> below. The table that follows is the original index; rows carry their outcome.
+
+### Closed this session
+
+| ID | Outcome |
+|---|---|
+| **F6** | The backup fixes were never deployed — four commits sat unpushed while the nightly job ran the old code and wrote `1000` again on 2026-09-02T20:28Z. Merged and pushed. `origin/main` now pages and carries `accounts.json` |
+| **Q12** | The fourth admin is `mikmiktabs@gmail.com`, read from production `auth.users`. `backup.mjs` now carries known emails forward, so an account that never writes can no longer be silently rewritten to `null` |
+| **R1** | `workers: 1` applied. **Proven by a real run: 29 passed at one worker in 1.3 min** |
+| **R2** | Schema parity proven (821 facts, `9878b2dbf88b626ad943aad0aff31901`, identical). Ledger restored to fingerprint `05a080127ca18b46dc693edbd22b5168`, 21 rows, ₱226,000.00 — byte-identical. `app_config.updated_at` preserved. Four profiles, all admin, all joining `auth.users`. Zero audit rows written by the restore. **F3 reproduced and fixed**: with the sequence behind, an audited write failed `23505 duplicate key value violates unique constraint "audit_log_pkey"`; after the prescribed `setval` the same write was accepted |
+| **R4** | Setup project signs in once with tracing off and saves `storageState`. 25 of 27 specs no longer type the password; the two that exist to exercise the form still do. **Proven by a real run.** It also surfaced that `signOut()` defaults to `scope: 'global'` — see *Still open* |
+| **R5** | `SCHEDULE_*` documented in `.env.example` and the README, names only, no code fallback |
+| **R6** | Second backup at **06:00 UTC** — two even 12 h gaps. The 09:00 that was floated would have made the worst case 15 h while reading as an improvement |
+| **R13** | `actions/checkout@v5` and `actions/setup-node@v5`, verified against the release pages rather than taken on the audit's word. v6 and v7 lines also exist and were deliberately not taken |
+| **R15** | Rollback convention documented in `supabase/README.md`, prospective, existing twelve untouched |
+| **F5** | Both storage listings go through one paging helper; an error on the inner listing used to be discarded entirely and now aborts the run. **Not exercised against a live bucket** — the bucket is empty. Unit-tested against a fake at the 1000/1001 boundary |
+| — | `backups/verify-restore.sql` written: fails on a short count, a roster that is not all admin, a behind sequence, a disabled trigger, or a write that is not logged |
+
+### Still open
+
+| ID | What is left |
+|---|---|
+| **R2 / R9** | 250 of 1,129 audit rows were loaded before a session limit stopped the transfer. The mechanism, the fidelity and the sequence are all proven; what is unproven is bulk transport — and an agent tool is the wrong transport anyway. **`backups/README.md` should tell the operator to use `psql \copy` for `audit_log`.** `verify-restore.sql` itself has never been run through `psql`, only its assertions transliterated |
+| **R3** | Not started. An agent was killed mid-build and its worktree was empty. ₱39,964,763.80 still priced by five constants at `logic.js:259` |
+| **R7** | Two migrations written, **applied nowhere**, unproven even on the rehearsal. `db.js` already reads the roster directly, which is safe standalone. Ordering is load-bearing and is documented in `supabase/README.md` |
+| **R8, R10, R11, R12, R14** | Unchanged — deferred, blocked on a fact, or an owner preference |
+| **NEW** | `supabase.auth.signOut()` at `src/App.jsx:58` defaults to `scope: 'global'`, verified in the installed dependency. Signing out on one device kills that person's session everywhere. One word to change, user-visible on a live system, nobody asked for it — **owner's call** |
+
+
+
 Stable IDs. Cite them in your plan. `unblocked` means the owner has already approved the shape
 and only the work remains; `needs answer` means §7 must be answered first.
 
