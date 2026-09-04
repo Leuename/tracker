@@ -12,6 +12,26 @@ status: current
 > identifiers, the codebase map, the open items awaiting the owner's decision, and the traps
 > that cost time. This note stays the append-only record of what each pass did.
 
+
+## 2026-09-04 — Exchange rates, R7, and two agent audits
+
+Phases 37 to 44. Exchange rates built and shipped (`fx_rates`, `fx_latest`, an ECB job twice daily,
+a three-rung fallback) after finding the five constants understated the transfer sheet by
+**₱4,322,329.05**. R7 relocated `is_viewer()` into a non-exposed schema — Supabase's own advisor
+stopped firing, which is the linter agreeing independently rather than another restatement of our
+checks. The six released wires took their ECB 2026-09-02 rate (D45); the three pending ones stay
+null until release.
+
+Two external-agent passes were audited against the codebase rather than their own reports: 7/10 and
+8.5/10. Both blocked correctly on work they could not do; both overclaimed something checkable. The
+defects found — a preflight that never checked HTTP status, an F5 claim whose loop never iterated,
+evidence made uncommittable by a `.gitignore` — share one root cause, written up as §1 of the
+package: **verification that checks a report instead of the thing itself.**
+
+Full record: [2026-09-04 Exchange Rates, R7, and Two Agent Audits](../handoff/2026-09-04%20Exchange%20Rates,%20R7,%20and%20Two%20Agent%20Audits.md).
+Open items and their blockers: [Remaining Work and Owner Decisions](Remaining%20Work%20and%20Owner%20Decisions.md).
+
+
 ## Current State
 
 `apps/web/` holds an authored React + Vite implementation of `company_tracker/ERP Prototype.dc.html`, added on 2026-08-31 at the owner's explicit request. It is the first checked-in application source in this repository. Later the same day it gained Supabase persistence behind an email sign-in, under [Decisions](Decisions.md) D7. `company_tracker/` still contains the original reference exports, unmodified.
