@@ -32,14 +32,14 @@ Task 2 produced, and your nine task reports.
 
 | | |
 |---|---|
-| `main` | `7f1b10f`, working tree clean, **2 commits unpushed** — `e616254` (yours) and `7f1b10f` (the audit fixes) |
+| `main` | `4e16d2c` **or later**, working tree clean, pushed, CI gate green, production `200` |
 | Production Supabase | `jusifpditdigqdjiwdaj` — 15 migrations, `private.is_viewer` present, `public.is_viewer` absent |
 | Rehearsal | `bucmcnsjkuprpojhequy` — 15 migrations, `audit_log` 252 rows |
 | Off limits | `lasycakyudaawrydetnm` (`zone-offices`) — a live CRM belonging to someone else. Paused. Do not touch |
-| `txns` | 21 rows, ₱226,000.00, fingerprint `05a080127ca18b46dc693edbd22b5168` — unmoved through your entire pass |
-| `receipts` | 2 — the owner's, plus your retained storage-proof row (§2.5) |
+| `txns` | **23 rows, ₱269,317.00, fingerprint `6fc52ee3f41d2ffd0e9292d8dc4f015d`** as of 2026-09-04 ~03:00 UTC. It read `05a080127ca18b46dc693edbd22b5168` / 21 / ₱226,000.00 for the whole of your pass and moved *after* it: the owner added two payables and a receipt at 10:21–10:28 Manila. **This number is expected to keep moving** — see §1.4 |
+| `receipts` | 3 — two of the owner's, plus your retained storage-proof row (§2.5) |
 | `transfers` | 9 — six priced at ECB 2026-09-02, three pending and null |
-| `audit_log` | 1,686 live · manifest `1582` (a snapshot lags; that is normal, not drift) |
+| `audit_log` | 1,759 live · manifest `1582` (a snapshot lags the ledger; that is normal, not drift) |
 | Accounts | 5 — four `admin`, one `viewer` |
 | Manifest | taken `2026-09-03T21:31:08Z`, roster `5`, **`Stored files: 1`** |
 | `npm test` | **77** (was 66; +11 preflight failure-path tests) |
@@ -102,6 +102,33 @@ credentials first — none present.
 malformed/undefined `baseURL`. The 503/500/404 cases **fail against your original implementation**,
 which is the point of them.
 
+### 1.4 — The ledger is live, and its fingerprint is a moving baseline
+
+`txns` read `05a080127ca18b46dc693edbd22b5168` (21 rows, ₱226,000.00) through the whole of your
+pass, and every handoff written before 2026-09-04 quotes that number. **It has since moved to
+`6fc52ee3f41d2ffd0e9292d8dc4f015d` (23 rows, ₱269,317.00)** because the owner worked: two payables
+under `ZON` / Repairs & Maintenance (`TECSON` ₱29,988.00 and `Chemlux` ₱13,329.00, both due
+2026-09-04) and a receipt (`Kuya Randy`, ₱2,000.00), entered 10:21–10:28 Manila. None carries an
+`E2E-` tag, and none is yours or mine to touch.
+
+**So a fingerprint you do not recognise is the normal case, not a finding.** This is a ledger in
+daily use during Manila working hours; any session long enough to be useful may span a change to it.
+The older handoffs are not wrong — they are dated records of what was true when written, and this
+project keeps them rather than rewriting them.
+
+How to use the fingerprint correctly:
+
+1. Read it at the **start** of your session and record it. That is your baseline, not whatever a
+   note says.
+2. Assert it is unchanged across **your own** writes — that is what it is for: proving a suite swept
+   what it created and nothing else.
+3. If it changes and you did not write, identify the rows before saying anything. Untagged rows in
+   working hours are the owner. Say "the owner has been working" rather than "the ledger is
+   damaged", and **never** sweep, restore or rewind to make it match a number in a document.
+
+The same applies to `audit_log` and `receipts` counts throughout this brief: they are timestamps of
+a live system, not invariants.
+
 ---
 
 ## 2. What is still open
@@ -112,7 +139,7 @@ IDs are stable across all five briefs. Cite them; never renumber.
 
 **Where:** `backups/README.md`, `backups/audit_log.json`, `backups/verify-restore.sql`
 
-252 of 1,686 rows exist on rehearsal. Mechanism, fidelity and the sequence fix are proven; **bulk
+252 of ~1,759 rows exist on rehearsal. Mechanism, fidelity and the sequence fix are proven; **bulk
 transport is not.** Needs `psql \copy` and a supervised `postgres` connection string.
 
 **Your last-pass ruling stands: no connection string means blocked.** Do not use application
@@ -240,7 +267,7 @@ Full set is 1–63 across the earlier handoffs. These bite here:
 
 ```bash
 cd /Users/itadmin/Desktop/puge
-git fetch origin && git log origin/main..HEAD   # expect 2 commits, unpushed. FETCH FIRST
+git fetch origin && git log origin/main..HEAD   # expect EMPTY. FETCH FIRST
 git status --short                              # expect clean
 
 cd apps/web
@@ -253,7 +280,8 @@ npx playwright test --workers=1   # expect 29 in ~1.3 min — WRITES to producti
 
 ```sql
 select md5(string_agg(t::text, chr(10) order by t.id)) fingerprint, count(*), sum(amount)::text
-  from public.txns t;   -- expect 05a080127ca18b46dc693edbd22b5168, 21, 226000.00
+  from public.txns t;   -- 6fc52ee3f41d2ffd0e9292d8dc4f015d, 23, 269317.00 at the time of writing.
+                        -- A DIFFERENT value is the expected case, not a failure. See §1.4.
 
 select (select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace
           where n.nspname='private' and p.proname='is_viewer') private_fn,
@@ -267,7 +295,8 @@ select status, count(*), count(rate) priced from public.transfers group by 1;
 -- expect released 6/6 priced, pending 3/0 priced
 
 select id, co, name, file_path from public.receipts order by id;
--- expect 2: the owner's, and the §2.5 proof row. Do not delete either.
+-- expect 3 at the time of writing: two of the owner's, and the §2.5 proof row.
+-- Delete none of them. A count you do not recognise is likely the owner working (§1.4).
 ```
 
 Then read `backups/MANIFEST.md` (after fetching) and confirm `Stored files` is `1`, the roster is
@@ -311,11 +340,18 @@ that writes exchange rates and nothing else. ONE shared ledger holding REAL mone
 the owner during Manila working hours. There is NO staging environment: npm run e2e, npm run
 smoke and npm run security all WRITE to production.
 
-VERIFY FIRST. Run `git fetch origin && git log origin/main..HEAD` (expect 2 commits; FETCH
+VERIFY FIRST. Run `git fetch origin && git log origin/main..HEAD` (expect EMPTY; FETCH
 FIRST — a stale read of origin/main caused a false alarm on 2026-09-04). Then in apps/web:
 npm test (expect 77), npm run build, npm audit (0), npm run security (56), npx playwright test
---workers=1 (29). Then the SQL in section 6. If the txns fingerprint differs from
-05a080127ca18b46dc693edbd22b5168, the owner has been working — say so rather than assuming damage.
+--workers=1 (29). Then the SQL in section 6.
+
+THE TXNS FINGERPRINT IS NOT A CONSTANT. It was 6fc52ee3f41d2ffd0e9292d8dc4f015d (23 rows,
+PHP 269,317.00) when this was written, having moved from 05a080127ca18b46dc693edbd22b5168 (21
+rows, PHP 226,000.00) a few hours earlier because the owner entered two payables and a receipt
+during a working morning. A value you do not recognise is the NORMAL case: this is a live
+ledger in daily use. Establish the fingerprint as YOUR baseline at the start of your session,
+then assert it is unchanged across your own writes. Never treat a mismatch against a number
+written in a handoff as damage, and never "restore" or sweep to make it match.
 
 Your previous pass was audited against the codebase. Section 1 is that audit: you blocked
 correctly on every blocked item, did not push, and left the ledger intact — keep doing all of
