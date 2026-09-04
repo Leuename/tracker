@@ -33,7 +33,7 @@
     "note": "PRINV 14",
     "rate": null,
     "rate_as_of": null,
-    "status": "pending"
+    "status": "released"
   },
   {
     "amount": 80554.1,
@@ -93,7 +93,7 @@
     "note": "THLY-0019 - For Out 03 Sept 2026",
     "rate": null,
     "rate_as_of": null,
-    "status": "pending"
+    "status": "released"
   },
   {
     "amount": 78675,
@@ -105,6 +105,6 @@
     "note": "THLY-0020 - For Out 03 Sept 2026",
     "rate": null,
     "rate_as_of": null,
-    "status": "pending"
+    "status": "released"
   }
 ]

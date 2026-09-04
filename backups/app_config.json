@@ -5,15 +5,20 @@
         "Accounting Services",
         "Advertising Expense",
         "Alan Expense",
+        "Communications",
         "Consultancy Fee",
         "Credit card",
+        "Final Pay",
         "General Expense",
         "Jack Expense",
         "Legal Services",
         "Other",
         "Petty Cash Fund",
         "Rental Expense",
+        "Repairs & Maintenance",
         "Salary & Wages",
+        "Security Deposit",
+        "Subscription",
         "Withholding Taxes"
       ],
       "companies": [
@@ -80,6 +85,6 @@
       }
     },
     "id": true,
-    "updated_at": "2026-09-03T21:30:11.404694+00:00"
+    "updated_at": "2026-09-04T10:58:11.988628+00:00"
   }
 ]
