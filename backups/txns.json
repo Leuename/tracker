@@ -8,10 +8,12 @@
     "description": "Professional Fee",
     "done": null,
     "due": "2026-09-30",
+    "fee": null,
     "id": 1788258053710,
     "notes": null,
     "pay_type": null,
     "period": "Sep 2026",
+    "src": null,
     "status": "pending"
   },
   {
@@ -23,10 +25,12 @@
     "description": "Professional Fee",
     "done": null,
     "due": "2026-09-30",
+    "fee": null,
     "id": 1788258076542,
     "notes": null,
     "pay_type": null,
     "period": "Sep 2026",
+    "src": null,
     "status": "pending"
   },
   {
@@ -38,10 +42,12 @@
     "description": "Professional Fee",
     "done": "2026-09-02",
     "due": "2026-09-30",
+    "fee": null,
     "id": 1788258092310,
     "notes": null,
     "pay_type": "Check",
     "period": "Sep 2026",
+    "src": null,
     "status": "completed"
   },
   {
@@ -53,10 +59,12 @@
     "description": "Professional Fee",
     "done": null,
     "due": "2026-09-30",
+    "fee": null,
     "id": 1788258105638,
     "notes": null,
     "pay_type": null,
     "period": "Sep 2026",
+    "src": null,
     "status": "pending"
   },
   {
@@ -68,10 +76,12 @@
     "description": "Professional Fee",
     "done": null,
     "due": "2026-09-30",
+    "fee": null,
     "id": 1788258116294,
     "notes": null,
     "pay_type": null,
     "period": "Sep 2026",
+    "src": null,
     "status": "pending"
   },
   {
@@ -83,10 +93,12 @@
     "description": "Professional Fee",
     "done": null,
     "due": "2026-09-30",
+    "fee": null,
     "id": 1788258129526,
     "notes": null,
     "pay_type": null,
     "period": "Sep 2026",
+    "src": null,
     "status": "pending"
   },
   {
@@ -98,10 +110,12 @@
     "description": "Professional Fee & Transpo Expense",
     "done": null,
     "due": "2026-09-30",
+    "fee": null,
     "id": 1788258149198,
     "notes": null,
     "pay_type": null,
     "period": "Sep 2026",
+    "src": null,
     "status": "pending"
   },
   {
@@ -113,10 +127,12 @@
     "description": "Professional Fee",
     "done": null,
     "due": "2026-09-30",
+    "fee": null,
     "id": 1788258164942,
     "notes": null,
     "pay_type": null,
     "period": "Sep 2026",
+    "src": null,
     "status": "pending"
   },
   {
@@ -128,10 +144,12 @@
     "description": "Professional Fee",
     "done": "2026-09-02",
     "due": "2026-09-30",
+    "fee": null,
     "id": 1788258179046,
     "notes": null,
     "pay_type": "Check",
     "period": "Sep 2026",
+    "src": null,
     "status": "completed"
   },
   {
@@ -143,10 +161,12 @@
     "description": "Professional Fee",
     "done": null,
     "due": "2026-09-30",
+    "fee": null,
     "id": 1788258199927,
     "notes": null,
     "pay_type": null,
     "period": "Sep 2026",
+    "src": null,
     "status": "pending"
   },
   {
@@ -158,10 +178,12 @@
     "description": "Professional Fee",
     "done": null,
     "due": "2026-09-30",
+    "fee": null,
     "id": 1788258238431,
     "notes": null,
     "pay_type": null,
     "period": "Sep 2026",
+    "src": null,
     "status": "pending"
   },
   {
@@ -173,10 +195,12 @@
     "description": "Professional Fee",
     "done": null,
     "due": "2026-09-30",
+    "fee": null,
     "id": 1788258252583,
     "notes": null,
     "pay_type": null,
     "period": "Sep 2026",
+    "src": null,
     "status": "pending"
   },
   {
@@ -188,10 +212,12 @@
     "description": "Professional Fee",
     "done": null,
     "due": "2026-09-30",
+    "fee": null,
     "id": 1788258266896,
     "notes": null,
     "pay_type": null,
     "period": "Sep 2026",
+    "src": null,
     "status": "pending"
   },
   {
@@ -203,10 +229,12 @@
     "description": "Professional Fee",
     "done": null,
     "due": "2026-09-30",
+    "fee": null,
     "id": 1788258282095,
     "notes": null,
     "pay_type": null,
     "period": "Sep 2026",
+    "src": null,
     "status": "pending"
   },
   {
@@ -218,10 +246,12 @@
     "description": "Professional Fee",
     "done": null,
     "due": "2026-09-30",
+    "fee": null,
     "id": 1788258293808,
     "notes": null,
     "pay_type": null,
     "period": "Sep 2026",
+    "src": null,
     "status": "pending"
   },
   {
@@ -233,10 +263,12 @@
     "description": "Professional Fee",
     "done": null,
     "due": "2026-09-30",
+    "fee": null,
     "id": 1788258305392,
     "notes": null,
     "pay_type": null,
     "period": "Sep 2026",
+    "src": null,
     "status": "pending"
   },
   {
@@ -248,10 +280,12 @@
     "description": "Professional Fee",
     "done": null,
     "due": "2026-09-30",
+    "fee": null,
     "id": 1788258318631,
     "notes": null,
     "pay_type": null,
     "period": "Sep 2026",
+    "src": null,
     "status": "pending"
   },
   {
@@ -263,10 +297,12 @@
     "description": "Professional Fee",
     "done": "2026-09-04",
     "due": "2026-09-30",
+    "fee": null,
     "id": 1788258330424,
     "notes": null,
     "pay_type": "Check",
     "period": "Sep 2026",
+    "src": null,
     "status": "completed"
   },
   {
@@ -278,10 +314,12 @@
     "description": "Professional Fee",
     "done": null,
     "due": "2026-09-30",
+    "fee": null,
     "id": 1788258342351,
     "notes": null,
     "pay_type": null,
     "period": "Sep 2026",
+    "src": null,
     "status": "pending"
   },
   {
@@ -293,10 +331,12 @@
     "description": "Professional Fee",
     "done": null,
     "due": "2026-09-30",
+    "fee": null,
     "id": 1788258353912,
     "notes": null,
     "pay_type": null,
     "period": "Sep 2026",
+    "src": null,
     "status": "pending"
   },
   {
@@ -308,10 +348,12 @@
     "description": "Professional Fee",
     "done": "2026-09-04",
     "due": "2026-09-30",
+    "fee": null,
     "id": 1788258369177,
     "notes": null,
     "pay_type": "Check",
     "period": "Sep 2026",
+    "src": null,
     "status": "completed"
   },
   {
@@ -323,10 +365,12 @@
     "description": "TECSON",
     "done": null,
     "due": "2026-09-16",
+    "fee": null,
     "id": 1788488513255,
     "notes": null,
     "pay_type": null,
     "period": "22 Jun–21 Jul 2026",
+    "src": null,
     "status": "pending"
   },
   {
@@ -338,10 +382,12 @@
     "description": "Chemlux",
     "done": null,
     "due": "2026-09-16",
+    "fee": null,
     "id": 1788488609495,
     "notes": null,
     "pay_type": null,
     "period": "26 Jun 2026",
+    "src": null,
     "status": "pending"
   },
   {
@@ -353,10 +399,12 @@
     "description": "Tayag",
     "done": null,
     "due": "2026-09-30",
+    "fee": null,
     "id": 1788514185162,
     "notes": null,
     "pay_type": null,
     "period": "Aug 2026",
+    "src": null,
     "status": "pending"
   },
   {
@@ -368,10 +416,12 @@
     "description": "Tayag",
     "done": null,
     "due": "2026-09-30",
+    "fee": null,
     "id": 1788514195642,
     "notes": null,
     "pay_type": null,
     "period": "Aug 2026",
+    "src": null,
     "status": "pending"
   },
   {
@@ -383,10 +433,12 @@
     "description": "Tayag",
     "done": null,
     "due": "2026-09-30",
+    "fee": null,
     "id": 1788514208449,
     "notes": null,
     "pay_type": null,
     "period": "Aug 2026",
+    "src": null,
     "status": "pending"
   },
   {
@@ -398,10 +450,12 @@
     "description": "Tayag",
     "done": null,
     "due": "2026-09-30",
+    "fee": null,
     "id": 1788514219834,
     "notes": null,
     "pay_type": null,
     "period": "Aug 2026",
+    "src": null,
     "status": "pending"
   },
   {
@@ -413,10 +467,12 @@
     "description": "Tayag",
     "done": null,
     "due": "2026-09-30",
+    "fee": null,
     "id": 1788514238762,
     "notes": null,
     "pay_type": null,
     "period": "Aug 2026",
+    "src": null,
     "status": "pending"
   },
   {
@@ -428,10 +484,12 @@
     "description": "Tayag",
     "done": null,
     "due": "2026-09-30",
+    "fee": null,
     "id": 1788514291090,
     "notes": null,
     "pay_type": null,
     "period": "Aug 2026",
+    "src": null,
     "status": "pending"
   },
   {
@@ -443,10 +501,12 @@
     "description": "Tayag",
     "done": null,
     "due": "2026-09-30",
+    "fee": null,
     "id": 1788514303514,
     "notes": null,
     "pay_type": null,
     "period": "Aug 2026",
+    "src": null,
     "status": "pending"
   },
   {
@@ -458,10 +518,12 @@
     "description": "Tayag",
     "done": null,
     "due": "2026-09-30",
+    "fee": null,
     "id": 1788514317337,
     "notes": null,
     "pay_type": null,
     "period": "Aug 2026",
+    "src": null,
     "status": "pending"
   },
   {
@@ -473,10 +535,12 @@
     "description": "Tayag",
     "done": null,
     "due": "2026-09-30",
+    "fee": null,
     "id": 1788514331745,
     "notes": null,
     "pay_type": null,
     "period": "Aug 2026",
+    "src": null,
     "status": "pending"
   },
   {
@@ -488,10 +552,12 @@
     "description": "Tayag",
     "done": null,
     "due": "2026-09-30",
+    "fee": null,
     "id": 1788514340377,
     "notes": null,
     "pay_type": null,
     "period": "Aug 2026",
+    "src": null,
     "status": "pending"
   },
   {
@@ -503,10 +569,12 @@
     "description": "Tayag",
     "done": null,
     "due": "2026-09-30",
+    "fee": null,
     "id": 1788514348585,
     "notes": null,
     "pay_type": null,
     "period": "Aug 2026",
+    "src": null,
     "status": "pending"
   },
   {
@@ -518,10 +586,12 @@
     "description": "Tayag",
     "done": null,
     "due": "2026-09-30",
+    "fee": null,
     "id": 1788514358345,
     "notes": null,
     "pay_type": null,
     "period": "Aug 2026",
+    "src": null,
     "status": "pending"
   },
   {
@@ -533,10 +603,12 @@
     "description": "Tayag",
     "done": null,
     "due": "2026-09-30",
+    "fee": null,
     "id": 1788514368161,
     "notes": null,
     "pay_type": null,
     "period": "Aug 2026",
+    "src": null,
     "status": "pending"
   },
   {
@@ -548,10 +620,12 @@
     "description": "Tayag",
     "done": null,
     "due": "2026-09-30",
+    "fee": null,
     "id": 1788514410857,
     "notes": null,
     "pay_type": null,
     "period": "Aug 2026",
+    "src": null,
     "status": "pending"
   },
   {
@@ -563,10 +637,12 @@
     "description": "Tayag",
     "done": null,
     "due": "2026-09-30",
+    "fee": null,
     "id": 1788514422025,
     "notes": null,
     "pay_type": null,
     "period": "Aug 2026",
+    "src": null,
     "status": "pending"
   },
   {
@@ -578,10 +654,12 @@
     "description": "Tayag",
     "done": "2026-09-04",
     "due": "2026-09-30",
+    "fee": null,
     "id": 1788514431409,
     "notes": null,
     "pay_type": "Check",
     "period": "Aug 2026",
+    "src": null,
     "status": "completed"
   },
   {
@@ -593,10 +671,12 @@
     "description": "Tayag",
     "done": null,
     "due": "2026-09-30",
+    "fee": null,
     "id": 1788514445321,
     "notes": null,
     "pay_type": null,
     "period": "Aug 2026",
+    "src": null,
     "status": "pending"
   },
   {
@@ -608,10 +688,12 @@
     "description": "Tayag",
     "done": null,
     "due": "2026-09-30",
+    "fee": null,
     "id": 1788514502897,
     "notes": null,
     "pay_type": null,
     "period": "Aug 2026",
+    "src": null,
     "status": "pending"
   },
   {
@@ -623,10 +705,12 @@
     "description": "Tayag",
     "done": null,
     "due": "2026-09-30",
+    "fee": null,
     "id": 1788514537032,
     "notes": null,
     "pay_type": null,
     "period": "Aug 2026",
+    "src": null,
     "status": "pending"
   },
   {
@@ -638,10 +722,12 @@
     "description": "Tayag",
     "done": "2026-09-04",
     "due": "2026-09-30",
+    "fee": null,
     "id": 1788514564193,
     "notes": null,
     "pay_type": "Check",
     "period": "Aug 2026",
+    "src": null,
     "status": "completed"
   },
   {
@@ -653,10 +739,12 @@
     "description": "Tayag",
     "done": null,
     "due": "2026-09-30",
+    "fee": null,
     "id": 1788514573032,
     "notes": null,
     "pay_type": null,
     "period": "Aug 2026",
+    "src": null,
     "status": "pending"
   },
   {
@@ -668,10 +756,12 @@
     "description": "Zone Office",
     "done": null,
     "due": "2026-09-11",
+    "fee": null,
     "id": 1788514742744,
     "notes": null,
     "pay_type": null,
     "period": "Sep 2026",
+    "src": null,
     "status": "pending"
   },
   {
@@ -683,10 +773,12 @@
     "description": "Zone Office",
     "done": null,
     "due": "2026-09-11",
+    "fee": null,
     "id": 1788514756224,
     "notes": null,
     "pay_type": null,
     "period": "Sep 2026",
+    "src": null,
     "status": "pending"
   },
   {
@@ -698,10 +790,12 @@
     "description": "Zone Office",
     "done": null,
     "due": "2026-09-11",
+    "fee": null,
     "id": 1788514767935,
     "notes": null,
     "pay_type": null,
     "period": "Sep 2026",
+    "src": null,
     "status": "pending"
   },
   {
@@ -713,10 +807,12 @@
     "description": "Zone Office",
     "done": null,
     "due": "2026-09-11",
+    "fee": null,
     "id": 1788514776704,
     "notes": null,
     "pay_type": null,
     "period": "Sep 2026",
+    "src": null,
     "status": "pending"
   },
   {
@@ -728,10 +824,12 @@
     "description": "Zone Office",
     "done": "2026-09-04",
     "due": "2026-09-11",
+    "fee": null,
     "id": 1788514789648,
     "notes": null,
     "pay_type": "Check",
     "period": "Sep 2026",
+    "src": null,
     "status": "completed"
   }
 ]
