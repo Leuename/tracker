@@ -2,7 +2,7 @@
 title: Remaining Work and Owner Decisions
 tags: [open-items, decisions, owner, erp, tracker, supabase, backups, testing, security]
 created: 2026-09-04
-status: awaiting owner decisions — C2 renamed 2026-09-04
+status: awaiting owner decisions — C2 renamed and C3 resolved 2026-09-04
 supersedes: "[[Open Problems and Proposals]] as the current open-items record; that note remains the round-2 record of 2026-09-02"
 related:
   - "[[Decisions]] — D1 to D45, the authority on what is authorised"
@@ -169,9 +169,10 @@ empty since 2026-08-31.
 **The two options.** Delete it, or keep it and write one line in the docs saying why. Five minutes
 either way.
 
-**What I would do.** Delete it. An empty directory promising a backend is a claim the repository
-cannot support, and the documentation rule here is that guidance must be evidence-backed. If a real
-API is ever built, creating a directory is not the hard part.
+**Resolved 2026-09-04: deleted** ([D46](Decisions.md)). Note that git never tracked it — git does not
+track empty directories — so the deletion produced no diff. The *documentation* was the real change:
+`AGENTS.md`, `CLAUDE.md`, `docs/AI Agent Context.md` and `docs/Repository Evidence.md` no longer
+describe a boundary that is not there.
 
 ### C4 — The scheduler has no real notification channel
 
@@ -218,7 +219,7 @@ close.
 | **B2** | Blank-target replay | an empty Supabase project | Leave it. Fold into the next rehearsal |
 | **C1** | `signOut()` scope | your decision | Tell me global or local. No default is safe to assume |
 | **C2** | ₱0.00 proof row | your decision | **Renamed 2026-09-04.** Keep it — deleting it destroys the storage-restore proof |
-| **C3** | `apps/api/` | your decision | Delete it |
+| **C3** | `apps/api/` | ~~your decision~~ | **Done 2026-09-04** — deleted, D46 |
 | **C4** | Notifications | your decision | Pick a channel, or leave it. Telegram if you want one |
 | **C5** | `FX_PASSWORD` | your decision | **Rotate it now.** Cheapest and highest-risk item on this page |
 

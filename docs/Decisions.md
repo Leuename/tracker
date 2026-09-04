@@ -719,6 +719,17 @@ Applied as six guarded, ID-scoped authenticated updates and recorded by the data
 or generating the corresponding rewind plan. The purpose is narrow: released totals use the rate
 that belonged to the wire when it became real, rather than today's rate or a prototype constant.
 
+## D46 — Preserve the Storage-Restore Proof, Remove the Empty API Placeholder
+
+The owner chose to retain receipt `1788471059637`, the live proof that a receipt document survives
+backup and restore. Its sole user-facing identifier is `DO NOT DELETE — backup proof`; it remains
+released at ₱0.00 and retains its linked stored object. The exact authenticated read and storage
+download succeeded on 2026-09-04. The name is intentionally not an `E2E-` tag, so test cleanup
+cannot delete the row and orphan its evidence.
+
+`apps/api/` was confirmed empty and removed on 2026-09-04. No API implementation exists; recreate
+the directory only when an implemented backend actually needs it.
+
 ## Guideline Basis
 
 - **AGENT-03** ensures adapter workflows stop rather than invent authorization.

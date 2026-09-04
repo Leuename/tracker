@@ -55,7 +55,7 @@ This is the agent-agnostic entry point. It describes where facts live, how instr
 
 The schema is versioned in [supabase/migrations/](../supabase/README.md) — **twelve** files, each MD5-verified against what was applied, and replayed into an empty project on 2026-09-02 to a `public` schema identical to production's over 291 catalogue facts. A nightly workflow snapshots the workspace into [backups/](../backups/README.md); `npm run rewind` reconstructs any second from `audit_log` ([Decisions](Decisions.md) D32). Releases are annotated tags, `v0.2.0` through `v0.6.0`.
 
-The rest of the checkout is unchanged: `company_tracker/` remains a static Design Component export, `construction_tracker/construction.csv` remains a requirements sheet parked by decision (D18), and `apps/api/` is still empty.
+The rest of the checkout is unchanged: `company_tracker/` remains a static Design Component export, `construction_tracker/construction.csv` remains a requirements sheet parked by decision (D18), and `apps/api/` no longer exists — the empty directory was removed on 2026-09-04 ([Decisions](Decisions.md) D46).
 
 **Everything once listed as absent is built.** CI gates production, the audit trail is a trigger on all seven tables, the scheduler runs daily, the read-only role is enforced in the policies, and the restore has been performed. What is left is in [Open Problems and Proposals](Open%20Problems%20and%20Proposals.md): a per-wire exchange rate ([Exchange Rates Proposal](Exchange%20Rates%20Proposal.md)), conflict detection between concurrent editors on the same key (D28, deliberate), a real notification channel for the scheduler (D31), and viewer affordances.
 
