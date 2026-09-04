@@ -2,7 +2,7 @@
 title: Remaining Work and Owner Decisions
 tags: [open-items, decisions, owner, erp, tracker, supabase, backups, testing, security]
 created: 2026-09-04
-status: awaiting owner decisions
+status: awaiting owner decisions — C2 renamed 2026-09-04
 supersedes: "[[Open Problems and Proposals]] as the current open-items record; that note remains the round-2 record of 2026-09-02"
 related:
   - "[[Decisions]] — D1 to D45, the authority on what is authorised"
@@ -135,9 +135,11 @@ you use daily, and I will not change how your sign-out button behaves on my own 
 
 ### C2 — The ₱0.00 proof row in your receipts screen
 
-**What it is.** `receipts` row `1788471059637` — company `F5`, beneficiary "Task 2 storage proof",
-₱0.00, `released`, with a stored document attached. Created by an agent to prove the storage backup
-works.
+**What it is.** `receipts` row `1788471059637` — company `F5`, beneficiary **"DO NOT DELETE — backup
+proof"**, ₱0.00, `released`, with a stored document attached. Created by an agent to prove the
+storage backup works. **Renamed 2026-09-04** at the owner's request from "Task 2 storage proof",
+as an attributed admin update (`audit_log` id 1760); only `name` changed, the linked object is
+untouched, and the rename is reversible with `npm run rewind`.
 
 **Why it is still there.** It is deliberately **not** tagged `E2E-`, because the test sweep deletes
 tagged rows and `cleanupOrphanFiles()` deletes any stored file no receipt points at. Tagging it
@@ -155,8 +157,9 @@ automated tidy-up by design.
   next cleanup then removes, and the storage-restore proof goes with it. It would need redoing to
   re-establish.
 
-**What I would do.** Keep it, and rename it to something self-explanatory like "DO NOT DELETE —
-backup proof" so it reads as deliberate rather than as junk. Say the word and I will rename it.
+**Decided 2026-09-04: kept, and renamed** to "DO NOT DELETE — backup proof". The remaining question
+is only whether it stays at all; keeping it costs one meaningless row on a screen, and deleting it
+still destroys the storage-restore proof.
 
 ### C3 — `apps/api/` is an empty directory
 
@@ -214,7 +217,7 @@ close.
 | **B1** | F5 paging ceiling | 1,000+ objects somewhere disposable | Leave it. Logic is unit-tested; the live gap is theoretical |
 | **B2** | Blank-target replay | an empty Supabase project | Leave it. Fold into the next rehearsal |
 | **C1** | `signOut()` scope | your decision | Tell me global or local. No default is safe to assume |
-| **C2** | ₱0.00 proof row | your decision | Keep, and let me rename it so it reads as deliberate |
+| **C2** | ₱0.00 proof row | your decision | **Renamed 2026-09-04.** Keep it — deleting it destroys the storage-restore proof |
 | **C3** | `apps/api/` | your decision | Delete it |
 | **C4** | Notifications | your decision | Pick a channel, or leave it. Telegram if you want one |
 | **C5** | `FX_PASSWORD` | your decision | **Rotate it now.** Cheapest and highest-risk item on this page |

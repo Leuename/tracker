@@ -173,8 +173,9 @@ Do not relabel the rehearsal evidence as a blank-target replay** (you were right
 
 ### 2.5 — A decision your Task 2 created
 
-`receipts` row `1788471059637` — company `F5`, ₱0.00, `released`, named "Task 2 storage proof", with
-a linked stored object. It is deliberately **not** `E2E-` tagged, so the sweep cannot orphan it and
+`receipts` row `1788471059637` — company `F5`, ₱0.00, `released`, named **"DO NOT DELETE — backup
+proof"** (renamed from "Task 2 storage proof" on 2026-09-04, `audit_log` id 1760, so it reads as
+deliberate rather than as junk), with a linked stored object. It is deliberately **not** `E2E-` tagged, so the sweep cannot orphan it and
 `cleanupOrphanFiles()` cannot delete its object. That reasoning was correct and you disclosed it.
 
 The consequence needs an owner decision: it now sits in the owner's receipts screen permanently, and
