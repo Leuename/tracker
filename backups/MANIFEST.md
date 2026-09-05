@@ -4,14 +4,14 @@ Written by `apps/web/scripts/backup.mjs`. Do not edit by hand.
 
 | | |
 |---|---|
-| Taken | 2026-09-05T10:26:49.780Z |
+| Taken | 2026-09-05T19:52:58.436Z |
 | Project | jusifpditdigqdjiwdaj.supabase.co |
 | `txns` rows | 49 |
 | `receipts` rows | 3 |
 | `recurring` rows | 0 |
 | `transfers` rows | 9 |
 | `app_config` rows | 1 |
-| `audit_log` rows | 5236 |
+| `audit_log` rows | 6587 |
 | `profiles` rows | 5 |
 | `fx_rates` rows | 8 |
 | Accounts in the roster | 5 |
