@@ -87,6 +87,7 @@
         }
       ],
       "settings": {
+        "__e2eHeld": null,
         "ackDefaultStatus": "Pending",
         "ackRequirePhoto": false,
         "dashDefaultScope": "All companies",
@@ -100,6 +101,6 @@
       }
     },
     "id": true,
-    "updated_at": "2026-09-05T22:21:00.610935+00:00"
+    "updated_at": "2026-09-06T19:23:40.820361+00:00"
   }
 ]
