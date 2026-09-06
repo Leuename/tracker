@@ -88,7 +88,7 @@
       ],
       "settings": {
         "ackDefaultStatus": "Pending",
-        "ackRequirePhoto": true,
+        "ackRequirePhoto": false,
         "dashDefaultScope": "All companies",
         "dashShowNotes": true,
         "dashWindow": "Next 30 days",
@@ -100,6 +100,6 @@
       }
     },
     "id": true,
-    "updated_at": "2026-09-05T15:31:47.938791+00:00"
+    "updated_at": "2026-09-05T22:21:00.610935+00:00"
   }
 ]
