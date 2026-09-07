@@ -408,7 +408,7 @@ test('generate writes a month, guards duplicates, and undo takes it back', async
     await go(page, 'Masterlist')
     // A month far enough out that it holds nothing yet.
     await page.getByRole('button', { name: 'Pick a month' }).click()
-    await page.getByRole('button', { name: /Dec 2026/ }).click()
+    await page.getByRole('button', { name: /^Dec 2026/ }).click()
     await page.getByRole('button', { name: /^Generate Dec 2026/ }).click()
     await expect(page.getByText(/payables were added to the Tracker/)).toBeVisible()
 
@@ -445,7 +445,7 @@ test('generated occurrence identity survives visible due and period edits', asyn
     await signIn(page)
     await go(page, 'Masterlist')
     await page.getByRole('button', { name: 'Pick a month' }).click()
-    await page.getByRole('button', { name: /Dec 2026/ }).click()
+    await page.getByRole('button', { name: /^Dec 2026/ }).click()
     await page.getByRole('button', { name: /^Generate Dec 2026/ }).click()
     await expect.poll(async () => (await D.txnsTagged(desc)).length, { timeout: 10_000 }).toBe(1)
 
@@ -472,7 +472,7 @@ test('generated occurrence identity survives visible due and period edits', asyn
 
     await go(page, 'Masterlist')
     await page.getByRole('button', { name: 'Pick a month' }).click()
-    await page.getByRole('button', { name: /Dec 2026/ }).click()
+    await page.getByRole('button', { name: /^Dec 2026/ }).click()
     await page.getByRole('button', { name: /^Generate Dec 2026/ }).click()
     await expect(page.getByText(/already exists|In sync/).first()).toBeVisible()
     const rows = await D.txnsTagged(desc)
@@ -494,7 +494,7 @@ test('undo removes exactly the rows that generate created', async ({ page }) => 
 
   await go(page, 'Masterlist')
   await page.getByRole('button', { name: 'Pick a month' }).click()
-  await page.getByRole('button', { name: /Nov 2026/ }).click()
+  await page.getByRole('button', { name: /^Nov 2026/ }).click()
   await page.getByRole('button', { name: /^Generate Nov 2026/ }).click()
   await expect(page.getByText(/payables were added to the Tracker/)).toBeVisible()
 
@@ -1625,7 +1625,16 @@ test('Undo cannot delete a row another session paid, however stale this tab is',
  *
  * The refusal is correct; claiming success is not. This pins both halves.
  */
-test('a refused due-date change is undone on screen, not reported as saved', async ({ page }) => {
+test('moving a generated row onto a sibling due date is accepted, and changes no identity', async ({ page }) => {
+  // This spec used to assert the OPPOSITE. Its refusal came from the old
+  // (src, due) unique index, which phase 2 drops on purpose: the visible due is
+  // payment timing, and two occurrences of one payable may legitimately fall due
+  // on the same day. What must never move is occurrence_due. Pinned here so a
+  // regression back to refusing a legal edit fails loudly.
+  //
+  // Honest surfacing of a write the database DOES refuse is covered by
+  // 'a masterlist edit cannot rewrite a row another session already paid' and
+  // 'Undo cannot delete a row another session paid, however stale this tab is'.
   await signIn(page)
   await go(page, 'Masterlist')
 
@@ -1647,6 +1656,8 @@ test('a refused due-date change is undone on screen, not reported as saved', asy
   const generated = (await D.txnsTagged(desc)).sort((a, b) => (a.due < b.due ? -1 : 1))
   const [first, second] = generated
   expect(first.due).not.toBe(second.due)
+  expect(first.occurrence_due).toBe(first.due)
+  expect(second.occurrence_due).toBe(second.due)
 
   await go(page, 'Tracker')
   await page.locator('.sheet-row', { hasText: desc }).first().click()
@@ -1656,24 +1667,32 @@ test('a refused due-date change is undone on screen, not reported as saved', asy
   await form.getByRole('button', { name: 'Save', exact: true }).click()
   await expect(form).toBeHidden()
 
-  // Postgres refused it, so the stored date must not have moved...
-  await page.waitForTimeout(1500)
-  const after = await D.txnById(first.id)
-  expect(after.due, 'the refused change must not reach the ledger').toBe(first.due)
+  // The move is legal, so the ledger must actually take it...
+  await expect.poll(async () => (await D.txnById(first.id)).due, { timeout: 10_000 }).toBe(second.due)
 
-  // ...and the screen must agree, rather than showing a date that was rejected.
+  // ...while identity stays where it was, on both rows. This is the whole point
+  // of the change: two rows may now share a due date and remain two distinct
+  // occurrences, so the scheduler still counts them as covered.
+  const movedRow = await D.txnById(first.id)
+  const otherRow = await D.txnById(second.id)
+  expect(movedRow.occurrence_due, 'a visible edit must not alter occurrence identity').toBe(first.due)
+  expect(otherRow.occurrence_due, 'the sibling must be untouched').toBe(second.due)
+  expect(movedRow.occurrence_due).not.toBe(otherRow.occurrence_due)
+  expect(await D.txnsTagged(desc)).toHaveLength(generated.length)
+
+  // The screen must show the date the database actually holds. Targeted by the
+  // row's OWN full description, not the shared base: a Weekly payable generates
+  // rows whose descriptions differ only by a date suffix, so `.first()` on the
+  // base text can land on a row this spec never edited - which is how the first
+  // version of this assertion passed against the very defect it was written for.
   //
-  // Targeted by the row's OWN full description, not the shared base: a Weekly
-  // payable generates several rows whose descriptions differ only by a date
-  // suffix, so `.first()` on the base text can land on a row this spec never
-  // edited — which is how the first version of this assertion passed against
-  // the very defect it was written for.
+  // Asserting on the NEW date is what does the work. The old date cannot serve as
+  // a negative: buildGeneratedRows bakes the occurrence date into the description,
+  // so dstr(first.due) is in that row's text whatever the due cell shows.
   const edited = page.locator('.sheet-row', { hasText: first.description })
   await expect(edited).toHaveCount(1)
   await expect(edited, 'the row must show the date the database actually holds')
-    .toContainText(dstr(first.due))
-  await expect(edited, 'and must not show the date that was refused')
-    .not.toContainText(dstr(second.due))
+    .toContainText(dstr(second.due))
 
   await D.cleanup()
 })
