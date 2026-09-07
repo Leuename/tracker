@@ -40,6 +40,14 @@ export function haveCredentials() {
 
 let client = null
 
+/**
+ * Test seam. `hold` and `releaseHeld` decide what to write to the OWNER'S live
+ * config, and until 2026-09-06 nothing exercised that logic offline — deleting
+ * either function's body left the whole suite green. This lets a unit test
+ * drive them against a fake that models what `merge_app_config` actually does.
+ */
+export function useClient(fake) { client = fake }
+
 export async function db() {
   if (client) return client
   const c = createClient(url, key, { auth: { persistSession: false } })
@@ -72,6 +80,13 @@ export async function txnById(id) {
 export async function receiptById(id) {
   const c = await db()
   const { data, error } = await c.from('receipts').select('*').eq('id', id).maybeSingle()
+  if (error) throw error
+  return data
+}
+
+export async function recurringById(id) {
+  const c = await db()
+  const { data, error } = await c.from('recurring').select('*').eq('id', id).maybeSingle()
   if (error) throw error
   return data
 }
@@ -151,11 +166,96 @@ export async function restoreReceipt(before) {
   if (error) throw error
 }
 
-export async function restoreConfig(before) {
+/**
+ * Give back whatever a killed run was holding.
+ *
+ * Restoring in a spec's `finally` is not enough: a **killed** process
+ * never runs `finally`, and a run terminated mid-spec left `ackRequirePhoto`
+ * ON in the owner's live config — which does not merely fail the next run, it
+ * stops the owner liquidating a receipt without attaching a file, a setting
+ * they never chose.
+ *
+ * The first version of this simply forced the documented defaults back. That
+ * traded one failure for another: `ackRequirePhoto` defaults off because
+ * turning it on is a policy decision (`src/data.js`), so an owner who had
+ * deliberately turned it on would have had the nightly run quietly turn it off
+ * again. A suite cannot tell residue from policy by looking at a value.
+ *
+ * So the spec says so instead. Before it changes anything it calls `hold`,
+ * which records what was there under `__e2eHeld`. That marker outlives a kill,
+ * and this restores exactly the recorded value rather than one it assumed. No
+ * marker means no run was interrupted, and nothing is written.
+ *
+ * A path is either `settings.<key>` or the name of a top-level config section
+ * such as `companies`. Settings alone were not enough: a spec adds a company
+ * code to the shared list, and nothing here could give that back.
+ */
+export async function releaseHeld() {
   const c = await db()
-  const { error } = await c.from('app_config').update({ data: before }).eq('id', true)
+  // `error` was discarded here, so a transient 5xx or an expired token made
+  // this return null and the spec pass green — leaving whatever it was holding
+  // in the owner's live config with nothing reporting it. Every other reader in
+  // this file throws; so does this one.
+  const { data, error: readError } = await c.from('app_config').select('data').eq('id', true).maybeSingle()
+  if (readError) throw readError
+  if (!data) return null
+  const held = (data.data.settings || {}).__e2eHeld
+  if (!held || !Object.keys(held).length) return null
+
+  // Through the merge function, never a whole-document update: sending the
+  // whole config would throw away anything the owner changed since the read
+  // above — the lost update `merge_app_config` exists to prevent (`src/db.js`).
+  const patch = {}
+  for (const [path, value] of Object.entries(held)) {
+    if (path.startsWith('settings.')) (patch.settings ||= {})[path.slice(9)] = value
+    else patch[path] = value
+  }
+  // Seeded LAST and never before the loop: a top-level path assigning to
+  // `patch.settings` used to overwrite the object holding this clear.
+  patch.settings = { ...(patch.settings || {}), __e2eHeld: null }
+  const { data: touched, error } = await c.rpc('merge_app_config', { patch })
   if (error) throw error
+  if (!touched) throw new Error('releaseHeld: merge_app_config wrote no row')
+  return Object.keys(held)
 }
+
+/**
+ * Record what the config held, so an interrupted run can be undone.
+ *
+ * Written before the spec changes anything. Existing marks are kept, so two
+ * paths held at once both come back, and a re-held path keeps the value from
+ * the first hold rather than one the suite already changed.
+ *
+ * A path that is not in the stored config **throws**. Recording absence as
+ * `null` and writing that back later would shadow the default in
+ * `src/db.js` — for a setting whose default is `true`, recovery from a killed
+ * run would silently turn it off. Refusing loudly here is the only answer that
+ * does not invent a value.
+ */
+export async function hold(paths) {
+  const c = await db()
+  const { data, error: readError } = await c.from('app_config').select('data').eq('id', true).maybeSingle()
+  if (readError) throw readError
+  if (!data) throw new Error('hold: no app_config row, so nothing can be held')
+  const cfg = data.data
+  const settings = cfg.settings || {}
+  const held = { ...(settings.__e2eHeld || {}) }
+  for (const path of paths) {
+    if (path in held) continue
+    // `'settings' in cfg` is true, so this validated — and `releaseHeld` would
+    // then write the whole settings object back over its own marker clear,
+    // re-arming the marker on every run while reporting success. Hold a
+    // setting by name; the section as a whole is not a thing to hold.
+    if (path === 'settings') throw new Error('hold: hold "settings.<key>", not the whole settings section')
+    const [where, key] = path.startsWith('settings.') ? [settings, path.slice(9)] : [cfg, path]
+    if (!(key in where)) throw new Error('hold: "' + path + '" is not in the stored config')
+    held[path] = where[key]
+  }
+  const { data: touched, error } = await c.rpc('merge_app_config', { patch: { settings: { __e2eHeld: held } } })
+  if (error) throw error
+  if (!touched) throw new Error('hold: merge_app_config wrote no row, so nothing is held')
+}
+
 
 /**
  * Remove everything any run tagged, plus files no receipt references.
@@ -166,32 +266,46 @@ export async function restoreConfig(before) {
  */
 export async function cleanup(needle = MARK) {
   const c = await db()
+  const ok = ({ data, error }) => { if (error) throw error; return data || [] }
+
+  // Files FIRST, then the rows that name them.
+  //
+  // The order is the whole design. Deleting the rows first and removing their
+  // files afterwards — which this did until round 23 — means a failed remove or
+  // a killed process orphans those files **permanently**: the rows that named
+  // them are gone, so no later sweep can find them. Reversed, a kill between
+  // the two leaves the rows in place, still carrying their `E2E-` tag, and the
+  // next sweep finds them and finishes the job. Removing a key that is already
+  // absent is not an error, so the retry is free.
+  //
+  // What this must never go back to is identifying files by *absence* from a
+  // `receipts` read. That was the previous design, and one failed read made it
+  // delete every attachment the owner had ever uploaded.
+  // Deduped: the default `needle` IS `'E2E-'`, so both passes match the same
+  // rows, and a receipt can match on `name` and `description` both.
+  const seen = new Set()
   for (const tag of [needle, 'E2E-']) {
-    await c.from('txns').delete().like('description', '%' + tag + '%')
-    await c.from('recurring').delete().like('description', '%' + tag + '%')
-    await c.from('receipts').delete().like('name', '%' + tag + '%')
-    await c.from('receipts').delete().like('description', '%' + tag + '%')
-    await c.from('transfers').delete().like('name', '%' + tag + '%')
-    await c.from('transfers').delete().like('note', '%' + tag + '%')
-  }
-  await cleanupOrphanFiles()
-}
-
-/** Delete stored files that no receipt row points at any more. */
-export async function cleanupOrphanFiles() {
-  const c = await db()
-  const { data: rows } = await c.from('receipts').select('file_path')
-  const kept = new Set((rows || []).map((r) => r.file_path).filter(Boolean))
-
-  const { data: folders } = await c.storage.from('receipts').list('', { limit: 1000 })
-  const orphans = []
-  for (const folder of folders || []) {
-    const { data: files } = await c.storage.from('receipts').list(folder.name, { limit: 1000 })
-    for (const f of files || []) {
-      const key = folder.name + '/' + f.name
-      if (!kept.has(key)) orphans.push(key)
+    const like = '%' + tag + '%'
+    for (const column of ['name', 'description']) {
+      for (const r of ok(await c.from('receipts').select('file_path').like(column, like))) {
+        if (r.file_path) seen.add(r.file_path)
+      }
     }
   }
-  if (orphans.length) await c.storage.from('receipts').remove(orphans)
-  return orphans
+  const files = [...seen]
+  if (files.length) {
+    const { error } = await c.storage.from('receipts').remove(files)
+    if (error) throw error
+  }
+
+  for (const tag of [needle, 'E2E-']) {
+    const like = '%' + tag + '%'
+    ok(await c.from('txns').delete().like('description', like).select('id'))
+    ok(await c.from('recurring').delete().like('description', like).select('id'))
+    ok(await c.from('receipts').delete().like('name', like).select('id'))
+    ok(await c.from('receipts').delete().like('description', like).select('id'))
+    ok(await c.from('transfers').delete().like('name', like).select('id'))
+    ok(await c.from('transfers').delete().like('note', like).select('id'))
+  }
+  return files
 }

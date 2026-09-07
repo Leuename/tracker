@@ -643,17 +643,20 @@ and both were found while building it:
 
 - A forced token refresh **rotates** the refresh token, so the saved snapshot goes stale. The
   expired-token spec forces one deliberately. It gets its own session.
-- `supabase.auth.signOut()` defaults to `scope: 'global'`, so the sign-out spec revokes **every**
-  refresh token the account holds — isolation included. Only ordering defends against that.
+- The app's sign-out passes `scope: 'global'`, so the sign-out spec revokes **every** refresh token
+  the account holds — isolation included. Only ordering defends against that. It was the library's
+  unread default until 2026-09-04; it is now written out deliberately (D47), which changes nothing
+  at runtime and everything about whether the next reader can tell it was chosen.
 
 The refresh spec therefore runs **before** the sign-out spec. Declaration order plus
 `fullyParallel: false` makes that a guarantee rather than an accident. `functional.spec.js` runs
 after the revocation and survives on an access token minted minutes earlier; it would break if a run
 exceeded the token's hour or a new spec forced a refresh.
 
-Do not reorder `app.spec.js` casually. Changing `App.jsx`'s `signOut()` to `{ scope: 'local' }`
-would remove the constraint — that is a live, user-visible behaviour change and is the owner's call,
-not a test-suite convenience.
+Do not reorder `app.spec.js` casually. Changing the scope to `local` would remove the constraint —
+that is a live, user-visible behaviour change and was put to the owner rather than taken as a
+test-suite convenience. The owner chose to keep it global on 2026-09-04 (D47), so this ordering
+stands and stays load-bearing.
 
 ## D42 — Rates Are Written by a Named Account, Not by `not is_viewer()`
 
@@ -707,6 +710,14 @@ change password yet" — and asked to be reminded. This joins the existing defer
 project password and Vercel token, both deferred per the git-workflow rule). **Do not rotate this
 password without being asked**; do raise it again once the exchange-rates work has settled.
 
+**Raised again 2026-09-04, and deferred again.** The condition the owner set had been met — the
+exchange-rates work was finished and stable — so the reminder was delivered with the blast radius
+restated (writes `fx_rates` only; reads the entire ledger, because every read policy is
+`using(true)`) and a costed rotation procedure attached. The owner chose to defer once more. D44
+therefore stays active and this remains an open item, not a closed one. The procedure is written up
+and ready in `docs/superpowers/plans/2026-09-04-c1-c4-c5-resolution.md`, Task 2; executing it needs
+nothing but the word. Keep reminding.
+
 ## D45 — Released Wires Carry Their Historical Rate
 
 The owner authorized a one-time backfill on 2026-09-03 for only the six released wires. They now
@@ -729,6 +740,1432 @@ cannot delete the row and orphan its evidence.
 
 `apps/api/` was confirmed empty and removed on 2026-09-04. No API implementation exists; recreate
 the directory only when an implemented backend actually needs it.
+
+## D47 — Browser Sign-Out Is Explicitly Global
+
+`supabase.auth.signOut()` was called bare in both browser paths, so it inherited the library's
+`scope: 'global'` default: signing out on one device revoked that account's session on **every**
+device it was signed in on. Nobody had chosen that. It was raised as an owner decision on
+2026-09-04 with both branches stated neutrally, including the cost of the alternative — under
+`scope: 'local'`, a lost or stolen phone can no longer be revoked from another device and a password
+reset becomes the only lever.
+
+**The owner chose global**, and it is now written out at both call sites rather than inherited:
+`apps/web/src/App.jsx:63` (the Sign out button) and `apps/web/src/store.jsx:67` (the session-expiry
+handler). Runtime behaviour is unchanged — `global` is what the default already did — so this is a
+legibility change, not a functional one. The point is that the next reader cannot mistake a decision
+for an accident, and cannot "fix" one call site without noticing the other.
+
+Both same-browser callers must carry the **same** scope. They are one user in one browser, and two
+different scopes there would be an accidental policy rather than a considered one. The Node-script
+callers in `backup.mjs`, `smoke.mjs`, `schedule.mjs` and `security/probe.mjs` are deliberately left
+bare: a script that signs in, works and exits has a different lifecycle, and normalising them would
+imply a shared rule that does not exist. `scripts/fx.mjs:203` already passes `local` for its own
+reasons and is unaffected.
+
+The e2e consequence is unchanged and still load-bearing: the sign-out spec revokes both saved test
+sessions, so the forced-refresh spec must keep running before it (D41).
+
+## D48 — The Scheduler Has No External Notification Channel, by Owner Decision
+
+`npm run schedule` reports what is overdue to `GITHUB_STEP_SUMMARY` and to stdout, and nothing else.
+That was a gap rather than a choice until 2026-09-04: D31 deferred the decision because picking a
+provider means choosing a service and handing it an address list, which is not an implementation
+detail.
+
+A Telegram design was specified in full — one dedicated bot, one private chat, an explicit
+`TELEGRAM_NOTIFICATIONS` on/off repository variable as the kill switch, and an **aggregate-only**
+payload carrying the date, the overdue count and total, and the awaiting-liquidation count, with no
+company, beneficiary, description, due date or per-row amount. It was costed and offered.
+
+**The owner chose no external channel.** The GitHub Actions job summary and the workflow-failure
+notification GitHub already sends are the accepted delivery paths. This closes the question rather
+than deferring it again: `apps/web/scripts/schedule.mjs` stays as it is, no `TELEGRAM_*` secret or
+variable exists, the repository secret count stays at thirteen, and this is not an open item.
+
+Revisit only on a fresh request. The specification above is recorded here so that reopening it is a
+decision to build something already designed, not a redesign — see
+`docs/superpowers/plans/2026-09-04-c1-c4-c5-resolution.md`, Tasks 4 and 5, which remain unexecuted
+on purpose.
+
+## D49 — The Updated Prototype Is Ported to `apps/web`, With Three Named Departures
+
+On 2026-09-05 the owner supplied an updated `ERP Prototype.dc.html` through the Claude Design
+project `9996e477-0bfc-4941-a9dc-affa12f70bcf` and asked for it to be implemented against the
+running app. The change set was derived by diffing it against `company_tracker/ERP Prototype.dc.html`
+— the 2026-08-31 export the app was originally transcribed from — and then re-checked against the
+current source, because the app had been built past that export and much of the raw diff was already
+shipped.
+
+Ported as drawn: the Tracker's Sort menu and Export menu; the Masterlist sync line; the retuned
+Tracker and Masterlist grids and type sizes; a masterlist-origin dot on generated rows; inline edit
+and delete on dashboard reminders; deadlines bucketed by due date and category with a `MASTERLIST`
+badge and a "+N more" line; an optional rather than mandatory check number; the e-cash additional
+charge; six new expense categories; and a backdrop that no longer dismisses a dialog.
+
+Three departures, each because copying the prototype exactly would ship something worse:
+
+1. **No PNG export.** The prototype renders one with `html2canvas` loaded from `cdn.jsdelivr.net`.
+   The deployment's `script-src 'self'` blocks that outright, so the button could never work. Save
+   as PDF needs no library — it writes the summary into a popup and calls `print()` — and is the
+   whole Export menu. Offered as a dependency add and declined in favour of PDF only.
+2. **The export summary escapes what a user typed.** The prototype interpolates the search string
+   and every company and category name straight into a string it hands to `document.write`. The app
+   already treats a description as text rather than markup, with an e2e spec pinning it, so the one
+   screen that prints could not be the one screen that executes.
+3. **Escape still closes a dialog.** The prototype removed the backdrop-click close from every
+   modal, which is kept — a mis-aimed click beside a form over a live ledger should not discard it.
+   Removing the keyboard path as well would leave a keyboard user with no exit but the Cancel
+   button, so `Escape` stays.
+
+## D50 — `txns.src` and `txns.fee`, and What They May Rewrite
+
+The three prototype behaviours the schema could not express needed two nullable columns, added by
+`supabase/migrations/20260904155131_masterlist_link_and_ecash_fee.sql` under explicit request. Both
+were applied to `tracker-rehearsal` first and verified there before production. Neither wrote to an
+existing row: all 49 read back `NULL`.
+
+`src` is the recurring payable a generated row came from, a foreign key with **ON DELETE SET NULL**.
+Removing a payable therefore unlinks its Tracker rows rather than deleting them — they are real
+payables that were really due, and the database performs the unlink whether or not a client is still
+running. `fee` is the e-cash charge, folded **into** `amount` so the row totals what actually left
+the account, and kept separately so the sheet can still name it. `amount` is always base + fee, so
+every recalculation starts from the amount with any prior fee removed, and a row that stops being
+completed gives its charge back rather than keeping an inflated total nothing mentions.
+
+Two limits are deliberate. A masterlist edit pushes down onto `co`, `cat`, `desc` and `amount` of
+linked rows **that are not completed** — a completed row records what was actually paid, so a later
+correction applies from the next Generate onward and never rewrites history. And `freq` and
+`dueDate` never push down: they decide what future rows Generate writes, and moving the due date of
+a row already on the sheet would move a real deadline nobody asked to move.
+
+## D51 — The Three Requirements the Prototype Diff Missed
+
+D49 was built by diffing the updated prototype against the 2026-08-31 export. On 2026-09-05 the
+owner supplied the **client's own written requirements**, which the prototype was drawn from, and
+three of the twelve had not been delivered. The lesson is recorded because it is the interesting
+part: a design file shows what a screen looks like, not what was asked for, and the gap between
+them is invisible from the file alone.
+
+**Invoice number on the wire sheet.** Asked for twice — as a column, and again as "alphanumeric
+inputs for inv no and will act as notes but for invoice. Notes should remain." It was missed
+because the prototype draws a whole Telegraphic screen, the app already had one, and the entire
+block was triaged as already shipped without reading down its columns. `transfers.inv` is added by
+`supabase/migrations/20260904204252_transfer_invoice_number.sql`: text, NOT NULL, defaulting to the
+empty string, modelled on `note` rather than on `rate` — `rate` uses null to mean "never priced",
+and an invoice number has no such state. The grant is purely additive, because `transfers` holds no
+table-wide INSERT or UPDATE for `authenticated`; re-listing the columns would have risked dropping
+`rate` and `rate_as_of` on the way past. `note` is unchanged and keeps its own job.
+
+**PNG export.** The requirement says "PNG/PDF"; D49 shipped PDF alone, on the reasoning that the
+prototype loads `html2canvas` from a CDN that `script-src 'self'` blocks. That reasoning was sound
+about the CDN and wrong about the conclusion — **bundled**, the library is same-origin and the
+header is satisfied. `html2canvas ^1.4.1` is now a dependency under this explicit request, imported
+dynamically so Vite emits it as a separate 199 kB chunk that only a click on Export ever fetches;
+the entry bundle grew 3.3 kB.
+
+**A space bar opened the transaction.** Reported from the live app: typing into a note on the wire
+sheet opened the transfer mid-sentence. The cause is that a sheet row is deliberately operable by
+keyboard — `role="button"`, `tabIndex={0}`, opening on Enter **or** Space — while every control
+inside it stopped clicks from reaching the row and none stopped keystrokes. The fix is the same
+guard applied to keys, on five controls in `Telegraphic.jsx` and four in `AckRec.jsx` and the pay
+button in `Tracker.jsx`. **The row keeps its keyboard handler**: removing it would strand anyone not
+using a mouse, which trades a typing bug for an accessibility one.
+
+The regression test was proven by removing the fix and watching it fail with the reported symptom —
+a dialog appearing — then restoring it. A guard that swallowed the keystroke would stop the dialog
+and lose the space, so the spec asserts both that no dialog opened and that the typed text arrived
+intact.
+
+Also confirmed by the requirements: the backdrop-close removal in D49 is **not** a styling choice.
+It answers "pag nagfill up ako ng New Tele Transfer, mapindot ko lang yung outside ng box,
+nag-eexit agad."
+
+## D52 — The Payment Dialog Is Seeded From One Place
+
+A fresh-context adversarial review on 2026-09-05 found a money defect in the D51 work and
+reproduced it end to end against production. It is recorded in full because the shape of it
+generalises.
+
+The payment dialog has **three** ways in: choosing Completed on the edit form, the "change" link
+beside a recorded payment, and Mark as paid on the sheet. Each wrote the dialog's state itself.
+When `payFee` was added for the e-cash charge, two of the three were updated and the third — the
+inline `onClick` at `apps/web/src/modals/EditTransaction.jsx` — was not, because it did not look
+like an opener; it looked like a link.
+
+The dialog therefore opened carrying whatever the *previous* dialog had left in `payFee`:
+
+- **After a page reload** it is `''`, so reopening a row paid by e-cash with a ₱25 charge showed an
+  empty charge field and a "Recorded amount" of ₱500 rather than ₱525. Confirming wrote ₱500 and
+  `fee` null — **the recorded charge silently deleted, with the wrong figure displayed while it
+  happened**.
+- **Mid-session** it holds another row's charge. Mark row A paid by e-cash ₱40, then open completed
+  row B through "change", and the dialog offers ₱40. Confirming rewrites **row B** to base + 40. A
+  charge typed for one transaction lands on a different one.
+
+The fix is not a fourth copy of the seeding. `paySeedFor(edit, prev)` in `actions.js` is now the
+only thing that opens the dialog for an edit, and it sets **every** key the dialog reads, from the
+row, on every open. `openPayForEdit` wraps it for the "change" link. A fifth caller cannot
+reintroduce the bug by forgetting a field, because there is no field list to forget.
+
+**The generalisation, carried as trap 78: state seeded at more than one call site will drift, and
+the drift is invisible until the two paths disagree.** The three openers had been correct for as
+long as they shared a field list; adding one field to a dialog is what broke them apart.
+
+The regression spec (`e2e/functional.spec.js`, "reopening a paid row through \"change\" keeps its
+recorded charge") was proven by restoring the defective inline opener and watching it fail with the
+reported symptom — the charge field reading `""` where `"25"` was expected — then restoring the fix.
+The reload in that spec is load-bearing: it is what resets the leaked field to empty.
+
+Two smaller findings from the same review, both closed:
+
+- **`modals/Filters.jsx` still closed on a backdrop click** while every other dialog had stopped,
+  leaving two dismissal contracts side by side. The prototype removes it there too. Removed, with
+  an `Escape` handler added in the same change — taking the mouse route away while leaving no
+  keyboard one would have replaced a stray-click problem with a trapped-drawer problem.
+- **The `-- rollback:` convention in `supabase/README.md` was failed by its own first two test
+  cases.** Neither new migration carries a block. They are not retrofitted, because byte-identity
+  against the stored statement is the stronger rule and editing a file destroys it; the rollbacks
+  are recorded in that README instead, with the cost of the gap stated plainly.
+
+## D53 — Only the Innermost Dialog Answers Escape
+
+A second adversarial review, run on the D52 fix, confirmed the fix and then found a worse defect
+underneath it — one that predates this session and that D49 had quietly made harder to escape from.
+
+Dialogs stack: the edit form opens the payment dialog on top of itself, rendered as siblings at
+`apps/web/src/App.jsx:85` and `:88`. Both bound a `keydown` listener on `window`, and the **outer**
+one won, because it mounted first. Pressing Escape therefore closed the edit form and left the
+payment dialog sitting over an empty screen.
+
+That orphan is where the money went. `confirmPay`'s edit path stages into `state.edit` and returns —
+`saveEdit` is what reaches the database — so confirming a payment from a dialog whose form has gone
+wrote **nothing at all**. The dialog closed. No toast, no error, no alert. The review reproduced it
+against production: a ₱500 row, E-cash, a ₱100 charge, a displayed "Recorded amount ₱600", and a
+database still reading `status='pending', amount=500, fee=null`.
+
+The mechanism is worth recording because it is not obvious. React ran the outer listener first; its
+`set` re-rendered synchronously enough that the inner dialog's effect cleanup **removed its own
+listener during the same event dispatch**, and per the DOM specification a listener removed
+mid-dispatch is skipped. `cancelPay` never ran. The two handlers could not both fire, and the one
+that lost was the one that mattered.
+
+**D49 made it worse rather than better.** Removing backdrop-close means the orphaned dialog can no
+longer be dismissed by clicking beside it.
+
+The fix is a module-level stack in `apps/web/src/ui.jsx`: every `Modal` registers on mount, and a
+`Modal` answers Escape only when it is the innermost one open. Registration is a separate effect
+from the listener, because `onClose` is a fresh function on every render and re-pushing per render
+would corrupt the order the rule depends on. `EditTransaction` + `PayMethod` is the only stacked pair of
+**`Modal`s**, so the money-path instance was the whole of it — but see D54: the Filters drawer is
+also a dialog, was not a `Modal`, and had been left outside the stack.
+
+`confirmPay` also gained a guard: if the edit path finds no form to stage into, it says so instead of
+closing quietly. The stack makes that unreachable — it is there because the failure it guards is
+silent, and a silent failure on a money path is the worst kind.
+
+The same review found the **second instance of D52's trap 78**, latent rather than exploitable:
+`setReceiptStatus` opened the Liquidate dialog without `liqFile`, while `openLiquidate` set it. Every
+close path happens to clear it today, so no leak could be constructed — but it was one stray
+`set({ liqOpen: false })` away from attaching one receipt's document to another. Both openers now
+seed every key the dialog reads.
+
+## D54 — The Charge Comes Off Where the User Can See It, and Nothing Binds Escape by Hand
+
+A third adversarial review found a third defect, and this one was in the departure D51 §6 records —
+the change made on judgement rather than copied from the prototype. The improvement was right about
+the problem and wrong about where to solve it.
+
+`saveEdit` subtracted the e-cash charge from the amount when a row left `completed`. That assumed
+`amount` still contained the charge. **The user can retype Amount in between.** Reproduced against
+production: a ₱500 row paid by e-cash with a ₱50 charge reads ₱550; set it back to Pending, retype
+the amount as `2000`, save — and **1950** reaches the database, under a "Transaction updated" toast.
+A number the screen never displayed, written to a live ledger. `state.edit.fee` was seeded at
+`openRow` and never cleared when the status changed, and it is not rendered anywhere once the row
+leaves `completed`, so nothing on screen could have warned anyone.
+
+The subtraction now happens in `setEditStatus`, at the moment the charge stops being recorded, and
+the Amount field updates in front of the user. `saveEdit` does no arithmetic at all: **what the form
+shows is what gets written.** The amount is left byte-for-byte as typed when there is no charge to
+remove, so changing status never silently reformats an entry.
+
+This is the third instance of one family across three reviews — **state that outlives the thing it
+was a component of.** Round 1: `payFee` outliving the dialog that set it. Round 2: the payment
+dialog outliving the form that saves it. Round 3: `edit.fee` outliving the amount it was part of.
+Carried as trap 80: **when a value is derived from another, either recompute it or clear it at the
+moment the source changes — never subtract it back out later, because "later" is after the user has
+edited the source.**
+
+The same review refuted part of D53. `modals/Filters.jsx` is a dialog with its own shell, not a
+`Modal`, and the `Escape` handler added to it bound `window` directly — leaving it outside the
+stack and reintroducing the swallowed-Escape bug through the one door left open. Tracker rows are
+`role="button" tabIndex={0}` and nothing traps focus, so a keyboard user can reach a row behind the
+drawer's scrim, open the edit form on top, and the drawer then eats the form's Escape. No money is
+lost — the stack means only the top `Modal` ever closes — but the claim in D53 that the payment pair
+was the only stack was false.
+
+`useEscapeToClose` is now exported from `ui.jsx` and used by both `Modal` and the Filters drawer.
+**Nothing binds Escape on `window` by hand any more**, which is the rule that keeps the next dialog
+from repeating this.
+
+Two coverage gaps the review named, both now closed: no spec confirmed and saved through the status
+dropdown → payment dialog → save path (the path the D53 guard sits on, and the one the defect above
+rides), and no spec covered the retyped-amount case at all.
+
+## D55 — A Sign Is Data, and Undo Does Not Outrank a Payment
+
+A fourth adversarial review found two more, both trap 80, both reproduced against the live app.
+
+### The fix in D54 reintroduced the symptom in D54
+
+`setEditStatus` subtracted the charge from whatever was in the Amount field, which can be **less than
+the charge, or empty**. `amountOf('') || 0` is `0`, so clearing the field on a ₱550 row carrying a
+₱50 charge produced `-50` — and `amountOf` stripped the minus, so `saveEdit` stored **50**. The
+screen said `-50`. D54's own contract, *what the form shows is what gets written*, was false for
+every negative intermediate, and no exotic input was needed: an empty field was enough.
+
+Nothing caught it because sign-stripping means a negative can never reach Postgres, so
+`amount < fee` stayed at 0, every suite stayed green, and `saveEdit`'s `!amt` guard is truthiness,
+which `50` passes.
+
+Two changes, because there were two faults. `amountOf` now **keeps a leading minus**, so a negative
+survives to be rejected instead of being laundered into a positive — and every writer that validates
+an amount (`commit`, `saveEdit`, `saveRecurring`, `saveTransfer`, `saveTransferEdit`) now requires
+`amt > 0` rather than `!amt`, because a negative is truthy. And `setEditStatus` only removes the
+charge from an amount that still contains it: if the field has been cleared or typed below the
+charge, the charge is not in there, the field is left exactly as entered, and saving is refused with
+a message.
+
+**A sign is data.** Silently discarding it is how a screen and a ledger come to disagree.
+
+### Undo deleted a transaction that had been paid
+
+`generatedIds` outlives the rows it names, and the Generate banner's own **"Review them"** link
+navigates to the Tracker *without dismissing the banner*. So Generate → Review them → Mark as paid →
+Undo was not only reachable, the interface walked the user into it — and `undoGenerate` deleted by
+id with no check, taking a recorded payment with it and reporting only "Generated rows removed".
+Cash leaves no `fee`, so every ledger invariant stayed clean.
+
+`undoGenerate` now removes only rows that are still untouched, keeps anything completed, and says how
+many it kept and why. This is the rule `updRec` already applied when a masterlist edit pushes down,
+for the same reason: **a completed row is a record of money that moved, and a convenience does not
+get to erase one.**
+
+### On the spec that had to be rewritten
+
+The first version of the Undo spec passed against the defect, because it read the database
+immediately after clicking Undo and the delete is fire-and-forget — the row had not been deleted
+*yet*. It now generates two payables, pays one, and polls until the untouched one is gone before
+asserting the paid one survived. **A regression test has to be falsified against the broken code, and
+this one had to be rewritten twice before it genuinely was.** Passing is not evidence; failing for
+the right reason is.
+
+## D56 — One Helper Carries the Positive-Amount Rule
+
+A fifth pass found the defect **D55's own fix created**, which makes three fixes in a row that
+introduced the next defect. The loop is the finding as much as any individual bug is.
+
+D55 made `amountOf` sign-aware so a negative could be *rejected* instead of laundered into a
+positive. That was right for the two call sites it guarded and wrong for the seven it did not.
+Before the change, sign-stripping made a negative structurally impossible **everywhere**; after it,
+a negative reached every writer that tested `!amt` — and `-25` is truthy.
+
+Three were live money paths, all confirmed by running them:
+
+- **`confirmPay`** — `amountOf(state.payFee) || 0` accepted `-25`, and the charge is *added* to the
+  amount, so a negative charge **reduced the payable**.
+- **`saveLiq`** — `if (!amt)` accepted `-500`, storing a negative actual and corrupting the
+  difference the AckRec sheet reports.
+- **`updRec`** — `amountOf(v) || 0` accepted a negative into the masterlist amount, which then
+  **pushes down onto linked Tracker rows**.
+
+`saveReceipt`, `saveReceiptEdit` (amount and actual) were the same shape.
+
+The fix is not seven more guards. Scattered guards are what produced every defect in this loop.
+`positiveAmountOf` in `logic.js` returns the number only when it is greater than zero and NaN
+otherwise, and **every writer that accepts a typed amount now calls it** — so `!amt` is correct
+again at all of them, and a writer added later inherits the rule instead of having to remember it.
+`amountOf` stays as the parser for intermediate arithmetic, where a negative is a signal rather than
+an input.
+
+Two sites keep bespoke handling, deliberately:
+
+- **`confirmPay`'s charge** is refused rather than clamped, with a message. Blank still means no
+  charge, which is 0. Clamping a typed `-25` to `0` would put a number on screen that differs from
+  the one stored — the exact fault this whole sequence keeps producing.
+- **`updRec`'s amount** clamps to 0, because that field saves on every keystroke and blank already
+  meant 0. The field re-renders from state, so the clamp is visible rather than silent.
+
+**Trap 81: widening what a shared parser accepts widens it for every caller, including the ones you
+did not look at.** A change that makes a value *possible* is a change to every consumer of that
+value. Enumerate them before shipping it — `grep` for the function, not for the bug.
+
+### One recorded side effect
+
+`receipts` row `1788471059637`, the backup-storage proof, carries `amount 0.00`. The new guard means
+that row can no longer be saved through the receipt edit form. It needs to exist, not to be edited,
+so nothing is broken — but a future session should not read the refusal as a bug.
+
+## D57 — Generate Deduplicates on the Payable, Not on a Description That Can Change
+
+A sixth review round found three more, two of them money. It also found one in the *first attempt at
+the third fix*, which is now the fourth time in this sequence that a fix created the next defect.
+
+### Generate wrote duplicate ledger rows after a Masterlist description edit
+
+`buildGeneratedRows` and `forecast` both keyed "is this already on the sheet?" on the row's
+**description**. For a payable with more than one occurrence in a month the description carries a
+date suffix (`'Meralco — Sep 05'`), while `updRec`'s push-down writes the payable's **bare**
+description onto every linked open row. The suffix vanished, the key stopped matching, and
+re-running Generate wrote a second copy of rows already on the ledger.
+
+Reproduced: a bi-monthly ₱5,000 payable generated two rows, the description was edited on the
+Masterlist, and the next Generate reported `written = 2, skipped = 0` — **₱10,000 of phantom
+liability**. The Tracker's sync line said "3 due" when two of the three were already there, which
+made its own docstring ("what this returns is exactly what Generate would write") false. It affects
+every frequency that can produce more than one occurrence in a month: Daily, Weekly, Bi-weekly and
+Bi-monthly. `co`, `cat` and `amount` push-down safely, because those move on both sides together.
+
+Fixed by `alreadyOnSheet` in `logic.js`, which both callers now share. A row that records its parent
+is matched on **`src` and the due date** — neither of which a description edit can move. Rows with
+no parent, meaning hand-entered ones and everything generated before `src` existed, keep the
+original key, so nothing already on the ledger stops deduplicating. **This is the first thing
+`txns.src` has been load-bearing for beyond the dot on the sheet.**
+
+### A fortnightly payable was not fortnightly
+
+`Weekly` and `Bi-weekly` shared one branch that found the first weekday of the *month* matching the
+anchor and stepped from there. Correct for a 7-day cadence; wrong for 14, because the phase reset
+every month. Verified against the committed original rather than a mutation: a Bi-weekly payable
+anchored Friday 2026-09-11 generated
+
+```
+2026-09-04 2026-09-18 2026-10-02 2026-10-16 2026-10-30 2026-11-06
+gaps:              14         14         14         14          7
+```
+
+Two faults in one — **the date the owner actually entered is never generated**, and a 7-day gap
+appears at a month boundary, so "every other Friday" silently becomes weekly for one cycle. Both
+`forecast` and `buildGeneratedRows` were consistently wrong, so no suite could catch it by
+comparing them.
+
+Now stepped from the anchor date itself, in UTC, for both frequencies.
+
+### The reminder controls were mouse-only, and the first fix kept them that way
+
+The new Edit and Delete buttons rendered only while `noteHover` was set, and that state is written
+by `onMouseEnter` alone — so they were **absent from the DOM**, not hidden. Tab went from one
+reminder's checkbox straight to the next, and no touch device could reach them.
+
+The first fix rendered them always and hid them with `visibility: hidden`. **That removes an element
+from the accessibility tree and the tab order**, which is the same defect expressed in CSS. It was
+caught because Playwright's `getByRole` could not find the buttons at all while a raw DOM query found
+sixteen of them — the discrepancy *was* the evidence. `opacity` is the correct tool: it keeps the
+element focusable and announced, and `:hover, :focus-within` reveals it.
+
+**Trap 82: `display: none` and `visibility: hidden` remove an element from the accessibility tree
+and the tab order; `opacity: 0` does not.** Hiding a control for visual tidiness is an accessibility
+decision, not a styling one.
+
+## D58 — A Default List Is Not the Owner's List, and Requirement 8 Is Not Fully Delivered
+
+Found by the main session while checking `app_config`, a table every previous round's ledger
+assertions had left out.
+
+Client requirement 8 asked for six new expense categories. [D49](#) recorded them as delivered
+because they were added to `CAT` in `apps/web/src/data.js`. **`CAT` is only the default for a
+workspace that has never been opened.** `apps/web/src/db.js:149` reads
+`alphabetical(cfg.categories || initialState.categories)` — when a stored list exists it wins
+outright, and the default is never consulted. The owner's workspace has had a stored list since
+2026-08-31.
+
+Read live from production: the stored list holds **18** categories and already contains five of the
+six — Communications, Final Pay, Repairs & Maintenance, Security Deposit and Subscription. Somebody
+typed those into Settings. **`Refund` is absent**, and no transaction uses it.
+
+So requirement 8 stands at **five of six in production, and none of it delivered by this session's
+code.** The `CAT` change is correct and worth keeping — it is the right default for a fresh
+workspace and for the seed data — but it does nothing for the account the client actually uses.
+
+Adding `Refund` is a write to the shared `app_config` row using an issued account's credentials. It
+was attempted through `merge_app_config`, the same RPC the app uses, so that a concurrent editor's
+settings would merge rather than be clobbered — and the attempt was **refused by the permission
+layer**, correctly: it is a production data write that nobody explicitly authorised. It was not
+routed around. **It remains open**, and it needs one of two things:
+
+- somebody signed in adds `Refund` under **Settings → Masterlist settings → Categories**, which
+  takes a few seconds and is the intended path; or
+- explicit permission for a one-off scripted write.
+
+**Trap 84: a constant named like a default *is* only a default.** Before reporting a list, a
+setting, or a threshold as delivered, read what the running system actually holds — the stored value
+usually predates your change and silently outranks it.
+
+The same shape applies to `CO` (companies) and `SETTINGS`: production holds 21 companies, matching
+the constant, so nothing is outstanding there — but it matches by coincidence of history, not
+because the code makes it so.
+
+## D59 — Cancel Every Armed Write, Follow the Caller's Window, and Assert Opacity
+
+Round 7 refuted three claims. Two are behaviour, one is a test that could not fail.
+
+### A delete left a money write armed
+
+`updRec` arms **two** debounced timers: `recurring:<id>` for the payable's own row, and
+`push:<id>:<field>` for each pushed-down field. `removeRec` cancelled only the first. Deleting a
+payable within the 500 ms window let the push-down fire afterwards — `db.patchTxns` writing an
+**amount** onto live ledger rows whose payable no longer existed, immediately after the toast said
+those rows had been unlinked. Two contradictory messages, one wrong number.
+
+`cancelForRecurring(id)` now clears the row key and prefix-scans for every `push:<id>:` key.
+Prefix-scanned rather than tracked in a second structure, because a second structure kept in step
+with the map is the failure this exists to prevent. Falsified: with the old single cancel, the spec
+observes `999999` reaching the ledger for a payable that was already deleted.
+
+### `forecast`'s horizon ignored the caller's window
+
+`forecast` was written for the Tracker's fixed 30-day sync line, then reused by the Dashboard, whose
+window the owner sets to 7, 30 or **90** days. The horizon was hard-coded at 30, so under "Next 90
+days" the Tracker-row half of the deadline list honoured the setting while the masterlist half
+stopped at 30 — the exact gap the feature exists to close, still open across two thirds of the
+widest window. The "+N more due dates in the next 30 days" caption was hard-coded too.
+
+`forecast(st, today, days = 30)` now takes the horizon, the Dashboard passes `windowDays(...)`, and
+the month scan widens with it (`Math.max(3, ceil(days / 28) + 1)`) — a longer horizon with a
+three-month scan would have been silently empty at the far end.
+
+This is trap 81 again, in the other direction: **a helper written for one caller acquires a second
+caller whose assumptions differ.** The default preserves the original caller; the parameter serves
+the new one.
+
+### A spec that could not fail
+
+The keyboard-reachability spec asserted `toBeVisible()`, which checks the bounding box and
+`visibility` and **does not look at `opacity`**. It passed green with the `:focus-within` reveal
+deleted and the button fully transparent — shipping the exact regression it existed to catch. It now
+asserts `toHaveCSS('opacity', '1')`, and deleting the reveal fails it with `Expected "1", Received
+"0"`.
+
+**Trap 85: `toBeVisible()` does not consider opacity.** Assert the computed property when the
+property is the point.
+
+Also corrected from the same round: `buildGeneratedRows` and `forecast` carried docstrings still
+describing the description-based dedupe key that D57 replaced, and the "weekly payable" unit test is
+a **no-regression guard, not a defect-pinning test** — 7-day steps land on the same weekday under
+both the old and new implementations, so only the bi-weekly test genuinely falsifies.
+
+## D60 — The Push-Down Commits With Its Write, Not Before It
+
+Round 8 found that D59's fix had traded one failure for a worse one.
+
+`updRec` painted the pushed-down value onto `state.txns` **optimistically**, then queued the
+database write. D59 taught `removeRec` to cancel that queued write — and cancelled only the write.
+The optimistic paint stayed. So deleting a payable mid-edit now left the Tracker showing an amount
+that had never been saved, with the database correct underneath it and **nothing on screen
+contradicting it until a reload**.
+
+Reproduced live: payable at ₱700, amount retyped to `999999`, Remove clicked inside the 500 ms
+window. Database `700` — the cancel worked. Screen `₱999,999`. The shipped spec asserted only the
+database side, so it could not see it.
+
+The fix removes state rather than adding it. **The push-down is applied inside the debounced
+callback, alongside its own database write**, so screen and ledger move together and one cancel
+stops both. Nothing needs to remember a pre-push value in order to revert it — the revert is not
+needed, because nothing was painted early. Linked rows now update when they are actually written,
+which is half a second later and correct rather than immediate and provisional.
+
+**Trap 87: an optimistic write and its commit must be cancellable as one thing.** Cancelling half of
+a pair leaves the screen and the record disagreeing, which is worse than the failure being
+cancelled — a wrong number in the database is at least discoverable by every other reader.
+
+### The count, settled
+
+Eight rounds have produced **fourteen findings**: thirteen code defects and one false delivery
+claim. Two documents disagreed about this and round 8 was right to flag it. The tally, by decision:
+
+| Decision | Code defects |
+|---|---|
+| D52, D53, D54, D56 | 1 each — 4 |
+| D55 | 2 |
+| D57 | 3 |
+| D59 | 3 |
+| D60 | 1 |
+| **Total** | **13** |
+
+Plus **D58**, a false delivery claim rather than a defect, for **14 findings**. Six of the fixes
+introduced the next defect: D54→D55→D56, D57's own first attempt, D59's unfailable spec, and
+D59→D60. Any document stating a different number is stale, and this table is the source.
+
+## D61 — A Guard That Reads a Client Snapshot Is Not a Guard
+
+The most serious defect of the sequence, found in round 9. Recorded in full because the shape of it
+invalidates a rule this repository had been relying on since D50.
+
+`updRec` refused to push a masterlist edit onto a **completed** row — the rule D50 records as "a
+completed row is a record of money that moved". That guard read `state.txns`, a snapshot taken at
+page load. `grep -rn "realtime\|subscribe\|channel(" src/` finds exactly one hit, the auth
+listener: **there is no subscription and no re-read.** A row another session completed is therefore
+still `pending` in this tab, passes the filter, and has its **amount** overwritten by the next
+masterlist keystroke.
+
+The exposure is not the 500 ms debounce. It is **however long the tab has been open**, and the app
+is used daily by four administrators on one shared ledger with a scheduler writing to it nightly.
+Reproduced live: a payable at ₱700, generated, then completed by a second session at ₱700 — and a
+`98765` typed into the stale tab's Masterlist left the database holding a **completed** row claiming
+₱98,765 was paid. `fee` is untouched by the push, so an e-cash row also loses the
+`amount = base + fee` invariant D54 established.
+
+The fix moves the condition into the statement that writes:
+
+```js
+supabase.from('txns').update(patch)
+  .in('id', ids).eq('src', src).neq('status', 'completed').select('id')
+```
+
+The database evaluates it against the row's real current state rather than against whatever this tab
+last read. `src` is checked too, so a row unlinked by ON DELETE SET NULL or re-parented since is left
+alone. `select('id')` returns the rows actually written, and the caller paints **only those** and
+reports a count that is true — which also closes the "toast over-reports" question round 8 raised.
+
+**Trap 88: a guard that reads a client snapshot is not a guard.** In a shared-ledger app with no
+realtime subscription, every client-side "never do X to a row in state Y" check is advisory. Put the
+condition in the write.
+
+### Two lesser observations, recorded rather than fixed
+
+Neither is a defect on today's evidence; both are named so a later reader does not rediscover them
+as if new.
+
+- **`store.jsx` advances the config diff baseline before its write resolves.** A failed
+  `saveConfig` toasts, but `savedConfig.current` has already moved, so the lost keys never appear in
+  a later patch — it diverges until a reload rather than self-healing the way every other `save`
+  does.
+- **`generate` inserts a month as one batch.** If a payable exists in `state.recurring` but not in
+  Postgres, the whole insert fails `23503 txns_src_fkey` while the success banner stays up and the
+  Tracker shows rows the database does not have. Same fire-and-forget trade as everywhere else, but
+  the blast radius is a month of rows rather than one.
+
+### The tally, restated
+
+Nine rounds, **fifteen findings**: fourteen code defects and one false delivery claim. Six of the
+fixes introduced the next defect. The per-decision table in [D60](#) still applies, plus **D61 = 1**.
+
+## D62 — Undo's Promise Is Kept by Postgres, Not by a Snapshot
+
+Round 10 applied D61's lesson systematically — enumerating every client-side guard that decides
+whether a write is allowed, and asking whether the database would reach the same verdict. One did
+not, and it is the worst kind: a **bulk delete**.
+
+`undoGenerate` filtered `state.txns` for rows that were not `completed`, then handed the survivors
+to `db.deleteTxns`, which carried no condition at all. Its own comment claimed parity with the
+fixed push-down — *"the same rule `updRec` already applies"* — and that had stopped being true the
+moment D61 moved `updRec`'s rule into the statement. A row another session had paid was still
+`pending` in this tab's snapshot, so Undo deleted it, payment record and all, while its toast said
+paid rows had been kept.
+
+**Deleting is worse than the mis-write D61 fixed: there is nothing left to discover afterwards.** A
+wrong amount is visible to the next reader; a removed row is not.
+
+`deleteTxns` now carries `.neq('status', 'completed').is('done', null).select('id')` and resolves to
+the ids actually removed. `undoGenerate` drops exactly those from the screen and counts what was
+really deleted, so the toast can no longer promise something the database did not do. When
+everything has been paid it says so instead of silently removing nothing.
+
+Round 10 checked the other client-side guards and cleared them, which is worth recording so the
+question is not reopened: `confirmPay`, `saveEdit`, `saveLiq`, `saveTransferEdit`,
+`setReceiptStatus`, `removeRec`, `deleteEdit`, `confirmRemoveReceipt` and `confirmRemoveTransfer`
+each act on **one row the user is looking at and explicitly targeting**, so a stale snapshot loses a
+last-write race rather than destroying a record the user was told would be spared. `commit`'s
+duplicate warning is advisory by design. **`undoGenerate` was the only one that made a promise about
+rows it would not touch, in bulk, by deleting — and could not keep it.**
+
+### Two observations from the same round, recorded not fixed
+
+- **A masterlist edit whose targets were all completed elsewhere now produces no toast at all.** It
+  used to lie ("3 rows updated"); silence is better, but the edit that did not reach the ledger still
+  says nothing.
+- **Paint order is now response order, not keystroke order.** Two edits more than 500 ms apart, both
+  in flight, with responses returning inverted, would leave the screen on the older value while
+  Postgres holds the newer. Not reproduced; recorded because the pre-D61 synchronous paint could not
+  produce it.
+
+### The tally
+
+Ten rounds, **seventeen findings**: fifteen code defects, one false delivery claim, and one
+documentation contradiction that outranked a file anyone can open. Six of the fixes introduced the
+next defect. D60's table plus D61 = 1 and D62 = 1.
+
+## D63 — Generate's Idempotence Is Enforced by an Index, Not by a Snapshot
+
+Round 11 applied family four to the one bulk write [D62](#) forgot to enumerate. D62 listed nine
+client-side guards it had cleared; **`generate` / `db.insertTxns` was not among them** — and it is
+bulk, it is unattended (the 22:00 scheduler calls the same builder), and its guard,
+`alreadyOnSheet(existing, …)`, was asking `state.txns`: the page-load snapshot.
+
+Reproduced live and swept: a snapshot taken before a second writer generated, then replayed through
+the app's own `buildGeneratedRows` → `insertTxns` path. **Postgres accepted the duplicate** — two
+identical payables, same company, category, period, due date and amount. `pg_constraint` showed only
+the primary key and the `src` foreign key; there was no unique index of any kind. The dedupe lived
+entirely in JavaScript.
+
+The production path is not exotic. The scheduler writes the month unattended, and GitHub queues this
+repository's crons 2.5–5 hours late ([D43](#), C6), so the slot is unpredictable. An administrator's
+tab opened that morning holds a snapshot with none of those rows: **one click on Generate duplicates
+a whole month of liability**, with no warning and a toast reporting nothing skipped.
+
+Two changes, in that order of importance:
+
+1. **`generate` re-reads the ledger before deciding.** One query, and it makes the dedupe a decision
+   about the database rather than about a belief. `db.freshTxns()`.
+2. **A partial unique index is the backstop**, `20260905094348_one_generated_row_per_due_date`:
+   `on public.txns (src, due) where src is not null`. Proven on `tracker-rehearsal` before
+   production by inserting a duplicate and watching `23505` refuse it, then confirming a *different*
+   due date for the same parent still inserts.
+
+**The index is deliberately narrow.** It covers generated rows only. A row carrying `src` was
+produced by a machine from one payable for one due date, so a second copy is always wrong. There is
+**no equivalent index for hand-entered rows**, because the duplicate warning there is advisory and
+dismissible by design — "save again to add it anyway" — and two genuine payments for the same thing
+in one period are a real thing a person may record. A unique index would turn a feature into an
+error. Verified zero existing violations of either shape before applying.
+
+`npm run schedule` was documented as "Idempotent" without qualification, and `scripts/schedule.mjs`
+still claims idempotency "by construction" using the pre-D57 dedupe key. It was idempotent against
+itself and never against a concurrent writer. Both policy files now say what enforces it.
+
+### Two secondary findings from the same round, both fixed
+
+- **Undo's banner was cleared before its delete resolved**, and the banner is the only way to reach
+  `undoGenerate`. A failed delete therefore left the rows in the ledger and Undo **permanently
+  unreachable**, because `generatedIds` had already been discarded. Recoverability had regressed as
+  a side effect of moving the delete off the optimistic path in D62. The banner is now dismissed on
+  success.
+- **The "kept" count asserted a reason it could not know.** `spared` was computed against a stale
+  snapshot, so a row another session had *deleted* was reported as "already been paid". D62's stated
+  goal was a toast that cannot promise what the database did not say; it now reports that rows
+  "changed in another session" without claiming how. A dead `kept` binding from the D62 rewrite was
+  removed with it — nothing lints this repository, so it would have sat there.
+
+### The tally
+
+Eleven rounds, **twenty findings**: seventeen code defects, one false delivery claim, two
+documentation contradictions. Six were introduced by the fix for the previous defect.
+
+## D64 — A Constraint Is Only Half a Feature Until the Screen Tells the Truth About It
+
+Round 12 attacked the unique index D63 added to production. It could not make the index refuse a
+generated batch that should succeed — 8,584 combinations of frequency, month and anchor day produced
+**zero** repeated due dates within one call, so `alreadyOnSheet` and the constraint agree exactly.
+What it found instead is that the index constrains **every** writer, and two paths lied about it.
+
+### A refused edit was reported as saved
+
+The index refuses a due date that would collide with another generated row for the same payable —
+and moving one is legitimate: *"we settled both on the 18th."* `saveEdit` painted the change, called
+`save(db.updateTxn(next))` fire-and-forget, and flashed **"Transaction updated"** regardless. The
+Tracker showed the new deadline, Postgres kept the old one, and the only evidence was a raw
+Postgres string in a toast that the success message had already replaced and that expires in 2.6 s.
+
+`saveEdit` now awaits its write and **reverts the row on failure**, naming the collision when the
+code is `23505`. It is the one write in this file that is not fire-and-forget, because it is the one
+that can be *refused* rather than merely fail. The refusal itself is kept: it is correct, and the
+message is actionable.
+
+### Making `generate` async opened a phantom month
+
+D63 made `generate` await a re-read. Neither button that calls it had a busy state, so a second
+click could re-read before the first insert committed, rebuild the identical `(src, due)` set with
+fresh ids, and hand Postgres a batch the index refuses — **aborting the whole multi-row insert**.
+The optimistic paint had already run: a full month of phantom rows on screen, under a banner that
+does not expire, with `generatedIds` naming rows that never existed. Undo then deleted nothing,
+cleared the banner, and reported "0 removed". Only a reload healed it.
+
+`generate` now inserts **before** it paints, sets a `generating` flag that disables both call sites,
+and reports a `23505` as *"someone generated this month first — nothing was written."* Same lesson
+as D60, third time: **never paint what has not been written.**
+
+### The stale counts
+
+`supabase/README.md` said eighteen migrations in one place and fifteen in two others;
+`docs/Repository Evidence.md` still said the folder held twelve. All corrected against the live
+count of eighteen on both projects.
+
+### On a spec of mine that passed against its own defect
+
+The first version of the new regression spec asserted the on-screen date using `.first()` on rows
+matched by the payable's **base** description. A Weekly payable generates several rows whose
+descriptions differ only by a date suffix, so that locator could land on a row the spec never
+edited — and it passed with the revert removed. It now targets the edited row by its own full
+description and asserts both that the stored date is shown **and** that the refused one is not;
+removing the revert then fails it with `Received: "…Sep 12…"`.
+
+**Trap 89: a locator that can match more than one row is an assertion about the wrong row.** This is
+the round-8 half-asserting shape reappearing in a spec written to catch a round-12 defect — the
+fourth time in this session a test has needed rewriting before it could fail honestly.
+
+### Recorded, not fixed
+
+- `scripts/schedule.mjs` has a bare top-level `await db.insertTxns(rows)`. One `23505` now exits the
+  job **1** before the overdue report, the step summary or the sign-out — the nightly run loses its
+  whole purpose, not just a duplicate row. Reachable only if the script's own read misses a row, for
+  which the concrete route is `read()`'s un-paged `select('*')` against PostgREST's 1,000-row cap
+  (49 rows today; the same file documents that cap four lines away and does not apply it to `txns`).
+- **No money constraint exists in the database.** `amount > 0`, `fee >= 0` and `actual >= 0` are
+  enforced only in the browser; `pg_constraint` carries none of them on any ledger table. The
+  invariants this session has been asserting after every run are defended by nothing but the client.
+- `db.updateTxn` has no server-side completed-guard while `patchTxns` and `deleteTxns` do. Checked
+  and deliberately left: the user picks those field values in a form and is looking at the row, so
+  last-write-wins is defensible there in a way an incidental push-down never was.
+
+## D65 — The Money Rules Now Live in the Database, and Two Reads That Could Lie Were Closed
+
+Three items round 12 recorded as observations rather than defects. They are defects; they are fixed.
+
+### Every money rule was enforced only in the browser
+
+`pg_constraint` carried **no CHECK on any ledger table**. `amount > 0`, `fee >= 0` and
+`actual >= 0` existed solely in `positiveAmountOf` and `confirmPay`. Twelve rounds of review asserted
+`amount <= 0 → 0` after every single run, and **nothing in Postgres was defending it** — the
+invariant held because the client happened to be right, which is the definition of trap 88 applied
+to the whole money surface rather than to one guard.
+
+`20260905143255_money_constraints` adds seven CHECKs across `txns`, `receipts`, `recurring` and
+`transfers`. Proven on rehearsal before production: a `-5` insert is refused with `23514`, and a
+`0.00` receipt is still allowed.
+
+Two bounds are deliberately looser than the client's, chosen against the data as it is:
+`receipts.amount >= 0` rather than `> 0`, because row `1788471059637` — the backup-storage proof —
+legitimately carries `0.00` and must keep existing; and `recurring.amount >= 0`, because `updRec`
+clamps a cleared field to 0 mid-edit by design (D56). Null stays meaningful for `fee`, `actual` and
+`rate`: each check only constrains a value that is present.
+
+### A read that silently truncated
+
+`read()` and `freshTxns()` used a plain `.select('*')`. PostgREST caps that at **1,000 rows and
+returns no error**, so the app would simply believe the ledger was smaller than it is. This file had
+documented that cap for `fx_rates` four lines away and not applied it to the tables that grow.
+
+The consequence is not a short list. `alreadyOnSheet` decides what Generate writes by comparing
+against what was read, so rows past the cap become invisible and Generate duplicates them — and
+since D63 the unique index turns that into a `23505` that aborts the whole batch. At roughly 30
+generated rows a month the cap is about two and a half years out, and what it produces is a nightly
+job that stops working.
+
+`readAll()` pages with `count: 'exact'` and stops when it holds as many rows as the server says
+exist, so a short page is **detected** rather than assumed to be the end.
+
+### A scheduler that died whole over a row that was already correct
+
+`scripts/schedule.mjs` had a bare top-level `await db.insertTxns(rows)`. One `23505` — exactly what
+a concurrent writer produces — exited the process before the overdue report, the job summary and the
+sign-out. **The 22:00 run lost its entire purpose over a row the ledger already held correctly.**
+
+Generation is now wrapped: `23505` is reported as the benign outcome it is, the exit code stays 0,
+and the run continues to the report it exists to produce. Any other error still fails loudly,
+because an unexplained write failure is not benign.
+
+### The tally
+
+Twelve rounds, **twenty-six findings**: twenty-two code defects, one false delivery claim, three
+documentation contradictions. Eight were introduced by the fix for the previous defect.
+
+## D66 — Zero Means "Not Decided" on a Payable and Is Never a Row
+
+Round 13 attacked the CHECK constraints D65 had just put on a live money table, and found that
+**two of them disagreed with each other** — a disagreement D65's own header had written down without
+noticing.
+
+`recurring.amount >= 0` permits zero, deliberately: `updRec` clamps a cleared Amount field to 0 so
+the field stays editable mid-keystroke. `txns.amount > 0` forbids it. Nothing reconciled the two, so
+two ordinary actions now raised `23514`:
+
+- **`updRec`'s push-down** carried the clamped 0 straight into `txns.amount`. Clearing a masterlist
+  Amount — the documented mid-edit case — raised a raw Postgres string in a toast. Before D65 the
+  same keystroke silently wrote 0 onto live ledger rows; neither is right.
+- **`buildGeneratedRows` emitted a 0-amount row**, so a single unpriced payable would make Postgres
+  refuse the whole month — in the browser, and in the unattended 22:00 job, where `schedule.mjs`
+  rethrows anything that is not 23505. That is verbatim the failure D65's try/catch was added to
+  prevent, re-achievable through the constraint added in the same decision. **Ninth fix-induced
+  defect.**
+
+The rule, stated once and applied in both places: **0 is a legal state for a *payable*, meaning "no
+amount decided yet", and is never a legal state for a *row on the ledger*.** So a non-positive
+amount does not push down, and a non-positive payable generates nothing — Generate says which
+payables need an amount instead of failing opaquely.
+
+Three more from the same round:
+
+- **A negative `transfers.rate` had no form validation**, so `23514` arrived through fire-and-forget
+  `save()` and the sheet kept showing a rate Postgres had refused — the divergence `saveEdit` was
+  given a revert for in D64, on the sibling path. Both transfer forms now refuse it.
+- **`readAll` used offset paging.** Verified stable today, but a row inserted between two pages
+  shifts everything after it: one row returns twice, another is never seen, **and the exact count
+  still matches**, so the loop believes it is complete. The missing row is precisely what the pager
+  exists to prevent. Now keyset — `.gt`/`.lt` on the last id read — which names a position rather
+  than a distance.
+- **The `generating` flag was claimed after the await it guards**, leaving a full round trip in
+  which a second click passed the check with both buttons still enabled. Claimed before the await
+  now.
+
+### The tally
+
+Thirteen rounds, **thirty-two findings**: twenty-seven code defects, one false delivery claim, four
+documentation contradictions. Nine were introduced by the fix for the previous defect.
+
+## D67 — The Zero Rule Applies to Every Reader of It
+
+Round 14 confirmed the keyset pager correct against live data at five page sizes, and then found
+**four defects, all of them consequences of D66 being applied to one caller and not its siblings.**
+That is the "shared helper acquiring a caller whose assumptions differ" family, four times over,
+from a single change.
+
+- **`forecast` did not skip an unpriced payable** while `buildGeneratedRows` did, so the Tracker's
+  sync line and the Dashboard counted a payable Generate would refuse to write. The comment in
+  `logic.js` asserting the two "have to agree exactly" had become false in the same edit that
+  wrote it.
+- **`generate`'s unpriced guard scanned the whole masterlist**, not the month being generated. One
+  unpriced *yearly December* payable blocked September, October and November permanently, and made
+  the "every recurring payable already exists" message unreachable whenever anything anywhere
+  lacked an amount.
+- **`scripts/schedule.mjs` had no guard at all.** The unattended 22:00 job dropped unpriced payables
+  silently and reported *"Every recurring payable already exists"* for a month in which the only
+  payable had been skipped. It now names what it did not generate.
+- **`updRec` stopped pushing a non-positive amount but never cancelled the push already armed.**
+  Typing `7000` and then clearing the field left the payable at 0, the linked rows at 7000, and the
+  toast asserting they matched — the exact shape `cancelForRecurring` documents for the delete path,
+  reopened through the clear path.
+
+**Trap 90: when you add a rule to a shared helper, find every caller and every sibling that encodes
+the same rule.** D66 changed `buildGeneratedRows`; `forecast`, `generate` and `schedule.mjs` all
+encoded the same idea and none of them heard about it.
+
+Round 14 also found a spec of mine **passing for a reason that no longer generalised** — the
+forecast/Generate agreement test used a fully priced fixture, so it could not see the divergence it
+was written to guard. Its fixture now carries an unpriced payable, and removing the skip fails it.
+That is the third spec this session to need rewriting before it could fail honestly.
+
+Two things recorded rather than fixed: `readAll`'s cursor reads `page[last].id`, so a future caller
+passing a projection without `id` would page once and stop silently (every current caller passes
+`'*'`); and there is still **no test covering the pager itself**, which would need `readAll`
+exported or `PAGE` injectable.
+
+### The tally
+
+Fourteen rounds, **thirty-seven findings**: thirty-one code defects, one false delivery claim, five
+documentation contradictions. **Thirteen were introduced by the fix for the previous defect** — more
+than a third.
+
+## D68 — One Function Owns the Zero Rule, and Generate Reports Instead of Refusing
+
+Round 15 confirmed `forecast` and `buildGeneratedRows` agree exhaustively — 4,000 randomised cases,
+zero mismatches — and then found the same rule wrong in **four more places**, all of them consequences
+of D67. Trap 90, one round after trap 90 was written down.
+
+The most useful correction is that **the guard D67 added to `generate` was never necessary.**
+`buildGeneratedRows` already excludes an unpriced payable, so `txns.amount > 0` could not fire. The
+guard refused work it did not need to refuse — and because a Monthly payable has an occurrence in
+*every* month, one unpriced row blocked Generate for **all thirteen months the menu offers**, priced
+siblings included, and made "every recurring payable already exists" unreachable.
+
+Then, from round 14's own fix:
+
+- **The sync bar announced "In sync with the Masterlist"** while a payable sat due and unwritable.
+  `forecast` skipping unpriced payables traded an over-count for a **false all-clear** on the one
+  screen whose job is to say "something you expected is not here".
+- **The sync bar's Generate button became a dead end** — it counted 1 writable payable, offered the
+  button, and the click was refused over a payable the bar deliberately did not show. Count and
+  guard used different predicates on the same screen.
+- **`schedule.mjs`'s filter stayed unscoped** while `generate`'s became month-scoped, so the 22:00
+  job reported an unpriced *December* payable as "skipped, not generated" during a *September* run.
+
+`unpricedFor(recurring, monthKey)` in `logic.js` is now the single rule, asked by `generate`, the
+sync bar and the scheduler. Generate **reports** rather than refuses: unpriced payables are named in
+the banner and in the "nothing to do" message, and priced siblings are written normally.
+
+### The coverage finding, which matters more than any of them
+
+Round 15 deleted `if (!pushable) cancelPush(id, k)` from `updRec` and re-ran everything:
+
+```
+ℹ pass 114   ℹ fail 0        48 passed
+```
+
+**Three of D67's four fixes had no test at all.** They were reasoned, falsified by hand, described in
+a decision record — and nothing in the suite would have noticed their removal. Only the `forecast`
+fix was honestly covered. `unpricedFor` now has four unit tests, and unscoping it fails two of them.
+
+**Trap 91: a fix you falsified by hand is not a fix the suite protects.** Hand-falsification proves
+the fix works today; only a committed test proves the next person cannot delete it.
+
+Two gaps remain open and are recorded rather than closed: `readAll` still has **no coverage at all**
+(it is module-private, and testing it needs the function exported or `PAGE` injectable), and
+`cancelPush` is covered only by reasoning.
+
+### The tally
+
+Fifteen rounds, **forty-three findings**: thirty-five code defects, one false delivery claim, seven
+documentation contradictions. **Seventeen were introduced by the fix for the previous defect** — two
+fifths.
+
+## D69 — A Test That Reads the Wall Clock Reports the Calendar, Not the Code
+
+Found on 2026-09-06 by the date changing, not by a review round. `npm test` went from 118/118 to
+117/118 overnight **with no code change and no commit.**
+
+`eff(t, today = TODAY)` takes `today` as a parameter precisely so it can be pinned. The assertion did
+not pass one:
+
+```js
+assert.equal(eff({ status: 'pending', due: '2026-09-05' }), 'pending')
+```
+
+That is true on 2026-09-05 and false on 2026-09-06 — the row is overdue the moment the day turns.
+The date is now pinned, and the behaviour the failure demonstrated is captured as its own case:
+*a row becomes overdue by the calendar advancing, not by being written to.*
+
+**Trap 92: a test that reads the wall clock reports the calendar, not the code.** Every function in
+`logic.js` that depends on today already accepts it as a parameter — `eff`, `visibleRows`,
+`forecast`, `occurrences` via its month key, `monthKeys`, `addDays`. Pass it. This one had been
+green for a week and would have failed the CI gate on the first push after midnight, with a diff
+that touched nothing related.
+
+Worth noting what this says about the fifteen rounds: **no adversarial round found it.** It took a
+clock. Sixteen rounds of attacking the code did not surface a defect that one day of real time did,
+which is the argument for the suite being run repeatedly over time rather than only under scrutiny.
+
+### The tally
+
+Fifteen rounds plus the calendar, **forty-four findings**: thirty-six code defects, one false
+delivery claim, seven documentation contradictions. Seventeen were introduced by the fix for the
+previous defect. **Round 16 is unrun.**
+
+## D70 — The Suite Starts From a Known State, Because a Killed Process Skips `finally`
+
+Found on 2026-09-06 when an e2e spec failed that had passed for the whole session. The cause was not
+in the code under test.
+
+`requiring a receipt file actually blocks the liquidation` turns `ackRequirePhoto` **on** in the
+shared `app_config` row and restores it in a `finally`. That is correct for a failing assertion and
+useless for a **killed process** — and round 16's verifier was killed mid-run by a session rate
+limit. The setting stayed on.
+
+**This was not a test problem.** `app_config` is the owner's live configuration: with that flag on,
+**nobody could liquidate a receipt without attaching a file**, a rule the owner never chose and had
+no reason to look for. It sat that way until the next run happened to fail on it. The suite had been
+mutating a real setting on a shared production row and relying on its own process surviving to put
+it back.
+
+`normaliseToggledSettings()` now runs in `beforeAll`: it puts the settings a spec is known to toggle
+back to their documented defaults, writes **only** when one is already wrong, and logs which it
+reset. An ordinary run writes nothing; a run after a crash repairs the damage before it starts, and
+says so. Deliberate owner changes to anything else are untouched.
+
+**Trap 93: cleanup in a `finally` protects against a failing assertion, not against a killed
+process.** Anything a suite mutates outside its own tagged rows needs a *starting* guarantee, not
+only an ending one — and on a shared production row, "the next run will fix it" means "the owner
+lives with it until then".
+
+Closed with it, both gaps round 15 named and D68 recorded as open:
+
+- **`readAll` had no coverage at all.** Its keyset loop is now `pageAll` in `pending.js`, testable
+  without a database. Six tests, including the insert-between-pages shift the loop exists to survive.
+  Falsified two ways: making the cursor static fails it, and stopping only on an empty page fails
+  the request-count assertion.
+- **`cancelPush` was covered by reasoning only.** The debounce registry is now `createPending` in
+  `pending.js`, with injectable timers. Six tests. Falsified two ways: dropping the trailing colon
+  from the prefix scan fails the `push:5:` versus `push:50:` case, and making `cancelPush` a no-op
+  fails the retraction case.
+
+`npm test` reached 134 assertions across six files at this point; D72 takes it to 147 across seven.
+
+## D71 — a cleanup restores what a setting WAS, never what it should be
+
+Rounds 16, 17 and 18 (2026-09-06). Round 16's subagent was dispatched twice and died twice — the
+session rate limit, then the weekly one — so these three rounds were run by the main session by
+hand. That is weaker evidence than a fresh-context verifier and is recorded as such.
+
+**Finding 46.** The D70 fix for trap 93 forced `ackRequirePhoto: false` at the start of every e2e
+run. But `src/data.js` states that turning that setting on **is a policy decision**. An owner who
+had deliberately turned it on would have had the nightly `verify.yml` run quietly turn it off — so
+the fix for a killed run's residue would have silently overridden a deliberate choice. A suite
+cannot distinguish residue from policy by inspecting a value.
+
+`normaliseToggledSettings` is therefore replaced in `apps/web/e2e/db.js` by `hold(keys)`, which a
+spec calls **before** changing anything and which records the current value into
+`app_config.data.settings.__e2eHeld`, and `releaseHeldSettings()`, called from `beforeAll`, which
+gives back exactly what was recorded and clears the marker. No marker means no write. Verified live
+against production in four cases: owner-off, **owner-on**, no marker, and a setting absent from the
+stored config.
+
+**Finding 47.** Mutation testing of the twelve tests D70 added showed **three surviving mutants**:
+`keyOf` could drop the table name entirely and still pass, though `transfers` and `recurring` carry
+independent id sequences — so two rows sharing an id would share a debounce key and one keystroke
+would cancel the other's unsaved write — and nothing pinned `DELAY`, because every test imports it.
+Three tests added; `npm test` is 134.
+
+**Finding 48.** The finding-46 fix wrote the marker with a whole-document read-modify-write, the
+exact lost update `merge_app_config` exists to prevent and which `src/db.js` documents. Both marker
+writes now go through the merge function.
+
+**Finding 49.** Two silent no-op paths in the new `hold`: a missing config row threw a bare
+`TypeError`, and a `merge_app_config` call that touched no row was never checked. Either leaves a
+setting held with nothing recording it — trap 93 again. Both now throw with a message that says so.
+
+All four findings were introduced by the fix for the finding before them.
+
+## D72 — a fresh context found in one pass what self-review missed in three rounds
+
+Round 19 (2026-09-06), the first fresh-context `verifier` subagent available after the weekly rate
+limit reset. Rounds 16-18 had been run by the main session by hand and had reported the work green.
+Round 19 **refuted that with six findings**, five of them inside the fixes those three rounds had
+just written. This is the decision record's clearest evidence that a main-session review round is a
+stopgap and never a substitute.
+
+**Findings 50 and 51 — the live config.** A *third* spec changed `dashWindow` through the Settings
+UI without calling `hold`, so a killed run left the owner's dashboard stuck on `Next 7 days`,
+hiding every payable due 8-30 days out. A *fourth* added an `E2E###` code to the shared `companies`
+list — and that one was unrecoverable by design, because `hold` recorded settings only, `cleanup`
+never touches `app_config`, and nothing in the suite could have removed the code.
+
+`hold` now takes **config paths**: either `settings.<key>` or a top-level section name such as
+`companies`. `releaseHeldSettings` becomes `releaseHeld`, and `restoreConfig` is **deleted** — it
+did a whole-document write, the lost update `merge_app_config` exists to prevent, and every one of
+its call sites is now `releaseHeld()`. All four config-mutating specs hold what they change.
+
+**Finding 52 — the money path.** `actions.js` built the push-down key `'push:' + id + ':' + k` by
+hand while both cancel paths used `pending.js`'s exported `pushKey`. Changing `pushKey`'s format
+left the suite entirely green with `cancelPush` and `cancelForRecurring` matching nothing —
+reinstating D59 and D67 verbatim, so a payable deleted mid-edit still had its push-down fire 500ms
+later onto live ledger rows. `actions.js` now imports `pushKey`, and a test fails if the literal is
+rebuilt (trap 96).
+
+**Finding 53.** Two more surviving mutants in `pending.js`: removing `timers.delete(key)` from the
+fired callback, and moving it after `run()`, both left 134/134 green.
+
+**Finding 54.** `hold` and `releaseHeld` had **zero tests** — deleting either body left the suite
+green. `apps/web/e2e/held.test.js` now drives them offline against a fake client that models
+`merge_app_config`'s actual SQL, through a new `useClient()` seam.
+
+**Finding 55.** `updRec`'s `pushable` guard covered only `amount`. Clearing a payable's Description
+pushed `description: ''` onto every linked open Tracker row — accepted silently, because
+`txns.description` is `not null default ''` with no emptiness check — and the toast then claimed
+the rows had been updated to match. The field *without* a database constraint was the dangerous
+one; the guard existed only for the field whose CHECK made the omission fail loudly (trap 97).
+`pushable(k, val)` is now in `src/logic.js`, guarded for every field, and tested.
+
+`npm test` reached **147 assertions across seven files** at this point; D73 takes it to 156.
+
+## D73 — a predicate proved right, with nothing proving the caller asked
+
+Round 20 (2026-09-06), a fresh-context `verifier` dispatched against round 19's own six fixes. It
+**refuted them**, with five findings — four inside those fixes. Two rounds in a row have now found
+that the previous round's work was under-tested in the same way.
+
+**Findings 56 and 57 — the shape worth naming.** Round 19 extracted `pushable` to `src/logic.js`
+and tested it there. Round 20 deleted `&& pushable` from `updRec`'s target selection, and deleted
+the `if (!pushable) cancelPush(id, k)` retraction beside it, and `npm test` stayed at **147 pass**
+both times. The predicate was proved correct while nothing proved the caller consulted it — which
+is exactly the hole round 19 had itself found in `pushKey`, closed there with a source-text
+assertion, and left open in the sibling call site.
+
+Testing one input to a decision is not testing the decision. `pushPlan(txns, id, k, val)` now
+returns the whole thing — `column`, `retract` and `targets` — so a test pins what `updRec` does
+rather than what it could do. `PUSH_DOWN` moved to `logic.js` with it.
+
+**Finding 58 — `hold(['settings'])` wedged the marker permanently.** `'settings' in cfg` is true,
+so the path validated; `releaseHeld` then assigned the held settings object over the very object
+carrying `__e2eHeld: null`, restoring the marker while **returning a success list**. Every later run
+would warn that it was giving back a hold that never ends. `hold` now refuses the section as a
+whole, and the marker clear is merged in **last** so no top-level path can overwrite it.
+
+**Finding 59 — a swallowed read error.** Both functions discarded `error` from their `app_config`
+read, while every other reader in the file throws. A transient 5xx or an expired token made
+`releaseHeld()` return `null` and the spec pass green — leaving `ackRequirePhoto` **on** in the
+owner's live config with nothing reporting it. Trap 93, reached by a different road.
+
+**Finding 60 — the whole-document write survived in a spec.** Round 19 deleted `restoreConfig`
+because it wrote the entire config document; the duplicate-warning spec was still doing the same
+write inline, bypassing `merge_app_config` and its viewer guard. It now goes through the RPC.
+
+**Secondary.** The `if (!touched) throw` guards D71 added could both be deleted with the suite
+green: the fake client always claimed a row written. The fake now has a failure channel —
+`readError`, `writeError`, `touched: 0`, and a missing config row — and each guard has a test.
+
+Also closed, from round 20's observations: `keyOf` was duplicated verbatim between `summaryHTML` and
+the Tracker screen. The PNG export claims to summarise exactly what the screen shows, so a drift
+would have been a lie nobody would notice. One exported `groupKey`, one test.
+
+`npm test` reached **156 assertions across seven files** at this point; D74 takes it to 161.
+
+## D74 — the sweep that could have deleted the owner's receipts
+
+Round 21 (2026-09-06), a fresh-context `verifier` dispatched against round 20's fixes. **REFUTED**,
+with three findings, **one of them destructive**. Twenty-one rounds, twenty-one that found something.
+
+**Finding 61 — `cleanupOrphanFiles` could delete every receipt file in the owner's live bucket.**
+It read `receipts` for the set of `file_path`s to keep, **discarded the read's `error`**, and fell
+back to `[]`. A transient 5xx or an expired token therefore produced an empty keep-set, after which
+every key enumerated from the storage bucket was classified an orphan and removed — the owner's
+attachments included, and the backup-proof receipt's file with them. The `remove()` error was
+discarded too, so it reported success. The `E2E-` tag rule that protects every other table protected
+nothing here, because orphans were identified by **absence from a list**, not by tag.
+
+**Finding 62 — the same read was unpaged.** A plain `.select()` truncates at 1000 rows. `src/db.js`
+already routes receipts through `pageAll` precisely because the table can outgrow that cap; the
+sweep did not. At 1001 receipts, every attachment past the cut becomes an "orphan" and is deleted on
+the next `npm run e2e`, silently, and worse every day the ledger grows.
+
+`cleanupOrphanFiles` is **deleted**. `cleanup()` now runs each tagged delete with `.select(...)`,
+collects the `file_path` of the receipt rows it actually removed, and deletes exactly those files.
+It enumerates no bucket and every read, delete and remove throws on error. Deletion by absence is
+gone: the sweep can only remove a file whose row it just deleted by tag.
+
+**Finding 63 — trap 98 was not closed.** No test imports `src/actions.js` (it pulls in `store.jsx`
+and React), so two mutants at the push-down call site survived at 156/156: deleting the `cancelPush`
+retraction, and rebuilding the patch as `{ [k]: val }` — where `k` is the state key `desc` and the
+column is `description`, so every description push-down would have returned 400. `pushPlan(k, val)`
+now returns `{column, retract, patch}` so the call site assembles nothing, and `src/pending.test.js`
+pins that call site by source text, the way the `pushKey` contract already was.
+
+**Acted on round 21's observation as well.** `pushPlan` was fed `state.txns`, a page-load snapshot,
+so a linked open row another session created after this tab mounted was never written while the
+toast said the rows had been updated to match. The client no longer chooses the rows: `patchTxns`
+changed from `(ids, patch, src)` with `.in('id', ids)` to `(patch, src)` selecting
+`.eq('src', src).neq('status','completed')` **in the write**, returning the ids it actually wrote.
+Defect family 4, closed at its source rather than papered over with a fresh read.
+
+`npm test` reached **161 assertions across seven files** at this point; D75 takes it to 164 across eight.
+
+## D75 — the guard was moved out of the only layer that had coverage
+
+Round 22 (2026-09-06), a fresh-context `verifier` against round 21's fixes. **REFUTED**, three
+findings. Twenty-two rounds, twenty-two that found something.
+
+**Finding 64 — a source-text pin cannot see statement order.** `pushPlan` sets `retract: !ok` and
+`patch: column && ok ? … : null`, so `retract === true` implies `patch === null` — the two guards
+test the same predicate. Moving `if (!plan.patch) return` above `if (plan.retract) cancelPush(id, k)`
+makes the cancellation **unreachable for every field and every value**, and all four source
+assertions still match. That reinstates D67: the write armed by the keystroke before a field was
+cleared fires anyway, with the value the user took back. A second mutant survived the same way —
+the optimistic repaint changed from `{ ...t, [k]: val }` to `{ ...t, [plan.column]: val }`, which
+spreads a `description` key onto local state so `desc` never repaints while the toast claims the
+rows match. Both pinned now, one by an `indexOf` **ordering** assertion, one by an expression pin.
+
+**Finding 65 — and this is a criticism of D74's own fix.** Round 21 moved the "never rewrite a
+completed row" guard from the client into the write, which was right in principle. But it moved it
+**out of the only layer that had test coverage and into the one with none**: nothing imports
+`src/db.js`, because it constructs the live Supabase client at module scope. Deleting *both*
+`.eq('src', src)` and `.neq('status','completed')` from `patchTxns` left `npm test` green. In that
+state one keystroke in a masterlist Amount field issues `PATCH /txns` **with no filter at all** —
+every transaction in the shared ledger, completed rows included, set to that amount, and the toast
+reporting "49 open Tracker rows updated to match".
+
+New `src/queries.js` holds `pushDownTxns(from, patch, src)` and `deleteGeneratedTxns(from, ids)`.
+They take `from` rather than reaching for the client, so `src/queries.test.js` drives them with a
+recorder and asserts the exact filter chain. `db.js` supplies the real `from` and delegates. The
+`deleteTxns` guards, never covered either, came along with it.
+
+**Finding 66 — the leak D74 accepted is now written down.** If the storage remove fails, or the
+process is killed between the row delete and the file remove, those files are orphaned permanently:
+the rows naming them are gone. That is the deliberate trade — bucket bloat is recoverable by hand
+and data loss is not — and the comment in `e2e/db.js` now says so rather than implying the sweep is
+complete.
+
+`npm test` reached **164 assertions across eight files** at this point; D76 takes it to 169.
+
+## D76 — the restore tool could not read past a thousand rows
+
+Round 23 (2026-09-06), a fresh-context `verifier`. **REFUTED**, five findings. Twenty-three rounds,
+twenty-three that found something. Two of the five were in code no round had ever examined.
+
+**Finding 67 — `scripts/rewind.mjs` read `audit_log` unpaged.** PostgREST caps a plain `.select()`
+at 1,000 rows and reports no error. `backup.mjs` carries the scar in its own comment — `audit_log`
+crossed a thousand on 2026-09-02 and the snapshot wrote exactly `1000` while the table held 1,129 —
+and pages with `.range()`. `src/db.js` pages every ledger read through `pageAll`. The **restore**
+tool did neither, which is where it matters most: `planRewind` keys on the first audit entry per
+row, so a row whose first post-cut change fell past the cut-off produces **no step at all**. The
+plan comes out short, prints a confident count, and the operator applies it believing the rewind is
+complete. Measured against production: a cut at `2026-09-01T20:00:00Z` qualifies **7,419** rows; the
+old code reported 1000. It now uses `pageAll` with keyset paging and reports 7419.
+
+**Finding 68 — the round-22 recorder inspected only `select()`'s first argument.** `select('id',
+{ head: true })` therefore passed every assertion while making both builders return nothing: the
+push-down updates the ledger and the screen never repaints, and `undoGenerate` leaves deleted rows
+on screen flashing "0 removed — N left in place, they changed in another session" about rows the
+database did delete. The assertions now compare the whole call.
+
+**Finding 69 — the `indexOf` ordering assertion was defeated by a comment.** Commenting out the real
+`cancelPush` and re-inserting it below the early return kept the ordering true while the statement
+became unreachable. The source is now comment-stripped before any assertion runs.
+
+**Finding 70 — three more `updRec` mutants.** Dropping `Math.max(0, …)` put a **negative payable**
+in the ledger and the totals; storing the raw input instead of the sanitised value sent a string to
+a numeric column; deleting `if (!written.length) return` produced a toast reading "0 open Tracker
+rows updated to match". `recValue(k, v)` and `editRecurring(row, k, v)` are now in `src/logic.js`
+with tests, and `updRec` reads the pushed value back off the row it stores, so the two cannot
+diverge.
+
+**Finding 71 — the "bloat versus data loss" dichotomy D75 accepted was false.** A third ordering
+leaks nothing and risks nothing: read the tagged rows' `file_path`s, remove the files, *then* delete
+the rows. A kill between the last two leaves the rows in place, still tagged, and the next sweep
+retries — removing an absent key is not an error. `cleanup()` does that now. `src/smoke.mjs` had the
+same delete-then-remove ordering, with a comment claiming the opposite of what the code did; fixed
+alongside.
+
+`npm test` reached **169 assertions across eight files** at this point; D77 takes it to 179 across nine.
+
+## D77 — the backup was paged the way this codebase calls broken, and the Masterlist could not take a decimal
+
+Round 24 (2026-09-06), a fresh-context `verifier`. **REFUTED**, six findings. Twenty-four rounds,
+twenty-four that found something.
+
+**Finding 72 — a root-cause miss on D76's own fix.** Round 23 patched the *restore* tool's unpaged
+read and left the *backup* tool paging by `OFFSET` with no `ORDER BY` — the method `src/pending.js`
+describes in its own comment as broken: *"a row inserted between two pages shifts everything after
+it: one row comes back twice, another is never seen, **and an exact count still matches**."* That
+last clause is why `backup.mjs`'s exact-count assertion — the thing its comment calls "the point of
+the function" — could not catch it. The owner uses the ledger while the 06:00 and 18:00 snapshots
+run, and a corrupted backup is only discovered when it is needed. `readAll` now uses `pageAll` with
+keyset paging and an explicit order. A real run reads 7,902 audit rows with zero duplicates.
+
+**Finding 73 — `pageAll` hard-coded `row.id` as its cursor.** `profiles` is keyed by `user_id`, so
+paging it carried `undefined` forward and the reader looped forever, growing `rows` without bound.
+It now takes a `key`, and **throws** when a full page's last row cannot supply a cursor.
+
+**Finding 74 — the source-text pins were defeated three ways.** A commented-out copy of a pinned
+line; a string literal holding the same text; `if (state.readOnly)` prefixed to a pinned statement.
+Each left the suite green while the push-down cancellation became unreachable, reinstating D67. A
+fourth mutant — `db.updateRecurring` → `db.insertRecurring` — was never pinned at all.
+
+The answer was not a better regex. `applyMasterlistEdit(row, k, v, fx)` now lives in
+`src/masterlist.js` and takes its effects as callbacks, so `src/masterlist.test.js` drives the real
+decisions with spies. **Both source-text tests were deleted**, deliberately: a pin that cannot fail
+reads as coverage, and this one had been carrying the correctness of a money path for three rounds.
+
+**Finding 75 — the recorder was blind to appended builder methods.** `.single()` makes the caller's
+`written.length` undefined, so every push-down is swallowed silently; `.limit(1)` updates one linked
+row instead of all of them. Both builders' entire call lists are now matched exactly.
+
+**Finding 76 — the Masterlist Amount field could not accept a typed decimal.** It is controlled from
+the stored row and the store holds a *number*: typing `1250.50` one key at a time meant `1250.`
+parsed to `1250`, state did not change, React restored `"1250"`, and the remaining keystrokes
+produced **125050** — a hundredfold payable, which then pushed down onto every linked Tracker row.
+Pasting worked; typing did not. **Twenty-three rounds missed it.** `state.recDraft` now holds the raw
+keystrokes for the cell being edited and `draftText` decides what the field shows; a new e2e spec
+types the value key by key and was verified to fail when the fix is reverted.
+
+`npm test` reached **179 assertions across nine files** at this point; D78 takes it to 183.
+
+## D78 — moving a due date made the nightly job re-create the payable
+
+Round 25 (2026-09-07), a fresh-context `verifier`, the last round of the session. **REFUTED**, four
+findings. Twenty-five rounds, twenty-five that found something.
+
+**Finding 78 — money, unattended, with no code change needed to trigger it.** `alreadyOnSheet`
+decided a generated row covered an occurrence only when `t.due === due` — which is also the key of
+the D63 unique index `txns (src, due)`. The index therefore could not catch what the index and the
+client agreed to disagree about: **move a due date and the original occurrence looks missing
+again.** Reschedule a generated Tracker row from the 15th to the 20th — or edit the payable's own
+due date — and at 22:00 UTC `scripts/schedule.mjs` sees an uncovered occurrence, inserts a second
+row, and reports `Added 1 payable(s)`. One ₱5,000 bill becomes ₱10,000 of liability. Undo cannot
+help: it only knows the ids from the last click in that tab. The Dashboard's deadline list and the
+Tracker sync line both showed the payable as uncovered, so a human was actively invited to do the
+same thing by hand.
+
+Coverage is now counted **per payable per period** rather than per exact date: exact matches first,
+then any remaining linked row covers a remaining occurrence, because a rescheduled row is still a
+row for the occurrence it came from. `uncoveredOccurrences` holds that rule once and both
+`buildGeneratedRows` and `forecast` call it — the sync line promises "what Generate would write",
+and D67 and D68 exist because that rule had drifted between them before.
+
+Fixing it exposed a second defect the old code hid: `alreadyOnSheet`'s shape-match fired for any row
+whose `src` belonged to a **different** payable, so two payables sharing a company, category,
+description and period silently suppressed each other's generation. It is now the legacy path only —
+`t.src == null`.
+
+**Finding 79 — the `fx_rates` exception was justified by a claim its own ordering made false.** D77
+kept ordered offset paging for the one table with a composite key, on the grounds that it is
+append-only so no row moves beneath the cursor. But the order was `cur` then `as_of`, and `fx.mjs`
+writes one row per currency per day — so each run inserts at four points spread through the
+ordering, every later page shifts, and `rows.length` still equals `count` so the assertion passes on
+a corrupt snapshot. Ordering by `as_of` first makes the claim true. A table added to `TABLES`
+without a `KEY` entry now throws rather than falling silently into that branch.
+
+**Finding 80 — the decimal fix was unpinned offline.** `if (fx.draft) fx.draft(v)` is
+optional-guarded and the spy factory did not build `draft`, so the call was never exercised:
+deleting the line left the suite green and restored the hundredfold bug, defended only by a
+Playwright spec that costs a production write to run. The spies now include `draft` and two tests
+assert it receives the raw text before anything is parsed.
+
+**Finding 81 — the adapter in `src/actions.js` still holds `db.updateRecurring`,** which no offline
+test imports. Rather than assert that gap away, it was measured: mutating it to `db.insertRecurring`
+was run against the live suite and the decimal spec **failed**, so the adapter is covered by e2e and
+not by `npm test`. That is the honest description, and it is recorded rather than closed.
+
+`npm test` is **183 assertions across nine files**; the e2e suite is **49**.
+
+### The tally
+
+Twenty-five rounds, one calendar day and one killed process: **eighty-one findings** — forty-one code
+— seventy-three code
+defects, one false delivery claim, seven documentation contradictions. **Forty-two were introduced by
+the fix for the previous defect.** **All twenty-five rounds found something; the loop has never
+returned clean, and no round has ever survived the next one.**
+
+## D79 — A Generated Liability Keeps Its Original Occurrence Identity
+
+**Decision, 2026-09-07. Supersedes D63's `(src, due)` identity.** A generated transaction belongs
+to the scheduled occurrence that created it. Editing its visible `due` or `period` changes payment
+timing; it does not relinquish the original occurrence and does not authorize another liability.
+The durable key is therefore `(src, occurrence_due)`. Both values are written when the row is
+generated and the identity-aware application update mapper omits both. Phase 1 is additive: it
+revokes authenticated UPDATE only on `occurrence_due` and deliberately preserves UPDATE(`src`) so
+the deployed old bundle still works. Phase 2, only after deployment, revokes UPDATE(`src`).
+Hand-entered rows remain outside this constraint, preserving their deliberately advisory duplicate
+warning.
+
+The implementation is written in the working tree, including two additive migrations, but **neither
+migration has been applied to rehearsal or production and the application has not been deployed**.
+Production behavior remains D63's `(src, due)` index and the currently deployed client until the
+owner authorizes this exact rollout:
+
+1. Re-run the identity/collision preflight, then rehearse and apply phase 1,
+   `20260907181000_generated_occurrence_identity`. It adds the nullable column, grants INSERT but
+   not UPDATE for `occurrence_due`, preserves the old bundle's UPDATE(`src`), backfills only provable
+   identities, and creates the new unique index alongside D63's. It scrutinizes every **currently linked** row's `src` and `due`
+   history and aborts for an explicit mapping when that history is ambiguous. Historical `src`
+   transitions on rows that are now unlinked do not block: those rows require no occurrence
+   identity.
+2. Deploy the identity-aware application and run the new occurrence-identity e2e spec, which safely
+   skips before phase 1 and has not yet run against the hosted column. Verify generated writes,
+   edits and scheduling. The security probe must now receive exact `42501` for `occurrence_due`
+   while confirming `src` remains updateable.
+3. Rehearse and apply phase 2,
+   `20260907182000_enforce_generated_occurrence_identity`. It revokes authenticated UPDATE(`src`),
+   asserts no linked row lacks identity,
+   validates the one-way check `src is null or occurrence_due is not null`, and only then drops
+   D63's old index. The one-way check preserves `ON DELETE SET NULL`: deleting a recurring parent
+   unlinks its generated transactions without discarding their historical occurrence date.
+
+The order is load-bearing. Deploying code before phase 1 produces PostgREST unknown-column errors.
+Applying phase 2 before every writer understands the column rejects stale clients. The phase-1
+preflight observed **43 historical `src` transitions and zero currently linked production rows** on
+2026-09-07, hence no linked-row mapping ambiguity or collision. Those are timestamped observations,
+not permission to skip the next preflight or guess an ambiguous mapping.
+
+This also creates a rewind boundary. Once `occurrence_due` exists, a rewind plan must refuse a
+linked `txns` before-image that predates the column and has no occurrence identity. Reconstruct that
+state against the pre-migration schema or provide an explicit owner-approved mapping; never emit a
+confident plan that silently invents which liability occurrence the row represented.
+
+The offline acceptance surface is now **191 assertions across 11 files**. The e2e manifest has
+**50 tests: two setup tests and 48 specs**; the new hosted occurrence-identity spec skips safely
+before phase 1 and has not run against the column. The security probe has **57 checks** with staged
+semantics selected explicitly by `OCCURRENCE_IDENTITY_PHASE`. Use `=1` before and after phase 1:
+pre-phase-1 unknown column is `DEFER`, then exact `42501` is required only for `occurrence_due` and
+`src` must remain allowed. That deferral exists only while phase 1 is unapplied or phase-1
+compatibility is being verified. Set `=2` only after phase 2; the check is removed from `DEFERRED`,
+requires exact `42501` for both, and any `src` or `occurrence_due` failure is fatal/nonzero.
 
 ## Guideline Basis
 

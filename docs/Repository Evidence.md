@@ -25,7 +25,24 @@ This note separates observed repository facts from future assumptions.
 
 No workspace declaration, `dc-runtime` source, API implementation, or backend service exists in this checkout. The embedded `cd dc-runtime && bun run build` text is export provenance, not a runnable command here.
 
-The database schema **is** checked in as of 2026-09-01. `supabase/migrations/` holds twelve files, all twelve re-verified on 2026-09-02, read back out of `supabase_migrations.schema_migrations` in Supabase project `baby` (`jusifpditdigqdjiwdaj`) and each verified byte-for-byte by MD5 against the stored statement. They are a faithful record of what was applied **and** a rebuild that has been replayed twice. On 2026-09-01 the first nine were applied in order to an empty project, producing a `public` schema identical to production's over 178 catalogue facts, fingerprint `a18b5dd26e148a1e216068023b0e4403` on both sides. On 2026-09-02 **all twelve** were replayed into `tracker-rehearsal` (`bucmcnsjkuprpojhequy`) — the first replay of `merge_app_config`, `viewer_role` and `harden_merge_app_config`, which postdate the earlier rehearsal — and compared over **291** facts scoped to `public` (columns, policies, indexes, triggers, table grants, column grants, function bodies): `7d44a32a1ad258f984fb145892e94c97` on both sides. The Supabase CLI is not installed and the folder is not CLI-managed — see [supabase/README.md](../supabase/README.md).
+The database schema **is** checked in as of 2026-09-01. `supabase/migrations/` holds nineteen files
+that are applied to production plus two 2026-09-07 occurrence-identity files that are **written but
+unapplied**. The applied set's last four are `masterlist_link_and_ecash_fee`,
+`transfer_invoice_number`, `one_generated_row_per_due_date` and `money_constraints`; the pending
+files are `generated_occurrence_identity` and `enforce_generated_occurrence_identity`. Neither
+pending file has run on `tracker-rehearsal` or production, so their presence proves proposed SQL,
+not hosted schema or live behavior. The twelve that existed on 2026-09-02 were re-verified then,
+read back out of `supabase_migrations.schema_migrations` in Supabase project `baby`
+(`jusifpditdigqdjiwdaj`) and each verified byte-for-byte by MD5 against the stored statement. They
+are a faithful record of what was applied **and** a rebuild that has been replayed twice. On
+2026-09-01 the first nine were applied in order to an empty project, producing a `public` schema
+identical to production's over 178 catalogue facts, fingerprint
+`a18b5dd26e148a1e216068023b0e4403` on both sides. On 2026-09-02 **all twelve** were replayed into
+`tracker-rehearsal` (`bucmcnsjkuprpojhequy`) — the first replay of `merge_app_config`,
+`viewer_role` and `harden_merge_app_config`, which postdate the earlier rehearsal — and compared
+over **291** facts scoped to `public` (columns, policies, indexes, triggers, table grants, column
+grants, function bodies): `7d44a32a1ad258f984fb145892e94c97` on both sides. The Supabase CLI is
+not installed and the folder is not CLI-managed — see [supabase/README.md](../supabase/README.md).
 
 Four workflows exist in `.github/workflows/`. `backup.yml` snapshots the database into `backups/` nightly at 18:00 UTC and gates nothing. `ci.yml` and `verify.yml` were added on 2026-09-01 to [the CI plan](Continuous%20Integration%20Plan.md): `ci.yml` runs `npm test`, `npm run build` and `npm audit` on every push to `main` and then deploys with the Vercel CLI; `verify.yml` runs the three ledger-writing suites at 16:00 UTC and on demand; `schedule.yml` runs `npm run schedule` at 22:00 UTC, generating the month's recurring payables and reporting overdue rows to the run's job summary. **The gate is active**: `apps/web/vercel.json` carries `"git": { "deploymentEnabled": { "main": false } }`, and Vercel deployed nothing for the commit that introduced it — the setting is read from the commit being deployed, so it applied immediately. Eleven repository secrets exist as of 2026-09-01: `BACKUP_EMAIL`, `BACKUP_PASSWORD`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `E2E_EMAIL`, `E2E_PASSWORD`, `SMOKE_EMAIL`, `SMOKE_PASSWORD`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`, `VERCEL_TOKEN`. `ci.yml` first ran on 2026-09-01 for `v0.5.0` (run `33530246170`) and passed both jobs in 1m11s, deploying production through the Vercel CLI; Vercel's git integration created no deployment for that commit, confirming `git.deploymentEnabled` takes effect on the push that introduces it. `verify.yml` first ran on 2026-09-01 by `workflow_dispatch` (run `33530924458`), 3m32s, with `npm run e2e` reporting `27 passed`, `npm run security` `41 checks, 0 failed`, and `npm run smoke` passing against the deployment; the ledger held no tagged residue afterwards.
 
@@ -39,7 +56,14 @@ The **repository root is the project root** as of 2026-09-01; it was `apps/web/`
 
 Releases are annotated tags, `v0.2.0` through `v0.6.0`, matching `apps/web/package.json` on the same commit. Nothing enforces that: fourteen commits shipped after `v0.5.0` with the manifest still reading `0.5.0` before an audit caught the drift on 2026-09-02.
 
-**`apps/web/playwright.config.js` sets `fullyParallel: false` and does not set `workers`.** Those are not the same thing: `fullyParallel: false` serialises tests *within* a file, while Playwright still runs separate files on separate workers — four on an eight-core machine. `e2e/app.spec.js` and `e2e/functional.spec.js` have therefore been executing concurrently against the one shared production ledger, which is the race trap 43 describes. Measured on 2026-09-02: three consecutive full runs at the default worker count failed, each on a 30-second timeout and a different spec (20/1/6, 7/1/19, 18/2/7 passed/failed/did-not-run), while two runs at `--workers=1` passed **27/27**, in 4.2 and 3.2 minutes. A slow link aggravated it — fifteen timed fetches of the production HTML from the developer machine that day ranged 0.50 s to 17.93 s, while Supabase edge logs showed 1,060 requests with zero 429s and a maximum `origin_time` of 1,027 ms — but latency was not the cause. `workers: 1` is **proposed and not applied**; `verify.yml` runs the same configuration.
+**`apps/web/playwright.config.js` sets both `fullyParallel: false` and `workers: 1`** (line 43).
+They are not the same thing, and the second is why the suite is safe: `fullyParallel: false`
+serialises tests *within* a file, while Playwright still runs separate files on separate workers —
+four on an eight-core machine. `e2e/app.spec.js` and `e2e/functional.spec.js` were therefore
+executing concurrently against the one shared production ledger until `workers: 1` was applied.
+**This paragraph described `workers: 1` as proposed rather than applied until 2026-09-05**, when a
+review caught it contradicting `playwright.config.js:43` and both policy files; corrected here rather
+than left as a second opinion about a file anyone can open.
 
 **A failed Playwright run writes the shared account password to disk in plaintext.** `trace: 'retain-on-failure'` records every `fill()` call with its value, so `apps/web/test-results/<spec>/trace.zip` carries `E2E_PASSWORD` verbatim, alongside screenshots of the sign-in form. `test-results/` and `playwright-report/` are gitignored and no workflow uploads artifacts, so nothing has left the machine; the artifacts from 2026-09-02 were deleted. The mechanism is unchanged and regenerates them on the next failure.
 
@@ -83,16 +107,411 @@ removed the same day; no API implementation exists in this checkout.
 **R7 is applied to production.** The rehearsal and production projects now have 15 migrations:
 `fx_rates`, `private_is_viewer`, and `drop_public_is_viewer` were applied exactly. In production,
 the public RPC is absent (`404` / `PGRST202`), the private schema is refused (`406` / `PGRST106`),
-all 17 write policies plus `merge_app_config` use `private.is_viewer()`, and the 56-check security
-probe passes. Rolled-back administrator and viewer simulations passed with row counts unchanged;
+all 17 write policies plus `merge_app_config` use `private.is_viewer()`. The current security probe
+has 57 checks: 56 pass and the generated-identity check is deferred until phase 1. Rolled-back
+administrator and viewer simulations passed with row counts unchanged;
 the ledger is unchanged. The deployed production bundle contains zero `is_viewer` RPC calls.
 
 The safe order was migration 1, confirm the deployment and reload open tabs, then migration 2 and
-the 56-check `npm run security` probe.
+`npm run security`; the current probe has 57 checks, with 56 passing and one deferred until phase 1.
 
 **The sequence failure was reproduced rather than described**, 2026-09-03 on the rehearsal project: with `audit_log_id_seq` left behind, an audited write failed `23505 duplicate key value violates unique constraint "audit_log_pkey"`; after the prescribed `setval` the same write was accepted.
 
 **`delete from auth.users` is blocked in the agent environment**, even scoped to explicit ids, so the account-recreation half of a restore has still never been exercised.
+
+**State read live on 2026-09-04**, ~06:50–07:00 UTC and again at ~11:00 UTC, each time before and after ledger-writing suites. `main` was at `010294c`, equal to `origin/main`. The `txns` fingerprint was `6fc52ee3f41d2ffd0e9292d8dc4f015d` (23 rows, ₱269,317.00) at 07:00 and `21a63ffeb6368cd06257f17a9aa01a49` (49 rows, ₱2,226,438.00) at 11:00; the owner entered 26 payables between 09:29 and 10:52 UTC, `audit_log` 1819–1854, all attributed and none `E2E-` tagged. Each fingerprint held unchanged across the suites run against it — which is what it is for. `audit_log` ran 1,760 → 1,818 (two suites) → 1,854 (the owner) → 1,912 (two more suites), all append-only, `max(id)` equal to the count. Zero `E2E-` residue in `txns`, `receipts` or `transfers`; `recurring` empty. Fifteen migrations; `private.is_viewer` present, `public.is_viewer` absent, zero policies referencing the public function and 17 referencing the private one. Roster 5 — four `admin`, one `viewer` (`14f0d1af-f37a-4936-b278-e280bcb25129`). `receipts` 3, with `1788471059637` intact and still linked to its stored object. `fx_rates` 4 rows, `as_of 2026-09-03`. One Supabase advisor `WARN` (leaked-password, Pro-only). `npm test` 77/77, `npm run build` green, `npm run security` 56 checks 0 failed, `npx playwright test --workers=1` 29 passed. **`npm audit` ran clean at 0 vulnerabilities in the morning window and could not be run again in the afternoon one** — three attempts ended in `503 Service Unavailable` and a network timeout at `registry.npmjs.org/-/npm/v1/security/advisories/bulk`. The lockfile did not change between them. The later reading is recorded as **unrun**, not inherited from the earlier one. Deployment `200`.
+
+**State read live on 2026-09-05**, before and after the design port below. `origin/main` was
+`f39de07`, one ahead of the local branch — the backup job's 11:09:48Z snapshot, touching `backups/`
+only. `npm test` 77/77, `npm run build` green, `npm audit` **0 vulnerabilities and actually run this
+time** (the registry outage that made the 2026-09-04 afternoon reading unrun had cleared), `npm run
+security` 56 checks 0 failed, `npx playwright test --workers=1` 29 passed with
+`E2E_REQUIRE_CREDENTIALS=1` set so a silent skip could not pass for a run. `txns` read
+`21a63ffeb6368cd06257f17a9aa01a49` (49 rows, ₱2,226,438.00) — unchanged from 2026-09-04 11:15 UTC,
+and unchanged again across those suites. `transfers` released 9 / priced 6, `receipts` 3 with
+`1788471059637` intact, `recurring` 0, `audit_log` append-only with `max(id)` equal to the count.
+Scheduled runs are still landing late: `fx.yml`'s 02:00 slot ran at 06:59:08Z (4 h 59 m) and its
+08:00 slot at 12:37:12Z (4 h 37 m), `backup.yml`'s 06:00 slot at 11:04:28Z (5 h 04 m),
+`schedule.yml`'s 22:00 slot at 23:44:55Z (1 h 45 m). Both FX runs correctly wrote nothing — ECB had
+not published — leaving `fx_rates` on `as_of 2026-09-03`, a second and third demonstration of D43's
+idempotence on the scheduled path. The 12:37 run landed **1 h 23 m** before ECB's ~14:00 UTC
+publication, the narrowest margin measured so far.
+
+### The `txns` fingerprint moved for a shape reason, not a data one
+
+`21a63ffeb6368cd06257f17a9aa01a49` → **`f9f84adad1c9b5c4fa3e3495712ac09f`**, with `count(*)` still
+49 and `sum(amount)` still ₱2,226,438.00. The fingerprint is `md5(string_agg(t::text, chr(10) order by t.id))` — spelled out
+in full here, because a baseline a future session cannot recompute from this note is not a
+baseline — and `t::text` serialises the whole row, so adding `src` and `fee`
+(`20260904155131_masterlist_link_and_ecash_fee`, [D50](Decisions.md)) changed every row's text while
+changing no row's data. `select count(*) from public.txns where src is not null or fee is not null`
+returned **0** immediately after, which is the assertion that separates the two cases. A future
+session comparing against the older value will see a difference that is not drift; the new baseline
+is the one above.
+
+### The design port of 2026-09-05
+
+An updated `ERP Prototype.dc.html` was read from the Claude Design project
+`9996e477-0bfc-4941-a9dc-affa12f70bcf` (1,906 lines) and diffed against
+`company_tracker/ERP Prototype.dc.html`, the 2026-08-31 export the app was transcribed from: 549
+changed lines, much of it already shipped because the app had been built past that export. What was
+genuinely new is recorded in [D49](Decisions.md), and the schema it needed in [D50](Decisions.md).
+After the port `npm test` reads **91/91** (was 77), `npx playwright test --workers=1` **31 passed**
+(was 29), `npm run build` green at 457.67 kB / 127.02 kB gzip, `npm run security` 56 checks 0
+failed, and `txns` was back at `f9f84adad1c9b5c4fa3e3495712ac09f` with zero `E2E-` residue. One
+existing e2e spec was **rewritten rather than deleted**: it pinned the check number as mandatory,
+which the design deliberately reverses, so it now asserts that a number typed is a number stored,
+and a second spec pins the reversed rule on its own row.
+
+### Three requirements the prototype diff had missed
+
+Later on 2026-09-05 the owner supplied the **client's written requirements**, the source the
+prototype had been drawn from. Nine of twelve were already delivered; three were not, and are
+recorded in [D51](Decisions.md): the `Inv No` column on the wire sheet, PNG export beside PDF, and a
+space bar that opened a transaction while the user was typing into a sheet note. A fourth item —
+"mapindot ko lang yung outside ng box, nag-eexit agad" — turned out to be the backdrop-close removal
+already shipped under D49 as a design change; it is a bug report.
+
+The gap is itself the evidence worth keeping: a prototype file shows what a screen looks like, never
+what was asked for. The `Inv No` column was missed because the prototype draws a whole Telegraphic
+screen, the app already had one, and the block was triaged as shipped without reading down its
+columns.
+
+After closing all three: `npm test` **94/94**, `npx playwright test --workers=1` **34 passed**,
+`npm run build` green (entry 461.39 kB / 128.39 kB gzip at this commit, plus a separate 199.49 kB
+`html2canvas` chunk only fetched on Export), `npm audit` **0 vulnerabilities**, `npm run security` 56 checks 0
+failed. `txns` `f9f84adad1c9b5c4fa3e3495712ac09f`, 49 rows, ₱2,226,438.00. `transfers` 9, all
+`released`, 6 priced — C7 untouched — and `inv` empty on all nine. Zero `E2E-` residue in `txns` or
+`transfers`. 24 policies, 13 triggers, 0 `anon` grants, all unchanged.
+
+**The space-bar regression test was proven, not assumed.** The guard was removed, the spec was run
+and failed with the reported symptom (`a space must not open the transfer`, a dialog resolving to 1
+element), and the guard was restored and the spec re-run green. A test that passes against both the
+fixed and the broken code proves nothing, so it was checked against the broken one.
+
+### A fresh-context review found a money defect, and it was real
+
+A verifier with no session context was asked to refute eight claims about the work above. It
+confirmed seven and **refuted the one that mattered most**: the money path. `payFee` was seeded at
+two of the payment dialog's three openers, so reopening a paid row through the "change" link on the
+edit form carried the previous dialog's value — empty after a reload, another row's charge
+mid-session. It reproduced both against production with a temporary `E2E-`-tagged spec and swept it
+afterwards. Full account and fix in [D52](Decisions.md).
+
+The defect was mine, introduced by the D51 e-cash work, and no spec caught it because none reopened
+a paid row through that link. It is fixed by making `paySeedFor` the single seeding point rather
+than by patching the third call site, and the new spec was proven by restoring the defective opener
+and watching it fail (`Expected: "25" / Received: ""`).
+
+The same review closed two smaller things: `modals/Filters.jsx` still dismissed on a backdrop click
+after every other dialog had stopped, and `supabase/README.md`'s own `-- rollback:` convention had
+been failed by its first two test cases. Both are recorded in D52.
+
+### A second review found a worse defect underneath the first
+
+The fix above was then put to a fresh verifier, which confirmed it and found the defect it had been
+sitting on. Dialogs stack — the edit form opens the payment dialog — and both listened for Escape on
+the window; the outer one won because it mounted first. Escape closed the form and orphaned the
+payment dialog over an empty screen, and confirming from that orphan wrote **nothing**, because the
+edit path stages into the form and `saveEdit` is what saves. Reproduced against production: a ₱500
+row, E-cash, a ₱100 charge, "Recorded amount ₱600" on screen, and a database still reading
+`pending / 500 / null`. Recorded as [D53](Decisions.md) and fixed with a modal stack, so only the
+innermost dialog answers Escape. It predates this session, and D49's backdrop-close removal had made
+the orphan harder to dismiss rather than easier.
+
+The same review found the **second instance** of D52's trap 78 — `setReceiptStatus` seeding the
+Liquidate dialog without `liqFile` — latent rather than exploitable, and now closed. It also
+corrected three inaccuracies in these notes: a resume prompt still saying D1-D51 after D52 existed,
+three different byte counts quoted for one build artifact, and a fingerprint recipe printed with a
+literal ellipsis that could not be recomputed from this file. All three are fixed above. An
+`npm install` reformat of `engines` in `apps/web/package.json` was reverted, so that file's diff is
+now exactly one line — the dependency.
+
+### And a third review found a third one, in the fix that was chosen rather than copied
+
+The one departure from the prototype recorded in [D51](Decisions.md) — subtracting the e-cash charge
+when a row leaves `completed` — was right about the problem and wrong about where to solve it. It
+subtracted at save time, which assumes `amount` still contains the charge, and the user can retype
+Amount in between. Reproduced against production: a ₱550 row (₱500 + a ₱50 charge) set back to
+Pending with the amount retyped as `2000` saved **1950**, under a success toast. A number the screen
+never displayed. Fixed in [D54](Decisions.md) by taking the charge off in `setEditStatus`, where the
+field updates in front of the user, so `saveEdit` does no arithmetic at all.
+
+Three reviews, three instances of one family: **state that outlives the thing it was a component
+of.** `payFee` outliving its dialog, the payment dialog outliving the form that saves it, and
+`edit.fee` outliving the amount it was part of. That is trap 80.
+
+The same review refuted part of D53: `modals/Filters.jsx` is a dialog with its own shell, and the
+`Escape` handler added to it bound `window` by hand, leaving it outside the modal stack and
+reintroducing the swallowed-Escape bug through the one remaining door. No money loss, but the D53
+claim that the payment pair was the only stack was false, and it is corrected in place.
+`useEscapeToClose` is now shared, and nothing binds `Escape` on `window` by hand.
+
+### A fourth review found two more, one of them inside the third fix
+
+D54's fix reintroduced D54's symptom. `setEditStatus` subtracted the charge from whatever the Amount
+field held, which can be empty or smaller than the charge, producing a negative — and `amountOf`
+stripped the minus, so a screen reading `-50` stored **50**. Sign-stripping is also why nothing
+caught it: a negative could never reach Postgres, so `amount < fee` stayed at 0 and every suite
+stayed green. Separately, `undoGenerate` deleted by id with no check, so Generate → **Review them**
+(the banner's own link, which does not dismiss the banner) → Mark as paid → Undo deleted a paid
+transaction and reported "Generated rows removed". Both in [D55](Decisions.md).
+
+`amountOf` now keeps a leading minus so a negative survives to be **rejected**; all five amount
+validators require `> 0` rather than truthiness; `setEditStatus` removes the charge only from an
+amount that still contains it; and `undoGenerate` keeps anything completed and says so.
+
+One spec had to be written three times. The first Undo spec **passed against the defect**, because
+it read the database immediately after clicking Undo and the delete is fire-and-forget. It now
+generates two payables, pays one, and polls until the untouched one is gone before asserting the
+paid one survived. Passing is not evidence; failing for the right reason is.
+
+### A fifth pass, run by hand, found the defect the fourth fix created
+
+The fifth verifier terminated on a session rate limit before it read any code, so **round 5 was run
+directly instead** — the checks below are the main session's own, not a subagent's report of them.
+
+D55 made `amountOf` sign-aware so a negative could be rejected. It guarded two call sites and left
+seven, and before that change sign-stripping had made a negative structurally impossible at all of
+them. Three were live money paths: a negative e-cash charge **reduced** a payable, a negative
+liquidation actual was storable, and a negative masterlist amount pushed down onto linked Tracker
+rows. All three confirmed by running them. Fixed in [D56](Decisions.md) with one helper,
+`positiveAmountOf`, that every writer taking a typed amount now calls.
+
+That is three consecutive fixes each introducing the next defect (D54→D55→D56), which is itself the
+most important observation in this record.
+
+Also this pass: the ten broken links in
+[2026-09-04 Open Items Brief for Codex](../handoff/2026-09-04%20Open%20Items%20Brief%20for%20Codex.md)
+were repaired — they were repo-root-relative `docs/…` paths written inside `handoff/`. **Zero broken
+relative links and zero unresolved wikilinks now exist across the whole vault**, verified by walking
+every `.md` outside `node_modules`, `dist` and `company_tracker`.
+
+### A sixth round found three more, including one in its own first fix
+
+Two money, one accessibility, all in [D57](Decisions.md).
+
+**Generate wrote duplicate ledger rows.** `buildGeneratedRows` and `forecast` keyed "already on the
+sheet?" on the row's description, which carries a date suffix for multi-occurrence payables — while
+the Masterlist push-down writes the *bare* description onto linked rows. The suffix vanished, the key
+stopped matching, and re-running Generate wrote a second copy: a bi-monthly ₱5,000 payable produced
+`written = 2, skipped = 0`, **₱10,000 of phantom liability**, with the sync line reporting rows that
+were already present. Fixed by `alreadyOnSheet`, shared by both callers, keyed on `src` and the due
+date — the first thing `txns.src` has been load-bearing for beyond the dot on the sheet.
+
+**A fortnightly payable was not fortnightly.** Weekly and Bi-weekly shared a branch that reset the
+phase every month. Verified against the committed original rather than a mutation: an anchor of
+Friday 2026-09-11 generated `09-04 09-18 10-02 10-16 10-30 11-06` — a **7-day gap** at the month
+boundary, and the owner's own date never generated.
+
+**The reminder controls were mouse-only — and the first fix kept them that way.** They rendered only
+on `onMouseEnter`, so they were absent from the DOM. The first fix rendered them always and hid them
+with `visibility: hidden`, which **removes an element from the accessibility tree and the tab
+order** — the same defect in CSS. Caught because Playwright's `getByRole` found zero buttons while a
+raw DOM query found sixteen; the discrepancy was the evidence. `opacity: 0` is the correct tool.
+That is trap 82.
+
+That makes **four** fixes in this sequence that introduced the next defect.
+
+### A parallel sweep by the main session, on surfaces the round-6 agent was fenced off from
+
+Run concurrently and deliberately non-overlapping: the read-only role and the export path. **No
+defect found**, and the attempts are recorded because a clean result without them is worthless.
+Config auto-save is gated on `state.readOnly`; every action added to `VIEWER_MAY` writes only local
+state outside `CONFIG_KEYS`; all twelve write policies across the four tables are gated on
+`is_viewer`, and policies are row-level, so the new columns inherit the gate — no additional probe
+check is warranted. `summaryHTML` survives an empty ledger, all statuses off, undefined `recurring`,
+both sortings, a `</table><script>` search string and a unicode company name, throwing nothing and
+escaping everything.
+
+Three things nobody had checked, now checked. **Rehearsal and production schemas are byte-identical**
+— fingerprint `0fa3b0d5c77b189a8a10832651695ab4` over **311 catalogue facts** covering columns,
+column grants, policies and foreign-key delete rules. **`ON DELETE SET NULL` was exercised**, not
+assumed: on `tracker-rehearsal`, deleting a payable left its child row alive with `src` NULL, and the
+project was verified empty afterwards. **The nightly scheduler was traced end to end** — it feeds
+`buildGeneratedRows` straight into `insertTxns` at 22:00 UTC unattended, every column it sends is in
+the INSERT grant, and nothing tested that; a test now pins the app's insert shape against the
+migration's grant list and was falsified by adding a fake column. Blast radius of the `logic.js`
+changes is exactly one script: `fx.mjs`, `backup.mjs`, `rewind.mjs` and `security/probe.mjs` import
+none of the changed functions, and `smoke.mjs` asserts field-by-field with no exact-shape check.
+
+### Rounds 16 to 18, run by hand, and four more findings
+
+Round 16 was dispatched to a subagent **twice and died both times** — first on the session rate
+limit, then on the **weekly** limit, having output only *"I'll start by reading the actual code
+under verification."* Neither attempt mutated anything, verified against `git diff` and a green
+suite. With subagents unavailable, **rounds 16, 17 and 18 were run by the main session by hand**:
+the same context checking its own work, which is weaker evidence and is recorded as such.
+
+They found four defects, **each one inside the fix the round before it had just written**
+([D71](Decisions.md), traps 94-95):
+
+- The D70 fix for trap 93 forced `ackRequirePhoto: false` at the start of every run, which would
+  have silently overridden an owner who had deliberately turned that policy on.
+- Mutation testing of D70's twelve new tests found **three surviving mutants** — `keyOf` could drop
+  the table name and still pass every test.
+- The replacement wrote its marker with a whole-document read-modify-write, the lost update
+  `merge_app_config` exists to prevent.
+- Two silent no-op paths in the new `hold`, either of which reproduces trap 93.
+
+`npm test` reached **134 assertions across six files** at this point — 147 across seven after
+round 19 ([D72](Decisions.md)). The e2e suite still passes 48. The ledger
+fingerprint `f9f84adad1c9b5c4fa3e3495712ac09f` was unchanged across every run.
+
+### Round 19: a fresh context refuted three rounds of self-review in one pass
+
+Round 19 was the first fresh-context `verifier` subagent available after the weekly rate limit
+reset. Rounds 16-18 had been run by the main session by hand and had reported the work green.
+**Round 19 refuted that with six findings** ([D72](Decisions.md), traps 96-97), five of them inside
+the fixes those three rounds had just written:
+
+- A **third** spec changed `dashWindow` in the owner's live config without holding it; a killed run
+  left the dashboard stuck on `Next 7 days`, hiding everything due 8-30 days out.
+- A **fourth** added an `E2E###` code to the shared `companies` list — unrecoverable by design,
+  because `hold` recorded settings only and `cleanup` never touches `app_config`.
+- `actions.js` built the push-down key **by hand** while both cancel paths used the exported
+  `pushKey`, so a format change silently broke both cancels with the suite green — reinstating two
+  money-path defects.
+- Two more surviving mutants in `pending.js`.
+- `hold` and `releaseHeld` had **zero tests**: deleting either body left the suite green.
+- `updRec`'s push-down guard covered only `amount`, so clearing a Description wrote `''` onto live
+  ledger rows and the toast claimed they matched.
+
+All six are fixed. `restoreConfig` is deleted, `hold` takes config paths rather than setting names,
+`e2e/held.test.js` is new, and `pushable` moved to `src/logic.js`. `npm test` reached **169 assertions
+across seven files** at that point; it is 179 across nine after D77.
+
+### Round 20: and then it refuted round 19
+
+Round 20 was dispatched against round 19's six fixes and came back **REFUTED with five findings**,
+four of them inside those fixes ([D73](Decisions.md), trap 98):
+
+- `&& pushable` and `if (!pushable) cancelPush(id, k)` could each be **deleted from `updRec` with
+  `npm test` green**. Round 19 had extracted `pushable` and tested it in `logic.js` — the predicate
+  was proved right while nothing proved the caller consulted it.
+- `hold(['settings'])` validated, because `'settings' in cfg` is true, and `releaseHeld` then wrote
+  the held settings object over its own `__e2eHeld: null` clear — **restoring the marker forever
+  while reporting success**.
+- Both `app_config` reads discarded `error`, so a transient failure made `releaseHeld()` return null
+  and the spec pass green, leaving a setting on in the owner's live config.
+- The whole-document config write that `restoreConfig` was deleted for **survived inline in a spec**.
+
+All five fixed and falsified. `pushPlan` now returns the whole push decision; `hold` refuses the
+settings section; both reads throw; the spec uses the merge RPC; the fake client gained a failure
+channel; and `keyOf`, duplicated between the PNG export and the Tracker screen, is one `groupKey`.
+
+### Rounds 22: the fix that moved a guard out of its coverage
+
+Round 22 **REFUTED** round 21 ([D75](Decisions.md), traps 100-101). Three findings:
+
+- **A source-text pin proves a line exists, not that it runs.** `retract` and a null `patch` are the
+  same predicate, so swapping two adjacent statements in `updRec` made the push-down cancellation
+  dead code for every input — with all four pinning assertions still matching.
+- **Round 21's own fix moved the whole-ledger write guard into the one layer with no coverage.**
+  Nothing imports `src/db.js`, which builds the live client at module scope; deleting both
+  `.eq('src', src)` and `.neq('status','completed')` left the suite green, and in that state a
+  single masterlist keystroke issues `PATCH /txns` with **no filter at all**.
+- The tag-scoped storage sweep leaks orphans permanently — the deliberate trade, now documented.
+
+New `src/queries.js` + `src/queries.test.js` put both many-row writes where a recorder can assert
+their exact filter chain.
+
+### Round 23: the repair tool could not read past a thousand rows
+
+Round 23 **REFUTED** round 22 ([D76](Decisions.md), traps 102-103), five findings, two of them in
+code no round had ever examined:
+
+- **`scripts/rewind.mjs` read `audit_log` unpaged.** The restore tool, silently capped at 1,000
+  rows. Measured against production, a cut at `2026-09-01T20:00:00Z` qualifies **7,419** rows; it
+  reported **1000** and emitted a plan missing 6,419 changes while printing a confident count.
+  `backup.mjs` documents this exact scar and pages; `src/db.js` pages everything.
+- The round-22 recorder inspected only `select()`'s first argument, so `select('id', {head:true})`
+  passed while making both builders return nothing.
+- The `indexOf` ordering assertion was defeated by a comment.
+- Three more `updRec` mutants, one of which put a **negative payable** in the ledger and the totals.
+- The "bloat versus data loss" dichotomy D75 accepted was false: removing files *before* deleting
+  the rows that name them leaks nothing and risks nothing.
+
+`npm test` is **183 assertions across nine files**.
+
+### Round 24: the backup was paged the way this codebase calls broken
+
+Round 24 **REFUTED** round 23 ([D77](Decisions.md), traps 104-105), six findings:
+
+- **`scripts/backup.mjs` paged by OFFSET with no `ORDER BY`.** Round 23 patched the *restore* tool
+  and left the *backup* tool on the method `src/pending.js` describes as broken in its own comment,
+  including the clause that matters — *"an exact count still matches"* — which is why the snapshot's
+  own count assertion could not catch it. A real run now reads 7,902 audit rows with zero duplicates.
+- `pageAll` hard-coded `row.id`, so paging `profiles` (keyed `user_id`) looped forever.
+- **The source-text pins were defeated three ways** — a commented-out copy, a string literal, an
+  `if` prefix — each leaving the suite green while a money-path guard became unreachable. The
+  decisions moved into `src/masterlist.js` where a test can drive them, and **both pins were
+  deleted**.
+- The query recorder was blind to appended builder methods (`.single()`, `.limit(1)`).
+- **The Masterlist Amount field could not accept a typed decimal.** `1250.50` typed key by key
+  became **125050** — a hundredfold payable that then pushed down onto every linked Tracker row.
+  Pasting worked, so twenty-three rounds of review never saw it: no test had ever typed.
+
+`npm test` is **183 assertions across nine files**; the e2e suite is **49**.
+
+**Twenty-four rounds have run and all twenty-four found something. The loop has never returned
+clean, and no round has yet survived the next one.**
+Two comparisons worth recording. Three rounds of main-session self-review produced four findings and
+a green report; one fresh context produced six, including the money-path one, in a single pass. And
+round 20 then refuted round 19 in turn — **no round has yet survived the next one**.
+
+Separately, on 2026-09-06, `npm test` went **118/118 → 117/118 overnight with no code change and no
+commit**: a unit test read the wall clock, so `eff({due: '2026-09-05'})` was `pending` on the 5th and
+`overdue` on the 6th ([D69](Decisions.md), trap 92). **Fifteen rounds of adversarial review did not
+find it; one day of real time did.** That is the argument for running this suite repeatedly over
+time rather than only under scrutiny — and it would have failed the CI gate on the first push after
+midnight, with a diff touching nothing related.
+
+### Rounds 11 to 15: five more rounds, and a ratio worth reading twice
+
+Recorded here because this file is the factual baseline and had fallen three rounds behind — the
+third time in this session that this note has drifted, which is itself the finding.
+
+Rounds 11 through 15 produced findings 18 to 41. The largest was **Generate's dedupe living only in
+JavaScript with no unique index behind it** — the scheduler writes a month unattended and a stale
+tab could duplicate the lot ([D63](Decisions.md)). The most instructive is that
+**`20260905143255_money_constraints` and its own predecessor disagreed about zero**: `recurring.amount
+>= 0` permits it, `txns.amount > 0` refuses it, and nothing reconciled the two until D66 — after
+which D67 and this round found the same rule missing from four more siblings.
+
+**Thirteen of the fixes in this sequence introduced the next defect.** That is more than a third,
+and it is the single most useful number in this record: a fix here is a change like any other and
+earns the same suspicion.
+
+### Rounds 9 and 10: two guards that were never guards
+
+Round 9 found that `updRec`'s "never rewrite a completed row" rule read `state.txns`, **a page-load
+snapshot with no realtime subscription behind it** — so a row another session had paid was still
+`pending` in this tab and had its amount overwritten by the next Masterlist keystroke. Exposure was
+the age of the tab, not the 500 ms debounce. Round 10 then found the **same shape in
+`undoGenerate`**, which is a DELETE and therefore worse: it promises in its own toast to keep
+anything already paid, filtered the same stale snapshot, and deleted a completed transaction with
+its payment record. Both are now enforced in the statement that writes — `.neq('status',
+'completed')` on the update and on the delete, each returning the rows it actually touched so the
+screen and the toast are painted from the database rather than from belief.
+[D61](Decisions.md) and [D62](Decisions.md); trap 88.
+
+The existing Undo spec could not have caught round 10's case: it pays through the UI in the same
+session, which keeps the snapshot fresh. The new one pays from a second client.
+
+After all fifteen code fixes — the tally is settled in [D60](Decisions.md), [D61](Decisions.md) and
+[D62](Decisions.md) — `npm test` **119/119**, `npx playwright test --workers=1` **48 passed**, `npm run
+build` green (entry 461.39 kB / 128.39 kB gzip at this commit, plus a separate 199.49 kB
+`html2canvas` chunk only fetched on Export), `npm audit` **0**, `npm run security` **56 checks, 0
+failed**. `txns`
+`f9f84adad1c9b5c4fa3e3495712ac09f`, 49 rows, ₱2,226,438.00. Ledger invariants asserted directly
+rather than inferred: rows with `fee` set but not completed → **0**; rows where `amount < fee` →
+**0**; `E2E-` residue in `txns` and `transfers` → **0**; `transfers` 9, all released, 6 priced, `inv`
+empty on all nine; `receipts` 3; 24 policies.
+
+**Two facts found the same day that no earlier note records.** First, `.github/workflows/fx.yml` produced its **first ever scheduled run** at `2026-09-04T06:59:08Z`, **4 h 59 min after its 02:00 UTC slot**, and succeeded. Read twenty minutes earlier the same workflow had no `schedule` run at all, which is recorded here deliberately: a scheduler that has not run *yet* and one that never runs are indistinguishable until you wait. That run wrote nothing and fired no audit trigger, correctly — the ECB's 2026-09-03 fix was already stored, so `fx_rates.fetched_at` remains `2026-09-03 14:43:59Z`; this is the first demonstration of [Decisions](Decisions.md) D43's idempotence on the scheduled path. What remains is the delay itself: GitHub is queuing this repository's scheduled runs 2.5 to 5 hours late, and `backup.yml`'s 06:00 UTC run had still not appeared by 11:03 UTC. Both FX slots exist to land before the ECB's ~14:00 UTC publication, so a five-hour delay on the 08:00 UTC slot leaves roughly an hour of margin rather than six. Second, `select status, count(*), count(rate) from public.transfers` returns `released 9, priced 6`: the owner moved the last three wires from `pending` to `released` at 2026-09-04 02:26:59–02:27:03 UTC (`audit_log` 1697–1699) and all three carry `rate` and `rate_as_of` null, because nothing in the application stamps a rate when the status changes. Both are recorded as open items C6 and C7 in [Remaining Work and Owner Decisions](Remaining%20Work%20and%20Owner%20Decisions.md); neither was acted on.
+
+**Both browser sign-out call sites now pass `scope: 'global'` explicitly**, `apps/web/src/App.jsx:63` and `apps/web/src/store.jsx:67`, replacing the library default they had inherited ([Decisions](Decisions.md) D47). Runtime behaviour is unchanged, so this is verified by inspection plus an unchanged suite rather than by a new assertion: `npm test` 77/77 and `npx playwright test e2e/app.spec.js --workers=1` 8 passed with the existing refresh-before-sign-out order intact. No `TELEGRAM_*` secret, variable or code path exists; the scheduler's only delivery paths remain `GITHUB_STEP_SUMMARY` and stdout (D48), and the repository secret count stays at thirteen.
 
 ## Interpretation Boundary
 
@@ -118,7 +537,36 @@ Both accounts now exist in `auth.users`, and the two-user model was verified wit
 
 Partly verified: the browser path. The sign-in gate renders and the running app reaches it, observed at `http://localhost:5173/`. The signed-in screens have not been observed against live data, because no session was established through a browser. `npm run smoke` issues the same queries those screens make, so the gap is rendering, not the data path.
 
-The app still has no server component, no CI, no deployment, no logging or telemetry, no conflict detection between concurrent editors, and no realtime subscription. `TODAY` remains frozen at `2026-08-30` in `src/data.js`, so completion dates it writes carry that date rather than the real one.
+**Occurrence-identity closure exists only in the working tree as of 2026-09-07.** Source inspection
+shows generated rows carry `occurrenceDue`, `src/rows.js` maps it to `occurrence_due` on insert and
+omits it from update payloads, coverage treats a linked row without identity as unresolved rather
+than guessing from editable dates, and the scheduler reports that state. `rewind-plan.js` refuses a
+linked pre-migration before-image when the hosted schema has the identity column. The backup query
+plan also has executable coverage for its key guard and `fx_rates` ordering. `npm test` passes
+**191 assertions across 11 files**. The probe now enumerates **57 checks**, but the
+generated-identity privilege check is deliberately deferred until phase 1 exists. Its staged
+contract is explicit: `OCCURRENCE_IDENTITY_PHASE=1` is used before and after phase 1, where an absent
+column is `DEFER`, then exact `42501` is required only for `occurrence_due` while `src` remains
+updateable. Deferral is available only while phase 1 is unapplied or phase-1 compatibility is being
+verified. `OCCURRENCE_IDENTITY_PHASE=2` is set only after phase 2; it removes the check from
+`DEFERRED`, requires exact `42501` for both, and makes either failure fatal/nonzero. Source
+inspection shows phase 1 revokes authenticated UPDATE only on `occurrence_due`, phase 2 revokes it
+on `src`, and the identity-aware `forUpdate` omits both. The e2e manifest now has **50 tests: two
+setup tests and 48 specs**. The new hosted occurrence-identity spec skips safely before phase 1 and
+has not run against the hosted column.
+
+None of that changes the hosted facts: the two SQL files have not been applied to rehearsal or
+production, the identity-aware application has not been deployed, and the current production
+schema still keys generated uniqueness on `(src, due)`. The required owner-gated order is phase 1,
+then deployment and verification—including occurrence-identity e2e coverage that cannot run against
+the current schema—then removal of the security deferral, then phase 2. The phase-1
+preflight recorded **43 historical `src` transitions and zero currently linked production rows** on
+2026-09-07, so none of those historical transitions required an occurrence identity. The migration
+scrutinizes `src`/`due` history for every row that is linked when it runs; transitions on now-unlinked
+rows do not block. These values must be read again before application rather than treated as
+invariants.
+
+**Corrected 2026-09-04.** This sentence read "The app still has no server component, no CI, no deployment, no logging or telemetry…" and had been false since 2026-09-01, contradicting this note's own CI and deployment paragraph above. What is actually still absent: a server component, logging or telemetry, conflict detection between concurrent editors, and a realtime subscription. CI and deployment exist — five workflows, a gate on every push to `main`, and a live Vercel deployment. `TODAY` remains frozen at `2026-08-30` in `src/data.js`, so completion dates it writes carry that date rather than the real one.
 
 ## Guideline Basis
 

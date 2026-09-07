@@ -12,7 +12,7 @@ Record React 18.3.1, ReactDOM 18.3.1, and Babel 7.29.0 as pinned external loads 
 
 ## Repository Evidence
 
-`apps/web/package.json` and its lockfile exist and pin React 18.3.1, ReactDOM 18.3.1, `@supabase/supabase-js` ^2.112.4, and Vite 5. No manifest exists anywhere else, and the export's CDN references remain generated content.
+`apps/web/package.json` and its lockfile exist and pin React `^18.3.1`, ReactDOM `^18.3.1`, `@supabase/supabase-js` `^2.112.4`, `html2canvas` `^1.4.1`, and — in devDependencies — `@playwright/test` `^1.62.1`, `@vitejs/plugin-react` `^6.1.1` and Vite `^8.2.2`. `html2canvas` was added on 2026-09-05 under the explicit request [D51](../../docs/Decisions.md) records; it is imported dynamically, so it ships as its own chunk rather than in the entry bundle, and it is bundled rather than loaded from a CDN because the deployment sends `script-src 'self'`. **This line read "Vite 5" until 2026-09-04**, when a build printed `vite v8.2.2` and the manifest was read back to check; correct the version here whenever the manifest moves rather than restating it from memory. No manifest exists anywhere else, and the export's CDN references remain generated content.
 
 ## Stop or Escalate
 

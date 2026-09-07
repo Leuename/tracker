@@ -3,7 +3,7 @@ import { CSYM, CUR } from '../data.js'
 import { Field, Modal, Select } from '../ui.jsx'
 import RateField from './RateField.jsx'
 
-const EMPTY = { co: '', name: '', cur: 'USD', amount: '', status: 'pending', note: '', rate: '', rate_as_of: '' }
+const EMPTY = { co: '', name: '', cur: 'USD', amount: '', status: 'pending', inv: '', note: '', rate: '', rate_as_of: '' }
 
 const STATUSES = [
   { v: 'pending', label: 'Pending' },
@@ -55,6 +55,15 @@ export default function AddTransfer() {
       </div>
 
       <RateField w={w} cur={w.cur} live={(state.fxRates || {})[w.cur]} onChange={setTel('rate')} />
+
+      {/* Beside the note, not inside it: an invoice number is an identifier you
+          match against a document, and it has to stay readable as its own
+          field. Free text either way — invoice numbers are alphanumeric and
+          every issuer formats them differently. */}
+      <Field label="Inv No" hint="optional">
+        <input className="field" placeholder="e.g. SM-40218"
+               value={w.inv} onChange={setTel('inv')} />
+      </Field>
 
       <Field label="Note" hint="optional">
         <input className="field" placeholder="Reference, purchase order, or why it is waiting"

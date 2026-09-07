@@ -2,13 +2,15 @@
   "name": "@puge/web",
   "private": true,
   "version": "0.6.0",
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node --test src/logic.test.js src/rows.test.js src/errors.test.js scripts/rewind-plan.test.js e2e/network-preflight.test.js",
+    "test": "node --test src/logic.test.js src/rows.test.js src/pending.test.js src/masterlist.test.js src/queries.test.js src/errors.test.js scripts/rewind-plan.test.js scripts/schedule-plan.test.js scripts/backup-plan.test.js e2e/held.test.js e2e/network-preflight.test.js",
     "smoke": "node --env-file-if-exists=.env.local src/smoke.mjs",
     "e2e": "playwright test",
     "security": "node --env-file-if-exists=.env.local security/probe.mjs",
@@ -19,6 +21,7 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.4",
+    "html2canvas": "^1.4.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },

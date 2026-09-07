@@ -28,6 +28,8 @@ import { existsSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { supabase } from '../src/supabase.js'
+import { pageAll } from '../src/pending.js'
+import { KEY, nextCursor, planPage } from './backup-plan.js'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const OUT = join(HERE, '..', '..', '..', 'backups')
@@ -79,20 +81,69 @@ await mkdir(join(OUT, 'files'), { recursive: true })
  * The tell was the round number, and it was read past. So this counts first and
  * then insists on the count: a short read is a failure, not a smaller backup.
  */
+/**
+ * The key each table is paged and ordered by. `pageAll` needs one column that
+ * is unique and totally ordered; `fx_rates` has neither on its own, so it is
+ * the documented exception below.
+ */
 async function readAll(table) {
+  // A table added to `TABLES` without a `KEY` entry would fall silently into
+  // the offset branch below, which is only justified for `fx_rates`.
+  if (!KEY[table] && table !== 'fx_rates') planPage(table)
   const { count, error: countError } = await supabase
     .from(table).select('*', { count: 'exact', head: true })
   if (countError) throw new Error('Could not count ' + table + ': ' + countError.message)
 
   const PAGE = 1000
-  const rows = []
-  for (let from = 0; from < (count || 0); from += PAGE) {
-    const { data, error } = await supabase.from(table).select('*').range(from, from + PAGE - 1)
-    if (error) throw new Error('Could not read ' + table + ': ' + error.message)
-    rows.push(...data)
+  const key = KEY[table]
+  let rows
+
+  if (key) {
+    // KEYSET, not offset. This paged with `.range(from, from + PAGE - 1)` and no
+    // ORDER BY until 2026-09-06, which `src/pending.js` describes as broken in
+    // as many words: a row that moves between two page reads shifts everything
+    // after it, so one row comes back twice and another is never seen — **and
+    // the exact-count assertion below still passes**. The owner uses this ledger
+    // while the 06:00 and 18:00 snapshots run, so that window is real, and a
+    // corrupted backup is only discovered when it is needed. A cursor names a
+    // position rather than a distance, so it is immune.
+    rows = await pageAll((cursor) => {
+      const plan = planPage(table, { cursor, page: PAGE })
+      let q = supabase.from(table).select('*').order(plan.order[0].column, { ascending: true }).limit(plan.limit)
+      if (cursor !== null) q = q.gt(key, cursor)
+      return q.then(({ data, error }) => {
+        if (error) throw new Error('Could not read ' + table + ': ' + error.message)
+        nextCursor(data || [], key, cursor)
+        return data
+      })
+    }, PAGE, key)
+  } else {
+    // `fx_rates` has a composite primary key (`cur`, `as_of`), so no single
+    // column is unique and a keyset cursor cannot be built from one. Ordered
+    // offset paging is safe *here specifically* because the table is
+    // append-only, written once a day by an idempotent job, and nothing deletes
+    // from it — but that is only true when the ordering puts new rows at the
+    // END. Ordering by `cur` first did NOT: `fx.mjs` writes one row per
+    // currency per day, so each run inserts at four points spread through the
+    // ordering, every later page shifts by one, and `rows.length` still equals
+    // `count` so the assertion below passes on a corrupt snapshot. `as_of`
+    // first makes the append-only claim actually true. The collision window is
+    // real — `fx.yml` runs at 02:00/08:00 UTC, `backup.yml` at 06:00/18:00, and
+    // this project's own note is that GitHub crons land 2.5-5h behind.
+    rows = []
+    for (let from = 0; from < (count || 0); from += PAGE) {
+      const plan = planPage(table, { from, page: PAGE })
+      const q = supabase.from(table).select('*')
+      const { data, error } = await q.order('as_of', { ascending: true }).order('cur', { ascending: true }).range(plan.from, plan.to)
+      if (error) throw new Error('Could not read ' + table + ': ' + error.message)
+      rows.push(...data)
+    }
   }
+
   // The assertion is the point of the function. A backup that quietly holds
-  // less than the database is worse than one that fails and says so.
+  // less than the database is worse than one that fails and says so. It is a
+  // backstop, not the guarantee — an offset read can lose a row and still match
+  // this count, which is why the paging above is keyset.
   if (rows.length !== (count || 0)) {
     throw new Error('Read ' + rows.length + ' rows from ' + table + ' but it holds ' + count +
       '. Refusing to write a partial backup.')

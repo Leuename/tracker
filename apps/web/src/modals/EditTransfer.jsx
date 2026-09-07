@@ -3,7 +3,7 @@ import { CSYM, CUR } from '../data.js'
 import { Field, Modal, Select } from '../ui.jsx'
 import RateField from './RateField.jsx'
 
-const EMPTY = { co: '', name: '', cur: 'USD', amount: '', status: 'pending', note: '', rate: '', rate_as_of: '' }
+const EMPTY = { co: '', name: '', cur: 'USD', amount: '', status: 'pending', inv: '', note: '', rate: '', rate_as_of: '' }
 
 const STATUSES = [
   { v: 'pending', label: 'Pending' },
@@ -59,6 +59,10 @@ export default function EditTransfer() {
       </div>
 
       <RateField w={e} cur={e.cur} live={(state.fxRates || {})[e.cur]} onChange={setTelE('rate')} />
+
+      <Field label="Inv No" hint="optional">
+        <input className="field" placeholder="e.g. SM-40218" value={e.inv} onChange={setTelE('inv')} />
+      </Field>
 
       <Field label="Note" hint="optional">
         <input className="field" value={e.note} onChange={setTelE('note')} />

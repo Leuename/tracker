@@ -30,6 +30,7 @@
 import { writeFile } from 'node:fs/promises'
 import { supabase } from '../src/supabase.js'
 import { PK, planRewind, toSql } from './rewind-plan.js'
+import { pageAll } from '../src/pending.js'
 
 const args = process.argv.slice(2)
 const flag = (name) => {
@@ -69,13 +70,38 @@ console.log('signed in as ' + email)
 
 // `authenticated` holds SELECT on audit_log and nothing else (D24), which is
 // all the planning half needs.
-const { data: entries, error } = await supabase
-  .from('audit_log')
-  .select('id, at, actor_email, tbl, op, before, after')
-  .gt('at', cut.toISOString())
-  .order('id', { ascending: true })
-if (error) {
-  console.error('Could not read audit_log: ' + error.message)
+//
+// PAGED, and that is not optional. PostgREST caps a plain `.select()` at 1,000
+// rows and reports no error — `backup.mjs` has the scar: `audit_log` crossed a
+// thousand on 2026-09-02 and the snapshot wrote exactly `1000` while the table
+// held 1,129, reported as a success. This is the *restore* tool, so the same
+// truncation is worse here: `planRewind` keys on the first entry per row, so a
+// row whose first post-cut change fell past the cut-off produces **no step at
+// all**. The plan comes out short, prints a confident count, and the operator
+// applies it believing the rewind is complete.
+const PAGE = 1000
+let entries
+let occurrenceIdentity = false
+try {
+  const probe = await supabase.from('txns').select('occurrence_due').limit(1)
+  if (probe.error) {
+    if (!['PGRST204', '42703'].includes(String(probe.error.code))) throw probe.error
+  } else occurrenceIdentity = true
+} catch (e) {
+  console.error('Could not determine txns occurrence identity: ' + e.message)
+  process.exit(1)
+}
+try {
+  entries = await pageAll((cursor) => supabase
+    .from('audit_log')
+    .select('id, at, actor_email, tbl, op, before, after')
+    .gt('at', cut.toISOString())
+    .gt('id', cursor === null ? 0 : cursor)
+    .order('id', { ascending: true })
+    .limit(PAGE)
+    .then(({ data, error }) => { if (error) throw error; return data }), PAGE)
+} catch (e) {
+  console.error('Could not read audit_log: ' + e.message)
   process.exit(1)
 }
 
@@ -85,7 +111,7 @@ if (!entries.length) {
   process.exit(0)
 }
 
-const plan = planRewind(entries)
+const plan = planRewind(entries, { occurrenceIdentity })
 
 console.log('\nWhat this would put back:\n')
 for (const tbl of Object.keys(plan.tables).sort()) {

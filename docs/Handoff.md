@@ -7,11 +7,236 @@ status: current
 # Handoff
 
 > **Resuming from a fresh session?** Start at
-> [Everything Held Back, Built](../handoff/2026-09-02%20Everything%20Held%20Back,%20Built.md).
-> It indexes every dated pass below, and carries what this note does not: the service
-> identifiers, the codebase map, the open items awaiting the owner's decision, and the traps
-> that cost time. This note stays the append-only record of what each pass did.
+> [Session Continuation, Rounds One to Twenty-Five](../handoff/2026-09-07%20Session%20Continuation,%20Rounds%20One%20to%20Twenty-Five.md),
+> the current complete continuation package and the entry point. Read it with
+> [The Review Loop, Rounds One to Twenty](../handoff/2026-09-06%20The%20Review%20Loop,%20Rounds%20One%20to%20Twenty.md)
+> for the round-by-round ledger and the rate-limit history, and
+> [The Design Port, and Three Requirements the File Did Not Show](../handoff/2026-09-05%20The%20Design%20Port,%20and%20Three%20Requirements%20the%20File%20Did%20Not%20Show.md)
+> for the design port, the requirement mapping, the findings table and **traps 77-107**.
+> This note stays the append-only record of what each pass did, newest first.
 
+
+## 2026-09-07 — rounds 21 to 25, and the defects nobody had looked for
+
+[Session Continuation, Rounds One to Twenty-Five](../handoff/2026-09-07%20Session%20Continuation,%20Rounds%20One%20to%20Twenty-Five.md)
+is now the entry point.
+
+Five more rounds, and the pattern changed. Rounds 19 and 20 had each found their defects inside the
+previous round's fix. Rounds 21, 23 and 24 found theirs in **code no round had ever examined**,
+because every round had been pointed only at what the last one changed:
+
+- **Round 21** found a storage sweep that identified orphan files by *absence* from a read whose
+  error it discarded — one transient failure and it would delete every receipt attachment the owner
+  had ever uploaded ([D74](Decisions.md), trap 99).
+- **Round 23** found the **restore tool** reading `audit_log` unpaged: 7,419 rows qualified, it
+  reported 1000, and emitted a plan missing 6,419 changes with a confident count
+  ([D76](Decisions.md), trap 103).
+- **Round 24** found the **backup tool** paging by offset — the method `src/pending.js` calls broken
+  in its own comment, including the clause that says an exact count still matches, which is why the
+  snapshot's own assertion could not catch it. It also found the Masterlist Amount field unable to
+  accept a **typed** decimal: `1250.50` became `125050`, a hundredfold payable that pushed down onto
+  every linked Tracker row. Pasting worked, so twenty-three rounds never saw it — no test had typed
+  ([D77](Decisions.md), trap 105).
+
+Rounds 20 and 22 turned inward instead, and both landed: round 22 showed that round 21's fix had
+moved the whole-ledger write guard into `src/db.js`, the one module the offline suite cannot import
+([D75](Decisions.md), trap 101), and that the source-text pins compensating for that were defeatable
+by a comment, a string literal and an `if` prefix. Those pins were **deleted**; the decisions moved
+into `src/masterlist.js`, where a test drives them with spies.
+
+`npm test` is **183 assertions across nine files**, the e2e suite is **49**, and the ledger
+fingerprint `f9f84adad1c9b5c4fa3e3495712ac09f` (49 rows, PHP 2,226,438.00) was unchanged across every
+run of the session. **All twenty-four completed rounds found something; the loop has never returned
+clean and no round has survived the next one.**
+
+## 2026-09-06 — the review loop, rounds 16 to 20, and what a rate limit cost
+
+The loop that began under phase 46 continued through five more rounds. The record of it is
+[The Review Loop, Rounds One to Twenty](../handoff/2026-09-06%20The%20Review%20Loop,%20Rounds%20One%20to%20Twenty.md),
+which is now the entry point.
+
+What happened, in order. Round 16's verifier subagent was dispatched twice and died twice — first on
+a session rate limit, then on the **weekly** limit — having read no code either time. One of those
+killed processes skipped its `finally` and left `ackRequirePhoto: true` in the **owner's live
+config**, which stopped them liquidating a receipt without attaching a file: a rule they never chose
+([D70](Decisions.md), trap 93). With subagents unavailable, rounds 16, 17 and 18 were run **by the
+main session by hand**. They found four defects, each inside the previous round's fix
+([D71](Decisions.md), traps 94-95), and ended by reporting the work green.
+
+Round 19 was the first real fresh-context `verifier` after the weekly limit reset, and it **refuted
+that immediately with six findings** ([D72](Decisions.md), traps 96-97) — a hand-built push-down key
+that silently broke both cancel paths with the suite green, two more specs mutating the owner's live
+config with no way to undo it, two surviving mutants, a pair of functions with zero tests, and a
+push-down guard covering one field of four. All six are fixed.
+
+**The comparison is the lesson, and it is now a rule in the loop:** three rounds of main-session
+self-review produced four findings and a green report; one fresh context produced six, including the
+money-path one, in a single pass. Never run a review round in the main session if a subagent is
+available, and never report a main-session round as clean.
+
+Round 20 was dispatched against round 19's own fixes, died on a session rate limit before reading any
+code, was relaunched, and came back **REFUTED with five findings — four inside round 19's fixes**
+([D73](Decisions.md), trap 98). Twice running the miss had the same shape: a helper extracted to make
+it testable, tested on its own, with nothing pinning that its caller still used it. All five fixed.
+
+`npm test` is **183 assertions across nine files**; the ledger fingerprint
+`f9f84adad1c9b5c4fa3e3495712ac09f` (49 rows, PHP 2,226,438.00) was unchanged across every run.
+Rounds 21 and 22 continued it. Round 21 found a storage sweep that could have deleted **every
+receipt file the owner has ever uploaded** — it identified orphans by absence from a read whose
+error it discarded ([D74](Decisions.md), trap 99) — in code twenty prior rounds had never examined.
+Round 22 then refuted round 21, finding that its own fix had moved the whole-ledger write guard into
+`src/db.js`, the one module the offline suite cannot import ([D75](Decisions.md), traps 100-101).
+
+Rounds 23 and 24 went further. Round 23 found the **restore** tool reading `audit_log` unpaged —
+7,419 rows qualified and it reported 1000, emitting a plan missing 6,419 changes
+([D76](Decisions.md), trap 103). Round 24 then found the **backup** tool paged by offset, the method
+this codebase calls broken in its own comment, and — in code twenty-three rounds had walked past —
+a Masterlist Amount field that could not accept a typed decimal: `1250.50` became **125050**, a
+hundredfold payable that pushed down onto every linked Tracker row ([D77](Decisions.md), trap 105).
+Pasting worked, which is why nothing had ever caught it: no test had typed.
+
+**Twenty-four rounds have run and all twenty-four found something, and no round has yet survived the
+next one.**
+
+## 2026-09-05 — phase 46: the design port, and twenty rounds of review
+
+An updated Claude Design prototype was read from the Claude Design project and ported into
+`apps/web`. Two additive production migrations were applied, rehearsal first, both byte-verified by
+MD5: `20260904155131` added `txns.src` and `txns.fee`, `20260904204252` added `transfers.inv`.
+
+The owner then supplied the **client's written requirements**, and a careful diff of the right
+design file turned out to have delivered only nine of twelve. The three it missed — the `Inv No`
+column, PNG export, and a space bar that opened a transaction while typing — were closed.
+[Decisions](Decisions.md) D49-D51.
+
+**Fifteen adversarial review rounds followed, and every one found something**: forty-four findings in
+total (D52-D69), thirty-six code defects, one false delivery claim and seven documentation contradictions, **seventeen of them introduced by the
+fix for the previous defect**. Most were on the money path. The families are recorded as traps 77-92
+in the handoff; the two that matter most are *state that outlives the thing it was derived from* and
+*a shared helper acquiring a caller whose assumptions differ*.
+
+One claim in this repository's own records was wrong and is corrected there: requirement 8's six new
+categories were added to a **default** the running system never reads. Production holds five of the
+six; `Refund` is still missing (D58).
+
+Checks at the end of the pass: `npm test` **119/119**, `npx playwright test --workers=1` **48
+passed**, `npm audit` 0, `npm run security` **56 checks, 0 failed**, build green. The `txns`
+fingerprint moved from `21a63ffe…` to `f9f84ada…` **with no data change** — two new columns altered
+every row's serialised text while count and sum held.
+
+Nothing was committed or pushed. See
+[The Design Port, and Three Requirements the File Did Not Show](../handoff/2026-09-05%20The%20Design%20Port,%20and%20Three%20Requirements%20the%20File%20Did%20Not%20Show.md).
+
+## 2026-09-04 — Three owner decisions, and two things verification found
+
+Phase 45. A plan for C1, C4 and C5 was audited against the codebase, revised by an external agent,
+audited again, then mostly **not executed** — because the owner's answers skipped three of its six
+tasks.
+
+### The plan, audited twice
+
+Eight defects in the first version. The one that mattered: its C5 closing evidence was "observe the
+next scheduled FX run", and the FX cron has never produced one. Others: removing the Telegram
+secrets — the obvious kill switch — would have made the scheduler fail instead of going quiet; the
+new transport collapsed timeout, refused and DNS into one message and never tested that branch,
+repeating the `network-preflight` defect this project had just fixed; the e2e reorder moved the
+shared-session revocation to the front of the run without saying so; one of two contradicting
+comment blocks was left standing; and C1 was pre-answered in a document whose own rule says no
+default is safe to assume.
+
+Two more in the revision. `assert.throws(fn, new RegExp('^' + CONFIG))` cannot match, because Node
+tests a RegExp against `Error: MESSAGE` rather than the message — four assertions would have failed
+against a *correct* implementation, and the "expect it to fail" step before them would have been
+unreadable. And no task committed anything before Task 5 pushed a branch. Both fixed in
+`docs/superpowers/plans/2026-09-04-c1-c4-c5-resolution.md`, which stays as the record.
+
+### The answers
+
+**C1 — global, explicitly** ([D47](Decisions.md)). Runtime behaviour unchanged; `global` is what the
+unread default already did. Both same-browser callers now say so: `apps/web/src/App.jsx:63` and
+`apps/web/src/store.jsx:67`. The session-expiry handler in `store.jsx` had been missed by every
+earlier framing of C1.
+
+**C4 — no external channel** ([D48](Decisions.md)), which also closes D31. Telegram was specified in
+full first, then declined. Tasks 4 and 5 of the plan are kept unbuilt as that specification.
+
+**C5 — deferred again** ([D44](Decisions.md)). The condition the owner set had been met and the
+reminder was delivered; they chose to wait. Still open, and the reminder stands.
+
+### Two things the checks turned up
+
+**C6 — the FX cron fires hours late, and this finding corrected itself mid-session.** At 06:57 UTC
+`.github/workflows/fx.yml` had never produced a `schedule` run; its whole history was one
+`workflow_dispatch` on 2026-09-03, so `fx_rates` held four plausible rows only because a human had
+pressed a button. Written up as trap 71 in a second costume — and then it fired, at
+`2026-09-04T06:59:08Z`, **4 h 59 min after its 02:00 UTC slot**. It wrote nothing and fired no audit
+trigger, correctly, because the ECB's 2026-09-03 fix was already stored: the first demonstration of
+[D43](Decisions.md)'s idempotence on the scheduled path. The residual finding is the delay — 2.5 to
+5 hours across this repository, `backup.yml` included — which leaves the 08:00 UTC FX slot about an
+hour of margin before ECB publication rather than six. Not acted on; do not "fix" it by moving the
+cron hours, which are deliberate (D43) and would only make the delay worse.
+
+**C7 — three released wires carry no rate.** `released 9, priced 6`. The owner released the last
+three at 02:26:59–02:27:03 UTC (`audit_log` 1697–1699) and nothing in the app stamps a rate on
+release, so [D45](Decisions.md) and the comment at `apps/web/src/logic.js:261` describe an invariant
+that no code enforces. Not acted on — both the backfill and the behaviour change are the owner's.
+
+### Files changed
+
+| Path | What |
+|---|---|
+| `apps/web/src/App.jsx`, `apps/web/src/store.jsx` | `{ scope: 'global' }` written out, one line each, with the reasoning |
+| `apps/web/e2e/app.spec.js` | Both session comment blocks rewritten. **No test body or order changed** |
+| `docs/Decisions.md` | D47, D48; D41 and D44 updated |
+| `docs/Remaining Work and Owner Decisions.md` | C1 and C4 resolved, C5 re-deferred, C6 and C7 added |
+| `docs/Repository Evidence.md`, `docs/AI Agent Context.md` | State and pointers |
+| `handoff/2026-09-04 Exchange Rates, R7, and Two Agent Audits.md` | §12 added, §8/§9 updated, resume prompt rewritten, traps 72–73 |
+| `AGENTS.md`, `CLAUDE.md` | The stale "current handoff" pointer, changed identically in both |
+
+Nothing committed or pushed.
+
+### Checks
+
+`npm test` 77/77 · `npm run build` green · `npx playwright test --workers=1` **29 passed** ·
+`npm run security` **56 checks, 0 failed** · all local documentation links resolve, no placeholders ·
+`cmp AGENTS.md CLAUDE.md` identical · `git diff --check` clean.
+
+**`npm audit` is recorded as unrun, not passed.** Three attempts ended in
+`503 Service Unavailable` and a network timeout at `registry.npmjs.org/-/npm/v1/security/advisories/bulk`.
+The lockfile is not in this session's diff and two successful runs earlier the same day reported 0
+vulnerabilities, but substituting a stale reading for an unrun command is the failure mode this
+project keeps writing down.
+
+The ledger moved twice during the session, both times the owner working: 23 rows → 49 rows,
+₱269,317.00 → ₱2,226,438.00, `audit_log` 1,760 → 1,912. Each fingerprint was read as a baseline and
+held unchanged across the suites run against it. Zero `E2E-` residue afterwards; receipt
+`1788471059637` intact.
+
+### The documentation sweep
+
+Asked for at the end of the session: map and write down everything, so a fresh chat resumes
+losslessly. Produced
+[Three Answers, and a Finding That Corrected Itself](../handoff/2026-09-04%20Three%20Answers,%20and%20a%20Finding%20That%20Corrected%20Itself.md) as the complete
+continuation package and entry point, and [Handoff Index](../handoff/Handoff%20Index.md) as the map
+of content the folder had never had — fifteen handoffs with no index, and `status: current` in six
+of them meaning "accurate when written" rather than "start here".
+
+The sweep corrected what it found rather than only cataloguing it. The previous package was marked
+superseded in its frontmatter, its opening banner and its resume-prompt heading, so nobody resumes
+from it by accident. Three stale "is the current entry point" claims in
+[AI Agent Context](AI%20Agent%20Context.md) were rewritten as the historical record they had become.
+And [.claude/rules/dependency-management.md](../.claude/rules/dependency-management.md) said
+"Vite 5" against a manifest pinning `^8.2.2` — noticed because a build printed `vite v8.2.2` during
+the morning's verification, and left with a note to read the manifest rather than restate it from
+memory.
+
+### What was deliberately not done
+
+No commit and no push. No Telegram code. No password rotation. No write to the three unpriced wires
+and no change to how release works. No change to the FX cron, and no change to the backup schedule.
+Plan Tasks 2, 4 and 5 left unexecuted on purpose, and kept rather than deleted. No mass rewrite of
+the older handoffs' frontmatter — the index carries which are superseded, so fourteen files did not
+need touching to say one thing.
 
 ## 2026-09-04 — Exchange rates, R7, and two agent audits
 
@@ -49,12 +274,16 @@ The comprehensive guideline-integration pass then added `Awesome Guidelines Inte
 - A prior tracker prototype was removed at the user's request; generated export artifacts under `company_tracker/` remain read-only and were not touched by the 2026-08-31 pass.
 - `company_tracker/` now contains both the authored tracker and static Design Component exports with generated and externally loaded active content.
 - `construction_tracker/construction.csv` is a requirements/reference sheet covering project, attendance, cash-flow, payroll, payables, debts, expenses, and receivables; it is not a service or database.
-- `apps/web` is runnable and has a package manifest, build, test, and smoke command. It now has a database and authentication, both hosted in Supabase project `baby`. No CI, backend service, or deployment system is present, and no repository-root manifest or workspace exists.
+- `apps/web` is runnable and has a package manifest, build, test, and smoke command. It now has a database and authentication, both hosted in Supabase project `baby`. **This bullet's original claim that no CI or deployment exists was true on 2026-08-31 and is not true now**: `.github/workflows/` holds five workflows, a push to `main` runs the gate and deploys through the Vercel CLI, and the site is live. What remains true is that there is no backend service, no repository-root manifest, and no workspace. The current inventory is [Repository Evidence](Repository%20Evidence.md); prefer it over this bullet.
 - Turborepo and Turbopack remain gated.
 
 ## Unresolved Source Gaps
 
-The `dc-runtime` source referenced by `support.js` remains absent, so the generated exports cannot be rebuilt from this checkout. The authored tracker is a local JSON-backed implementation with serialized in-process mutations and unique atomic temporary-file writes, but without authentication, multi-process concurrency guarantees, a database, or deployment configuration. Treat `construction_tracker/construction.csv` as product input until its owner confirms the intended source-of-truth relationship.
+The `dc-runtime` source referenced by `support.js` remains absent, so the generated exports cannot be rebuilt from this checkout. Treat `construction_tracker/construction.csv` as product input until its owner confirms the intended source-of-truth relationship.
+
+The sentence that stood here describing the tracker as "a local JSON-backed implementation … without authentication, … a database, or deployment configuration" described the prototype of 2026-08-31 and has been wrong since that afternoon: the app persists to Supabase Postgres behind an email sign-in ([Decisions](Decisions.md) D7) and deploys to Vercel behind a CI gate. It is removed rather than rewritten, because [Repository Evidence](Repository%20Evidence.md) is where the current inventory belongs.
+
+**The three sections above this one date from the 2026-08-31 documentation pass.** They are kept because this note is an append-only record, but a dated pass is not a description of today. Read the newest dated section, then [Repository Evidence](Repository%20Evidence.md).
 
 ## Continuation Checklist
 

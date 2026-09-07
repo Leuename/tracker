@@ -64,7 +64,7 @@ Ordered by value. IDs are stable across all four briefs — cite them, never ren
 sequence fix are all proven; **bulk transport is not.** A prior attempt through an agent tool failed
 at chunk 5 of ~23 — the file is large and a tool payload is the wrong transport.
 
-**This is an operator job, not an agent job** ([D39](docs/Decisions.md)). Use `psql \copy`. If you
+**This is an operator job, not an agent job** ([D39](../docs/Decisions.md)). Use `psql \copy`. If you
 do not have a connection string, you cannot do this item — say so rather than attempting a chunked
 workaround, which is the thing that already failed.
 
@@ -125,9 +125,9 @@ classifying it.
 
 | Item | Where | Note |
 |---|---|---|
-| `signOut()` scope | `apps/web/src/App.jsx:58` | Defaults to `scope: 'global'`, so signing out on one device revokes that account's session **everywhere**. `{ scope: 'local' }` is a one-word fix. It is live, user-visible behaviour nobody requested changing, and on a shared financial ledger "sign out everywhere" may well be intentional. It also currently underwrites the e2e spec ordering in [D41](docs/Decisions.md) |
-| `FX_PASSWORD` rotation | Supabase auth, GitHub secret | **N9 / [D44](docs/Decisions.md). Explicitly deferred by the owner, who asked to be reminded rather than overridden. Do not rotate it.** The rates account is `admin@admin.com`; it can write only `fx_rates`, but every read policy is `using(true)`, so it can read the whole ledger |
-| R12 notifications | `.github/workflows/schedule.yml` | Reports only to the Actions job summary. Needs a provider, recipients and an owner decision ([D31](docs/Decisions.md)) |
+| `signOut()` scope | `apps/web/src/App.jsx:58` | Defaults to `scope: 'global'`, so signing out on one device revokes that account's session **everywhere**. `{ scope: 'local' }` is a one-word fix. It is live, user-visible behaviour nobody requested changing, and on a shared financial ledger "sign out everywhere" may well be intentional. It also currently underwrites the e2e spec ordering in [D41](../docs/Decisions.md) |
+| `FX_PASSWORD` rotation | Supabase auth, GitHub secret | **N9 / [D44](../docs/Decisions.md). Explicitly deferred by the owner, who asked to be reminded rather than overridden. Do not rotate it.** The rates account is `admin@admin.com`; it can write only `fx_rates`, but every read policy is `using(true)`, so it can read the whole ledger |
+| R12 notifications | `.github/workflows/schedule.yml` | Reports only to the Actions job summary. Needs a provider, recipients and an owner decision ([D31](../docs/Decisions.md)) |
 | R14 `apps/api/` | `apps/api/` | Still an empty directory declaring an intent. Delete it or justify it. Five minutes either way |
 | R11 human viewer | Supabase auth | A `viewer` account now exists, but it is a robot credential nobody signs into. If the intent was proving the read-only **UI** path with a person, that is still not done |
 | Leaked-password protection | Supabase dashboard | Pro-only. The one remaining advisor |
@@ -141,19 +141,19 @@ bind. Repeated here only where the reason is easy to lose:
 
 - **N1** — Do **not** revoke `EXECUTE` on any `is_viewer`. Postgres checks it against the *querying*
   role, so every write fails `42501` while reads keep working: the app looks *almost* fine, which is
-  worse than an outage ([D34](docs/Decisions.md)). R7 solved this by relocating the function, which
+  worse than an outage ([D34](../docs/Decisions.md)). R7 solved this by relocating the function, which
   is the correct fix and is already applied.
 - **N2** — Do **not** remove the three unused indexes.
-- **N4** — Do **not** reimplement recurrence in SQL ([D31](docs/Decisions.md)).
+- **N4** — Do **not** reimplement recurrence in SQL ([D31](../docs/Decisions.md)).
 - **N5** — Do **not** add a credential fallback for `SCHEDULE_*` or `FX_*`. Each credential's
   privilege must stay legible.
 - **N7** — Do **not** modify anything under `company_tracker/`. Generated exports, read-only.
 - **N8** — Do **not** clean up `audit_log`. Nothing may delete from it, by design.
 - **N9** — Do **not** rotate the rates-account password (§2.6).
 
-Also: **never delete a failing security check to make the suite green** ([D26](docs/Decisions.md)),
+Also: **never delete a failing security check to make the suite green** ([D26](../docs/Decisions.md)),
 and **do not copy `fx_rates`'s policy shape onto an ordinary table** — naming one uid instead of
-gating on `not private.is_viewer()` is a deliberate one-off ([D42](docs/Decisions.md)).
+gating on `not private.is_viewer()` is a deliberate one-off ([D42](../docs/Decisions.md)).
 
 ---
 
@@ -169,8 +169,8 @@ Full list is traps 1–63 across the earlier handoffs. These are the ones that a
 - **Trap 60 — an external agent's report is a snapshot, not a state.** Including this one.
 - **Trap 61 — `receipts` growing is the owner working, not residue.** Check for an `E2E-` tag
   before calling anything test data. Never sweep a row that lacks one.
-- **`{"success": true}` proves the SQL ran, not that it achieved anything** ([D23](docs/Decisions.md),
-  [D25](docs/Decisions.md)). Read `information_schema` back. `TRUNCATE` ignores RLS.
+- **`{"success": true}` proves the SQL ran, not that it achieved anything** ([D23](../docs/Decisions.md),
+  [D25](../docs/Decisions.md)). Read `information_schema` back. `TRUNCATE` ignores RLS.
 - **Assert the refusal, not the absence of an error.** A blocked policy and a missing row both give
   `row_count = 0`.
 - **F7 — `.upsert()` breaks against column-scoped grants.** It compiles `ON CONFLICT DO UPDATE SET`

@@ -5,6 +5,11 @@
     "user_id": "02155e68-eb65-4089-989e-9a0485100ada"
   },
   {
+    "created_at": "2026-09-03T14:40:23.445607+00:00",
+    "role": "viewer",
+    "user_id": "14f0d1af-f37a-4936-b278-e280bcb25129"
+  },
+  {
     "created_at": "2026-09-01T17:05:44.607992+00:00",
     "role": "admin",
     "user_id": "7c038387-47e3-4d3a-80f2-dfaeb6201fde"
@@ -12,16 +17,11 @@
   {
     "created_at": "2026-09-01T17:05:44.607992+00:00",
     "role": "admin",
-    "user_id": "e7091e64-a638-4ebb-8ac6-a6ac7ae198f5"
+    "user_id": "8444efad-f65a-4ba1-bde7-39b355c78cbf"
   },
   {
     "created_at": "2026-09-01T17:05:44.607992+00:00",
     "role": "admin",
-    "user_id": "8444efad-f65a-4ba1-bde7-39b355c78cbf"
-  },
-  {
-    "created_at": "2026-09-03T14:40:23.445607+00:00",
-    "role": "viewer",
-    "user_id": "14f0d1af-f37a-4936-b278-e280bcb25129"
+    "user_id": "e7091e64-a638-4ebb-8ac6-a6ac7ae198f5"
   }
 ]

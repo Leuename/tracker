@@ -16,16 +16,29 @@ const num = (v) => (v == null ? null : Number(v))
 // honest if that ever changes to a string. Amounts are whole pesos well inside
 // the exact-integer range, so no precision is lost either way.
 
+/**
+ * `src` is the masterlist payable this row was generated from, or null for one
+ * entered by hand. `fee` is the e-cash charge already folded into `amount`.
+ *
+ * Both are nullable and both distinguish absent from zero: `src: 0` is not a
+ * payable and `fee: 0` is a recorded charge of nothing, so a missing value has
+ * to arrive as NULL rather than be coerced. `nnum` is what keeps 0 out of the
+ * empty case without also throwing away a deliberate 0.
+ */
+const nnum = (v) => (v === '' || v === null || v === undefined ? null : Number(v))
+
 export const toTxn = (t) => ({
   id: t.id, co: t.co, cat: t.cat, description: t.desc, period: t.period,
   due: nz(t.due), amount: t.amount, status: t.status, done: nz(t.done),
   pay_type: nz(t.payType), check_no: nz(t.checkNo), notes: nz(t.notes),
+  src: nnum(t.src), occurrence_due: nz(t.occurrenceDue), fee: nnum(t.fee),
 })
 
 export const fromTxn = (r) => ({
   id: Number(r.id), co: r.co, cat: r.cat, desc: r.description, period: r.period,
   due: ns(r.due), amount: Number(r.amount), status: r.status, done: ns(r.done),
   payType: ns(r.pay_type), checkNo: ns(r.check_no), notes: ns(r.notes),
+  src: nnum(r.src), ...(r.occurrence_due ? { occurrenceDue: r.occurrence_due } : {}), fee: nnum(r.fee),
 })
 
 export const toReceipt = (r) => ({
@@ -55,12 +68,13 @@ export const fromRecurring = (r) => ({
 /**
  * An update payload: the same row without its key.
  *
- * Editing a payable never means rewriting its primary key, and the database
- * agrees — `UPDATE` on `id` is not granted to clients. Sending it anyway makes
- * every edit fail with a column-privilege error.
+ * Editing a payable never means rewriting immutable transaction identity:
+ * `id`, `src`, and `occurrence_due` are omitted from updates. The database
+ * agrees — sending any of them can fail with a column-privilege error or alter
+ * which recurring occurrence a liability represents.
  */
 export const forUpdate = (row) => {
-  const { id, ...rest } = row
+  const { id, src, occurrence_due, ...rest } = row
   return rest
 }
 
@@ -79,15 +93,22 @@ export const forUpdate = (row) => {
  */
 const nrate = (v) => (v === '' || v === null || v === undefined ? null : Number(v))
 
+/**
+ * `inv` is the invoice this wire settles. It sits beside `note` and is shaped
+ * exactly like it — text, never null, empty when unknown — because it is the
+ * same kind of value with a different job: `note` is prose about the wire,
+ * `inv` is an identifier you match against a document. Keeping them separate is
+ * the point; an invoice number buried in free text cannot be read back.
+ */
 export const toTransfer = (w) => ({
   id: w.id, co: w.co, name: w.name, cur: w.cur,
-  amount: w.amount, status: w.status, note: ns(w.note),
+  amount: w.amount, status: w.status, note: ns(w.note), inv: ns(w.inv),
   rate: nrate(w.rate), rate_as_of: w.rate_as_of || null,
 })
 
 export const fromTransfer = (r) => ({
   id: Number(r.id), co: r.co, name: r.name, cur: r.cur,
-  amount: Number(r.amount), status: r.status, note: ns(r.note),
+  amount: Number(r.amount), status: r.status, note: ns(r.note), inv: ns(r.inv),
   rate: nrate(r.rate), rate_as_of: r.rate_as_of || null,
 })
 

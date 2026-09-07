@@ -31,7 +31,7 @@ export const SEED_TODAY = '2026-08-30'
 // in logic.js keeps them that way when one is added at runtime.
 export const CO = ['ANG', 'BAR', 'BSC', 'CUPA', 'DNN', 'FEPA', 'GTOI', 'GZZ', 'HAL', 'MCR', 'MIC', 'OPT', 'SHK', 'TOR', 'VAR', 'VER', 'VNQ', 'WDO', 'ZON', 'ZPH', 'ZSM']
 
-export const CAT = ['Accounting Services', 'Advertising Expense', 'Alan Expense', 'Consultancy Fee', 'Credit card', 'General Expense', 'Jack Expense', 'Legal Services', 'Other', 'Petty Cash Fund', 'Rental Expense', 'Salary & Wages', 'Withholding Taxes']
+export const CAT = ['Accounting Services', 'Advertising Expense', 'Alan Expense', 'Communications', 'Consultancy Fee', 'Credit card', 'Final Pay', 'General Expense', 'Jack Expense', 'Legal Services', 'Other', 'Petty Cash Fund', 'Refund', 'Rental Expense', 'Repairs & Maintenance', 'Salary & Wages', 'Security Deposit', 'Subscription', 'Withholding Taxes']
 
 /** The currencies a wire may be sent in, and how each one prints. */
 export const CUR = ['AUD', 'EUR', 'GBP', 'PHP', 'USD']
@@ -141,7 +141,16 @@ export const initialState = {
     { t: 'Ask ZON for the signed lease copy', done: false, linked: false },
     { t: 'Reconcile petty cash for August', done: true, linked: false },
   ],
+  // What is being typed into an inline Masterlist cell right now, so a
+  // half-typed decimal survives the round trip through the numeric store.
+  recDraft: null,
   noteDraft: '',
+  // Which reminder is open for editing, by index, and the text being typed into
+  // it. Held out here rather than inside `notes` because a draft is not part of
+  // the saved config — an abandoned edit should leave nothing behind.
+  noteEditing: null,
+  noteEditDraft: '',
+  noteHover: null,
   companies: CO.slice(),
   categories: CAT.slice(),
   coDraft: '',
@@ -163,6 +172,12 @@ export const initialState = {
   groupBy: 'company',
   collapsed: {},
   search: '',
+  // Tracker sort. 'none' keeps the order the rows arrive in, which is what the
+  // sheet did before there was a control for it.
+  sortKey: 'none',
+  sortDir: 'asc',
+  sortOpen: false,
+  exportOpen: false,
   periodOpen: null,
   periodRange: false,
   periodFrom: TODAY.slice(0, 7),
@@ -183,6 +198,7 @@ export const initialState = {
   payPrev: 'pending',
   payType: 'Cash',
   payCheck: '',
+  payFee: '',
   payErr: false,
   liqOpen: false,
   liqId: null,
@@ -213,6 +229,11 @@ export const initialState = {
   rec: { co: '', cat: '', desc: '', freq: 'Monthly', dueDate: TODAY, amount: '' },
   bannerOpen: false,
   bannerText: '',
+  // True while Generate is awaiting the ledger or its insert. Both buttons
+  // that call it are disabled on it: making `generate` async opened a window
+  // where a second click re-read before the first insert committed, rebuilt an
+  // identical row set, and the unique index then aborted the whole batch.
+  generating: false,
   generatedIds: [],
   genMonth: TODAY.slice(0, 7),
   genMenuOpen: false,

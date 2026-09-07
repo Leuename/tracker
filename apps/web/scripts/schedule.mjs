@@ -12,10 +12,10 @@
  * implementations of "which payables are due this month" is one more than a
  * ledger should have, and the second would drift silently.
  *
- * It is idempotent by construction: `buildGeneratedRows` skips any row whose
- * company, category, period and description already exist. Running it daily
- * therefore costs nothing and catches a rule added mid-month, which a monthly
- * run would leave until the next one.
+ * It is idempotent by occurrence identity: `buildGeneratedRows` skips rows
+ * whose parent and immutable scheduled occurrence are already represented.
+ * Running it daily therefore catches a rule added mid-month without creating
+ * a second liability when an editable due date or period was moved.
  *
  * **Reminders** only read, and report to whatever channel is available: the
  * GitHub Actions job summary when running there, stdout otherwise. There is
@@ -30,7 +30,8 @@
 import { appendFileSync } from 'node:fs'
 import { supabase } from '../src/supabase.js'
 import { db, load } from '../src/db.js'
-import { buildGeneratedRows, eff, monthLabel } from '../src/logic.js'
+import { buildGeneratedRows, eff, monthLabel, occurrences, unpricedFor } from '../src/logic.js'
+import { classifySchedule, formatScheduleOutcome } from './schedule-plan.js'
 
 const dryRun = process.argv.includes('--dry-run')
 const email = process.env.SCHEDULE_EMAIL
@@ -55,25 +56,63 @@ if (authError) {
 const state = await load()
 
 // ---- generate this month's recurring payables ------------------------
-const { rows, skipped, label } = buildGeneratedRows(state.recurring, state.txns, monthKey)
+const { rows, skipped, label, unresolved } = buildGeneratedRows(state.recurring, state.txns, monthKey)
 
-if (!state.recurring.length) {
-  say('- No recurring rules are defined, so nothing to generate.')
-} else if (!rows.length) {
-  say(`- Every recurring payable already exists for ${label} (${skipped} already there).`)
-} else if (dryRun) {
-  say(`- Would add ${rows.length} payable(s) for ${label}${skipped ? `, skipping ${skipped} duplicate(s)` : ''}:`)
+let generateFailed = false
+let generationError = null
+
+// A payable with no amount cannot become a Tracker row — `txns.amount > 0`
+// (D65/D66) — so `buildGeneratedRows` skips it. Silently, which for an
+// unattended job means reporting a month as complete when the only payable in
+// the masterlist was dropped. Named here so the run says what it did not do.
+const unpriced = unpricedFor(state.recurring, monthKey)
+const dueCount = state.recurring.filter((p) => occurrences(p, monthKey).length > 0).length
+
+if (dryRun && rows.length) {
+  for (const line of formatScheduleOutcome(classifySchedule({ recurring: state.recurring, rows, skipped, dueCount, unpriced, unresolved }), label, { dryRun: true })) say(line)
   for (const r of rows) say(`  - ${r.co} · ${r.cat} · ${r.desc} · due ${r.due}`)
-} else {
-  await db.insertTxns(rows)
-  say(`- Added ${rows.length} payable(s) for ${label}${skipped ? `, skipping ${skipped} duplicate(s)` : ''}:`)
-  for (const r of rows) say(`  - ${r.co} · ${r.cat} · ${r.desc} · due ${r.due}`)
+} else if (rows.length) {
+  // Generation is one of two jobs this script does, and it must not take the
+  // other one down with it.
+  //
+  // `insertTxns` is a single multi-row statement, so the unique index added by
+  // `20260905094348_one_generated_row_per_due_date` aborts the whole batch when
+  // any row collides — which is exactly what a concurrent writer produces. A
+  // bare `await` here meant one such collision exited the process before the
+  // overdue report, the job summary and the sign-out ever ran: the 22:00 job
+  // lost its entire purpose over a row that was already correct in the ledger.
+  //
+  // 23505 is reported as the benign outcome it is — somebody else generated
+  // this month — and the exit code stays 0. Anything else still fails the run,
+  // loudly, because an unexplained write failure is not benign.
+  try {
+    await db.insertTxns(rows)
+    say(`- Added ${rows.length} payable(s) for ${label}${skipped ? `, skipping ${skipped} duplicate(s)` : ''}:`)
+    for (const r of rows) say(`  - ${r.co} · ${r.cat} · ${r.desc} · due ${r.due}`)
+  } catch (e) {
+    if (String(e && e.code) === '23514') {
+      for (const line of formatScheduleOutcome(classifySchedule({ error: e }), label)) say(line)
+      throw e
+    }
+    if (String(e && e.code) !== '23505') {
+      for (const line of formatScheduleOutcome(classifySchedule({ error: e }), label)) say(line)
+      throw e
+    }
+    generateFailed = true
+    generationError = e
+  }
+}
+
+if ((!dryRun || !rows.length) && !generationError) {
+  for (const line of formatScheduleOutcome(classifySchedule({ recurring: state.recurring, rows, skipped, dueCount, unpriced, unresolved }), label, { dryRun })) say(line)
+} else if (generationError) {
+  for (const line of formatScheduleOutcome(classifySchedule({ recurring: state.recurring, rows, skipped, dueCount, unpriced, unresolved, error: generationError }), label)) say(line)
 }
 
 // ---- what somebody should look at ------------------------------------
 // Read-only. `eff` is the same rule the Tracker colours a row by, so this
 // cannot disagree with what the screen shows.
-const fresh = rows.length && !dryRun ? await load() : state
+const fresh = rows.length && !dryRun && !generateFailed ? await load() : state
 const overdue = fresh.txns.filter((t) => eff(t, today) === 'overdue')
 const unliquidated = fresh.receipts.filter((r) => r.status === 'released')
 

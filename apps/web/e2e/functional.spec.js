@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test'
 import * as D from './db.js'
+import { dstr } from '../src/logic.js'
 
 test.skip(!D.haveCredentials(), 'Set E2E_EMAIL, E2E_PASSWORD and the two VITE_ variables.')
 test.describe.configure({ mode: 'serial' }) // one shared ledger; parallel specs would collide
@@ -38,6 +39,28 @@ async function saveAddForm(page) {
 }
 
 /**
+ * Add one tagged pending row through the UI and return it.
+ *
+ * The specs below share a single `MARK`-tagged transaction, which is fine until
+ * one of them marks it paid — everything after that is then acting on a
+ * completed row. A spec that needs a fresh pending row asks for its own here.
+ * The description still carries `MARK`, so the sweep in `D.cleanup` still
+ * removes it.
+ */
+async function addPendingRow(page, suffix) {
+  const desc = D.MARK + ' ' + suffix
+  await page.getByRole('button', { name: '+ Add transaction' }).click()
+  await page.locator('.modal').getByLabel('Company').selectOption('GTOI')
+  await page.locator('.modal').getByLabel('Expense category').selectOption('Rental Expense')
+  await page.locator('.modal').getByPlaceholder('What is being paid for').fill(desc)
+  await page.locator('.modal').getByPlaceholder('0.00').fill('500')
+  await saveAddForm(page)
+  await expect.poll(async () => (await D.txnsTagged(desc)).length, { timeout: 10_000 }).toBe(1)
+  const [row] = await D.txnsTagged(desc)
+  return row
+}
+
+/**
  * Fail loudly on any console error or failed request — a silent one is still a
  * defect. Two exclusions, both about the dev server rather than the app:
  *
@@ -68,7 +91,13 @@ function watch(page) {
 
 // Runs whatever happened above: a failed assertion must not leave rows or
 // files in a ledger three people read.
-test.beforeAll(async () => { await D.cleanup() })
+test.beforeAll(async () => {
+  await D.cleanup()
+  // A previous run killed mid-spec never ran its `finally`, so a setting it
+  // toggled can still be on — in the owner's live config, not just the test's.
+  const released = await D.releaseHeld()
+  if (released) console.warn('[e2e] gave back what an interrupted run was holding:', released.join(', '))
+})
 test.afterAll(async () => { await D.cleanup() })
 
 test('adding a transaction stores every field it collected', async ({ page }) => {
@@ -140,7 +169,11 @@ test('editing a transaction updates the stored row', async ({ page }) => {
   expect((await D.txnById(row.id)).notes).toBe('edited note')
 })
 
-test('marking paid by check requires the number and stores it', async ({ page }) => {
+// The number used to be mandatory. It is not any more: a check written today
+// often has no number to hand, and refusing the payment over it left the row
+// reading pending while the money had already gone out. What still has to hold
+// is that a number, once typed, is the number that gets stored.
+test('marking paid by check stores the number, and no longer demands one', async ({ page }) => {
   await signIn(page)
   await go(page, 'Tracker')
   const [row] = await D.txnsTagged()
@@ -150,11 +183,6 @@ test('marking paid by check requires the number and stores it', async ({ page })
   const modal = page.locator('.modal')
   await expect(modal.getByRole('heading', { name: 'How was it paid?' })).toBeVisible()
   await modal.getByRole('button', { name: 'Check' }).click()
-  await modal.getByRole('button', { name: 'Mark as paid' }).click()
-  // No check number yet: the dialog must refuse and write nothing.
-  await expect(modal).toBeVisible()
-  expect((await D.txnById(row.id)).status).not.toBe('completed')
-
   await modal.getByPlaceholder('e.g. 004821').fill('004821')
   await modal.getByRole('button', { name: 'Mark as paid' }).click()
   await expect(modal).toBeHidden()
@@ -164,6 +192,52 @@ test('marking paid by check requires the number and stores it', async ({ page })
   expect(paid.pay_type).toBe('Check')
   expect(paid.check_no).toBe('004821')
   expect(paid.done, 'completion date must be filled in').toBeTruthy()
+})
+
+// The reversed rule, pinned on its own row so a regression to "required" fails
+// rather than passing quietly because the earlier spec filled the field in.
+test('a check with no number still marks the row paid', async ({ page }) => {
+  await signIn(page)
+  await go(page, 'Tracker')
+  const row = await addPendingRow(page, 'unnumbered check')
+
+  await page.locator('.sheet-row', { hasText: row.description })
+    .getByRole('button', { name: 'Mark as paid' }).click()
+
+  const modal = page.locator('.modal')
+  await modal.getByRole('button', { name: 'Check' }).click()
+  await modal.getByRole('button', { name: 'Mark as paid' }).click()
+  await expect(modal).toBeHidden()
+
+  await expect.poll(async () => (await D.txnById(row.id)).status).toBe('completed')
+  const paid = await D.txnById(row.id)
+  expect(paid.pay_type).toBe('Check')
+  expect(paid.check_no ?? '').toBe('')
+})
+
+// The charge is folded into `amount`, so the row totals what actually left the
+// account, and kept in `fee` so the sheet can still name it.
+test('an e-cash charge is added into the amount and recorded separately', async ({ page }) => {
+  await signIn(page)
+  await go(page, 'Tracker')
+  const row = await addPendingRow(page, 'ecash charge')
+  const before = Number(row.amount)
+
+  await page.locator('.sheet-row', { hasText: row.description })
+    .getByRole('button', { name: 'Mark as paid' }).click()
+
+  const modal = page.locator('.modal')
+  await modal.getByRole('button', { name: 'E-cash' }).click()
+  await modal.getByPlaceholder('0.00').fill('25')
+  await expect(modal).toContainText('Recorded amount')
+  await modal.getByRole('button', { name: 'Mark as paid' }).click()
+  await expect(modal).toBeHidden()
+
+  await expect.poll(async () => (await D.txnById(row.id)).status).toBe('completed')
+  const paid = await D.txnById(row.id)
+  expect(paid.pay_type).toBe('E-cash')
+  expect(Number(paid.fee)).toBe(25)
+  expect(Number(paid.amount), 'the charge has to be inside the amount').toBe(before + 25)
 })
 
 test('the dashboard totals what the database holds', async ({ page }) => {
@@ -359,6 +433,57 @@ test('generate writes a month, guards duplicates, and undo takes it back', async
   }
 })
 
+test('generated occurrence identity survives visible due and period edits', async ({ page }) => {
+  const c = await D.db()
+  const probe = await c.from('txns').select('occurrence_due').limit(1)
+  test.skip(probe.error && ['PGRST204', '42703'].includes(String(probe.error.code)),
+    'occurrence identity migration is not applied on this deployment')
+
+  const desc = D.MARK + ' occurrence identity'
+  const rule = await D.makeRecurring({ description: desc, due_date: '2026-12-15', amount: 1000 })
+  try {
+    await signIn(page)
+    await go(page, 'Masterlist')
+    await page.getByRole('button', { name: 'Pick a month' }).click()
+    await page.getByRole('button', { name: /Dec 2026/ }).click()
+    await page.getByRole('button', { name: /^Generate Dec 2026/ }).click()
+    await expect.poll(async () => (await D.txnsTagged(desc)).length, { timeout: 10_000 }).toBe(1)
+
+    const [before] = await D.txnsTagged(desc)
+    expect(before.src).toBe(rule.id)
+    expect(before.occurrence_due).toBe('2026-12-15')
+
+    await go(page, 'Tracker')
+    await page.locator('.sheet-row', { hasText: desc }).click()
+    const modal = page.getByRole('dialog')
+    await modal.getByLabel('Due date').fill('2026-12-20')
+    await modal.getByLabel('Period covered').click()
+    await modal.locator('input[type="month"]').fill('2027-01')
+    await modal.getByRole('button', { name: 'Apply' }).click()
+    await modal.getByRole('button', { name: 'Save', exact: true }).click()
+    await expect(modal).toBeHidden()
+
+    await expect.poll(async () => {
+      const row = await D.txnById(before.id)
+      return row && row.due + '|' + row.period
+    }, { timeout: 10_000 }).toBe('2026-12-20|Jan 2027')
+    const edited = await D.txnById(before.id)
+    expect(edited.occurrence_due, 'visible edits must not alter occurrence identity').toBe('2026-12-15')
+
+    await go(page, 'Masterlist')
+    await page.getByRole('button', { name: 'Pick a month' }).click()
+    await page.getByRole('button', { name: /Dec 2026/ }).click()
+    await page.getByRole('button', { name: /^Generate Dec 2026/ }).click()
+    await expect(page.getByText(/already exists|In sync/).first()).toBeVisible()
+    const rows = await D.txnsTagged(desc)
+    expect(rows).toHaveLength(1)
+    expect(rows[0].src).toBe(rule.id)
+    expect(rows[0].occurrence_due).toBe('2026-12-15')
+  } finally {
+    await D.cleanup()
+  }
+})
+
 test('undo removes exactly the rows that generate created', async ({ page }) => {
   await signIn(page)
   const c = await D.db()
@@ -384,6 +509,10 @@ test('settings, company and category lists persist to the shared config row', as
   await signIn(page)
   const before = await D.config()
   expect(before, 'the shared config row must exist').toBeTruthy()
+  // Both lists, not just settings: a killed run that leaves an `E2E###` code in
+  // the shared company list puts it in every company dropdown in the app, and
+  // `cleanup` cannot reach `app_config`.
+  await D.hold(['companies', 'categories'])
 
   try {
     await page.getByRole('navigation', { name: 'Sections' })
@@ -408,7 +537,7 @@ test('settings, company and category lists persist to the shared config row', as
     await page.getByRole('button', { name: 'Masterlist settings' }).click()
     await expect(page.getByText(code), 'the new code must survive a reload').toBeVisible()
   } finally {
-    await D.restoreConfig(before)
+    await D.releaseHeld()
   }
 })
 
@@ -513,8 +642,9 @@ test('a liquidation document is uploaded, recorded and reachable', async ({ page
 test('requiring a receipt file actually blocks the liquidation', async ({ page }) => {
   // Fixture first, for the same reason as above: the app reads its data once.
   const c = await D.db()
-  const beforeConfig = await D.config()
   const receipt = await D.makeReceipt({ amount: 3000 })
+  // Record the value before touching it, so a kill here is recoverable.
+  await D.hold(['settings.ackRequirePhoto'])
   await signIn(page)
 
   try {
@@ -536,14 +666,13 @@ test('requiring a receipt file actually blocks the liquidation', async ({ page }
     await expect(modal.getByRole('alert')).toContainText(/receipt file is required/i)
     expect((await D.receiptById(receipt.id)).status, 'nothing may be written').toBe(receipt.status)
   } finally {
-    await D.restoreConfig(beforeConfig)
+    await D.releaseHeld()
   }
 })
 
 test('the duplicate warning fires once and then lets the row through', async ({ page }) => {
   await signIn(page)
   const c = await D.db()
-  const beforeConfig = await D.config()
 
   // The add form defaults to the current month, so the clash has to be in that
   // period or the warning has nothing to match. Build the label the same way
@@ -556,10 +685,15 @@ test('the duplicate warning fires once and then lets the row through', async ({ 
   const TAG = D.MARK + '-dup'
   const mine = async () => (await D.txnsTagged(TAG)).length
 
+  await D.hold(['settings.warnDuplicate'])
   try {
-    await c.from('app_config')
-      .update({ data: { ...beforeConfig, settings: { ...beforeConfig.settings, warnDuplicate: true } } })
-      .eq('id', true)
+    // Through the merge function, not a whole-document update. This spec was
+    // still doing the very write that `restoreConfig` was deleted for: it read
+    // the config, spread it, and wrote the whole document back — so anything
+    // the owner changed in that window was silently discarded, and it bypassed
+    // the viewer guard the hardening migration added.
+    const { error: mergeError } = await c.rpc('merge_app_config', { patch: { settings: { warnDuplicate: true } } })
+    if (mergeError) throw mergeError
     await c.from('txns').insert({
       id: clashId, co: 'GTOI', cat: 'Legal Services',
       description: TAG + ' the original', period, amount: 100, status: 'pending',
@@ -586,13 +720,15 @@ test('the duplicate warning fires once and then lets the row through', async ({ 
     await expect.poll(mine, { timeout: 10_000 }).toBe(2)
   } finally {
     await D.cleanup(TAG)
-    await D.restoreConfig(beforeConfig)
+    await D.releaseHeld()
   }
 })
 
 test('the deadline window setting actually narrows the list', async ({ page }) => {
   await signIn(page)
-  const beforeConfig = await D.config()
+  // This one changes a setting too. Without the hold, a killed run leaves the
+  // owner's dashboard stuck on whatever window the spec set last.
+  await D.hold(['settings.dashWindow'])
 
   try {
     const rows = () => page.locator('.deadline')
@@ -613,7 +749,7 @@ test('the deadline window setting actually narrows the list', async ({ page }) =
     expect(narrow, 'a 7-day window cannot show more than a 90-day one').toBeLessThanOrEqual(wide)
     await expect(page.getByText('next 7 days')).toBeVisible()
   } finally {
-    await D.restoreConfig(beforeConfig)
+    await D.releaseHeld()
   }
 })
 
@@ -735,7 +871,7 @@ test('a telegraphic transfer is added, edited in place, and edited in the form',
   await page.locator('.sheet-row', { hasText: who }).getByText(who, { exact: true }).click()
   await page.getByRole('dialog').getByLabel('Beneficiary').fill('')
   await page.getByRole('dialog').getByRole('button', { name: 'Save' }).click()
-  await expect(page.getByText('Company, beneficiary and amount are required.')).toBeVisible()
+  await expect(page.getByText('Company, beneficiary and a positive amount are required.')).toBeVisible()
   await page.getByRole('dialog').getByRole('button', { name: 'Cancel' }).click()
 
   await page.reload()
@@ -745,4 +881,830 @@ test('a telegraphic transfer is added, edited in place, and edited in the form',
 
   expect(problems, 'no console error or failed request across a transfer').toEqual([])
   await D.cleanup()
+})
+
+// The invoice number is its own column, not a convention inside the note. This
+// checks both survive the same wire independently — the failure this guards
+// against is one field's value landing in the other's column.
+test('a wire records an invoice number beside its note, and both survive', async ({ page }) => {
+  await signIn(page)
+  await go(page, 'Telegraphic')
+
+  const who = D.MARK + ' Helvetia Instruments'
+  await page.getByRole('button', { name: '+ Add transfer' }).click()
+  const modal = page.locator('.modal')
+  await modal.getByLabel('Company').selectOption('GTOI')
+  await modal.getByLabel('Beneficiary').fill(who)
+  await modal.getByLabel('Currency').selectOption('EUR')
+  await modal.getByLabel('Amount').fill('16400')
+  await modal.getByLabel('Inv No').fill('HI-2026-0442')
+  await modal.getByLabel('Note', { exact: false }).fill(D.MARK + ' awaiting signed invoice')
+  await modal.getByRole('button', { name: 'Save' }).click()
+  await expect(modal).toBeHidden()
+
+  const c = await D.db()
+  const find = async () => (await c.from('transfers').select('*').eq('name', who)).data || []
+  await expect.poll(async () => (await find()).length, { timeout: 10_000 }).toBe(1)
+  const saved = (await find())[0]
+  expect(saved.inv, 'the invoice number reaches its own column').toBe('HI-2026-0442')
+  expect(saved.note, 'the note is untouched by it').toBe(D.MARK + ' awaiting signed invoice')
+
+  // Editable in place on the sheet, like the note beside it.
+  const row = page.locator('.sheet-row', { hasText: who })
+  await row.getByLabel('Invoice number for ' + who).fill('HI-2026-0999')
+  await expect.poll(async () => (await D.transferById(saved.id)).inv, { timeout: 10_000 }).toBe('HI-2026-0999')
+  expect((await D.transferById(saved.id)).note, 'editing one must not clear the other')
+    .toBe(D.MARK + ' awaiting signed invoice')
+
+  // A leading zero is data, not a number to be normalised away.
+  await row.getByLabel('Invoice number for ' + who).fill('004821')
+  await expect.poll(async () => (await D.transferById(saved.id)).inv, { timeout: 10_000 }).toBe('004821')
+
+  await D.cleanup()
+})
+
+/**
+ * Reported from the live app: typing a space into a sheet note opened the
+ * transaction mid-sentence. The row is operable by keyboard, so it answers
+ * Enter and Space; the controls inside it stopped clicks but not keystrokes, so
+ * the space bubbled up to the row.
+ *
+ * Asserted as "no dialog appeared and the text arrived intact", because the two
+ * halves fail separately: a guard that swallowed the keystroke would stop the
+ * dialog and lose the space.
+ */
+test('typing a space into a sheet field does not open the row', async ({ page }) => {
+  await signIn(page)
+  await go(page, 'Telegraphic')
+
+  const who = D.MARK + ' Pacific Freight'
+  await page.getByRole('button', { name: '+ Add transfer' }).click()
+  const modal = page.locator('.modal')
+  await modal.getByLabel('Company').selectOption('GTOI')
+  await modal.getByLabel('Beneficiary').fill(who)
+  await modal.getByLabel('Amount').fill('28500')
+  await modal.getByRole('button', { name: 'Save' }).click()
+  await expect(modal).toBeHidden()
+
+  const c = await D.db()
+  await expect.poll(async () => ((await c.from('transfers').select('id').eq('name', who)).data || []).length,
+    { timeout: 10_000 }).toBe(1)
+
+  const row = page.locator('.sheet-row', { hasText: who })
+  const note = row.getByLabel('Note for ' + who)
+  await note.click()
+  await note.pressSequentially('awaiting signed invoice', { delay: 12 })
+
+  await expect(page.getByRole('dialog'), 'a space must not open the transfer').toHaveCount(0)
+  await expect(note).toHaveValue('awaiting signed invoice')
+
+  // Same guard on the invoice box beside it.
+  const inv = row.getByLabel('Invoice number for ' + who)
+  await inv.click()
+  await inv.pressSequentially('PO 2026 114', { delay: 12 })
+  await expect(page.getByRole('dialog'), 'a space in the invoice box must not open it either').toHaveCount(0)
+  await expect(inv).toHaveValue('PO 2026 114')
+
+  await D.cleanup()
+})
+
+// Both export routes are offered, and PNG actually produces a file. The PDF
+// route opens the browser's print dialog, which Playwright cannot dismiss, so
+// only its presence is asserted here.
+test('the tracker exports a summary as PNG', async ({ page }) => {
+  await signIn(page)
+  await go(page, 'Tracker')
+
+  await page.getByRole('button', { name: /^Export/ }).click()
+  await expect(page.getByRole('button', { name: 'Download PNG' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Save as PDF' })).toBeVisible()
+
+  const download = page.waitForEvent('download', { timeout: 30_000 })
+  await page.getByRole('button', { name: 'Download PNG' }).click()
+  const file = await download
+  expect(file.suggestedFilename()).toMatch(/^tracker-summary-\d{4}-\d{2}-\d{2}\.png$/)
+  expect((await file.path()) !== null, 'the PNG must actually be written').toBe(true)
+})
+
+/**
+ * Found by adversarial review, not by a spec — which is why this one exists.
+ *
+ * The payment dialog has three ways in. One of them, the "change" link beside a
+ * recorded payment, never seeded the charge field, so the dialog opened holding
+ * whatever the previous dialog had left there: empty after a reload, which
+ * deleted a recorded charge on confirm, or a different row's charge
+ * mid-session, which moved it onto this row. Both wrote a wrong amount to a
+ * live ledger silently.
+ *
+ * The reload is load-bearing — it is what resets the leaked field to empty.
+ */
+test('reopening a paid row through "change" keeps its recorded charge', async ({ page }) => {
+  await signIn(page)
+  await go(page, 'Tracker')
+  const row = await addPendingRow(page, 'change-link charge')
+
+  await page.locator('.sheet-row', { hasText: row.description })
+    .getByRole('button', { name: 'Mark as paid' }).click()
+  let modal = page.locator('.modal')
+  await modal.getByRole('button', { name: 'E-cash' }).click()
+  await modal.getByPlaceholder('0.00').fill('25')
+  await modal.getByRole('button', { name: 'Mark as paid' }).click()
+  await expect(modal).toBeHidden()
+
+  await expect.poll(async () => Number((await D.txnById(row.id)).fee), { timeout: 10_000 }).toBe(25)
+  const paid = await D.txnById(row.id)
+  expect(Number(paid.amount)).toBe(Number(row.amount) + 25)
+
+  // The reload clears the leaked dialog state, which is exactly the case that
+  // used to silently drop the charge.
+  await page.reload()
+  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible({ timeout: 25_000 })
+  // Completed is off in the default view, so the dashboard tile is the way back
+  // to a row that was just paid.
+  await page.locator('.tile', { hasText: 'COMPLETED' }).click()
+  await expect(page.getByRole('heading', { name: 'Tracker' })).toBeVisible()
+
+  await page.getByText(row.description).click()
+  const form = page.getByRole('dialog')
+  await expect(form.getByRole('heading', { name: 'Transaction details' })).toBeVisible()
+  await form.getByRole('button', { name: 'change', exact: true }).click()
+
+  modal = page.locator('.modal').last()
+  await expect(modal.getByPlaceholder('0.00'), 'the dialog must reopen showing the stored charge')
+    .toHaveValue('25')
+  await expect(modal, 'and must total the amount that was actually paid').toContainText('₱' + (Number(row.amount) + 25).toLocaleString('en-US'))
+
+  await modal.getByRole('button', { name: 'Mark as paid' }).click()
+  await form.getByRole('button', { name: 'Save', exact: true }).click()
+  await expect(form).toBeHidden()
+
+  await expect.poll(async () => Number((await D.txnById(row.id)).amount), { timeout: 10_000 })
+    .toBe(Number(row.amount) + 25)
+  expect(Number((await D.txnById(row.id)).fee), 'the charge must survive the round trip').toBe(25)
+})
+
+/**
+ * Found by the second adversarial review. Dialogs stack — the edit form opens
+ * the payment dialog on top of itself — and both listened for Escape on the
+ * window. The outer one won, because it registered first, so Escape closed the
+ * form and left the payment dialog orphaned over an empty screen. Confirming
+ * from that orphan wrote nothing at all: the edit path only stages into the
+ * form, and the form was gone. The dialog closed with no toast and no error,
+ * and a payment the user had just confirmed did not exist.
+ *
+ * Escape must close the innermost dialog and leave the form standing.
+ */
+test('Escape closes the payment dialog, not the form underneath it', async ({ page }) => {
+  await signIn(page)
+  await go(page, 'Tracker')
+  const row = await addPendingRow(page, 'stacked escape')
+
+  await page.locator('.sheet-row', { hasText: row.description }).first().click()
+  const form = page.locator('.modal').filter({ hasText: 'Transaction details' })
+  await expect(form).toBeVisible()
+  await form.getByLabel('Status').selectOption('completed')
+
+  const pay = page.locator('.modal').filter({ hasText: 'How was it paid?' })
+  await expect(pay).toBeVisible()
+
+  await page.keyboard.press('Escape')
+  await expect(pay, 'Escape must dismiss the innermost dialog').toBeHidden()
+  await expect(form, 'and must leave the form it opened from standing').toBeVisible()
+
+  // Cancelling the payment rolls the status back, so nothing was recorded.
+  await expect(form.getByLabel('Status')).toHaveValue('pending')
+  await form.getByRole('button', { name: 'Cancel' }).click()
+  await expect(form).toBeHidden()
+
+  const after = await D.txnById(row.id)
+  expect(after.status, 'no payment was confirmed, so nothing may be written').toBe('pending')
+  expect(Number(after.amount)).toBe(Number(row.amount))
+  expect(after.fee).toBe(null)
+})
+
+/**
+ * The other half of D52, which the first regression spec did not cover: the
+ * leak used to run row-to-row within a single session, with no reload needed.
+ * A charge typed for one transaction could be written onto a different one.
+ */
+test('a charge typed for one row cannot follow the user to another row', async ({ page }) => {
+  await signIn(page)
+  await go(page, 'Tracker')
+  const a = await addPendingRow(page, 'charge row A')
+  const b = await addPendingRow(page, 'charge row B')
+
+  const payWith = async (desc, charge) => {
+    await page.locator('.sheet-row', { hasText: desc })
+      .getByRole('button', { name: 'Mark as paid' }).click()
+    const modal = page.locator('.modal')
+    await modal.getByRole('button', { name: 'E-cash' }).click()
+    await modal.getByPlaceholder('0.00').fill(String(charge))
+    await modal.getByRole('button', { name: 'Mark as paid' }).click()
+    await expect(modal).toBeHidden()
+  }
+
+  await payWith(a.description, 40)
+  await payWith(b.description, 25)
+  await expect.poll(async () => Number((await D.txnById(b.id)).fee), { timeout: 10_000 }).toBe(25)
+
+  // No reload. Reopen A through the "change" link while B's charge is the most
+  // recent thing the dialog held.
+  await go(page, 'Dashboard')
+  await page.locator('.tile', { hasText: 'COMPLETED' }).click()
+  await expect(page.getByRole('heading', { name: 'Tracker' })).toBeVisible()
+  await page.locator('.sheet-row', { hasText: a.description }).first().click()
+
+  const form = page.getByRole('dialog')
+  await form.getByRole('button', { name: 'change', exact: true }).click()
+  const pay = page.locator('.modal').last()
+  await expect(pay.getByPlaceholder('0.00'), "row A must show its own charge, not row B's")
+    .toHaveValue('40')
+
+  await pay.getByRole('button', { name: 'Mark as paid' }).click()
+  await form.getByRole('button', { name: 'Save', exact: true }).click()
+  await expect(form).toBeHidden()
+
+  await expect.poll(async () => Number((await D.txnById(a.id)).amount), { timeout: 10_000 })
+    .toBe(Number(a.amount) + 40)
+  expect(Number((await D.txnById(b.id)).fee), 'row B must be untouched by any of this').toBe(25)
+  expect(Number((await D.txnById(b.id)).amount)).toBe(Number(b.amount) + 25)
+})
+
+/**
+ * Found by the third adversarial review, in the fix from D51 itself.
+ *
+ * Dropping a paid row out of completed has to give its e-cash charge back. That
+ * used to happen inside `saveEdit`, which assumed `amount` still contained the
+ * charge — and the user can retype Amount in between. A ₱550 row (₱500 + ₱50)
+ * set back to Pending with Amount retyped as 2000 saved **1950**: a number the
+ * screen never displayed, written to a live ledger with a success toast.
+ *
+ * The charge now comes out where the user can see it, so this asserts both what
+ * the field shows and what Postgres stores.
+ */
+test('retyping the amount after dropping out of completed saves what is on screen', async ({ page }) => {
+  await signIn(page)
+  await go(page, 'Tracker')
+  const row = await addPendingRow(page, 'retyped amount')
+  const base = Number(row.amount)
+
+  await page.locator('.sheet-row', { hasText: row.description })
+    .getByRole('button', { name: 'Mark as paid' }).click()
+  const pay = page.locator('.modal')
+  await pay.getByRole('button', { name: 'E-cash' }).click()
+  await pay.getByPlaceholder('0.00').fill('50')
+  await pay.getByRole('button', { name: 'Mark as paid' }).click()
+  await expect(pay).toBeHidden()
+  await expect.poll(async () => Number((await D.txnById(row.id)).amount), { timeout: 10_000 }).toBe(base + 50)
+
+  await go(page, 'Dashboard')
+  await page.locator('.tile', { hasText: 'COMPLETED' }).click()
+  await expect(page.getByRole('heading', { name: 'Tracker' })).toBeVisible()
+  await page.locator('.sheet-row', { hasText: row.description }).first().click()
+
+  const form = page.getByRole('dialog')
+  await expect(form.getByRole('heading', { name: 'Transaction details' })).toBeVisible()
+
+  // Leaving completed must hand the charge back visibly, before anything saves.
+  await form.getByLabel('Status').selectOption('pending')
+  await expect(form.getByLabel('Amount'), 'the charge comes off in front of the user')
+    .toHaveValue(String(base))
+
+  await form.getByLabel('Amount').fill('2000')
+  await form.getByRole('button', { name: 'Save', exact: true }).click()
+  await expect(form).toBeHidden()
+
+  await expect.poll(async () => Number((await D.txnById(row.id)).amount), { timeout: 10_000 })
+    .toBe(2000)
+  const after = await D.txnById(row.id)
+  expect(after.fee, 'a row that is no longer completed records no charge').toBe(null)
+  expect(after.status).toBe('pending')
+})
+
+/**
+ * The status dropdown route through the payment dialog — open the form, set
+ * Completed, confirm the method, save — had no spec that went all the way
+ * through. It is the path the `confirmPay` guard sits on.
+ */
+test('the edit form can complete a row through the payment dialog and save it', async ({ page }) => {
+  await signIn(page)
+  await go(page, 'Tracker')
+  const row = await addPendingRow(page, 'status dropdown pay')
+
+  await page.locator('.sheet-row', { hasText: row.description }).first().click()
+  const form = page.getByRole('dialog')
+  await form.getByLabel('Status').selectOption('completed')
+
+  const pay = page.locator('.modal').filter({ hasText: 'How was it paid?' })
+  await expect(pay).toBeVisible()
+  await pay.getByRole('button', { name: 'E-cash' }).click()
+  await pay.getByPlaceholder('0.00').fill('15')
+  await pay.getByRole('button', { name: 'Mark as paid' }).click()
+  await expect(pay).toBeHidden()
+
+  await form.getByRole('button', { name: 'Save', exact: true }).click()
+  await expect(form).toBeHidden()
+
+  await expect.poll(async () => (await D.txnById(row.id)).status, { timeout: 10_000 }).toBe('completed')
+  const after = await D.txnById(row.id)
+  expect(after.pay_type).toBe('E-cash')
+  expect(Number(after.fee)).toBe(15)
+  expect(Number(after.amount), 'the charge is inside the amount').toBe(Number(row.amount) + 15)
+  expect(after.done, 'completion date must be filled in').toBeTruthy()
+})
+
+/**
+ * Found by the fourth adversarial review — D54's own fix reintroducing D54's
+ * own symptom. `setEditStatus` subtracted the charge from whatever was in the
+ * Amount field, and `amountOf` stripped the minus sign, so clearing the field
+ * on a ₱550 row with a ₱50 charge put `-50` on screen and wrote **50** to the
+ * ledger. No exotic input needed; an empty field was enough.
+ *
+ * The charge is only removed from an amount that still contains it, and a
+ * non-positive amount is now refused with a message rather than laundered.
+ */
+test('an amount that cannot carry the charge is refused, never silently flipped positive', async ({ page }) => {
+  await signIn(page)
+  await go(page, 'Tracker')
+  const row = await addPendingRow(page, 'negative laundering')
+  const base = Number(row.amount)
+
+  await page.locator('.sheet-row', { hasText: row.description })
+    .getByRole('button', { name: 'Mark as paid' }).click()
+  const pay = page.locator('.modal')
+  await pay.getByRole('button', { name: 'E-cash' }).click()
+  await pay.getByPlaceholder('0.00').fill('50')
+  await pay.getByRole('button', { name: 'Mark as paid' }).click()
+  await expect(pay).toBeHidden()
+  await expect.poll(async () => Number((await D.txnById(row.id)).amount), { timeout: 10_000 }).toBe(base + 50)
+
+  await go(page, 'Dashboard')
+  await page.locator('.tile', { hasText: 'COMPLETED' }).click()
+  await expect(page.getByRole('heading', { name: 'Tracker' })).toBeVisible()
+  await page.locator('.sheet-row', { hasText: row.description }).first().click()
+
+  const form = page.getByRole('dialog')
+  await form.getByLabel('Amount').fill('')
+  await form.getByLabel('Status').selectOption('pending')
+
+  // Nothing to take the charge out of, so the field is left exactly as typed
+  // rather than going negative.
+  await expect(form.getByLabel('Amount'), 'an emptied field must not become -50').toHaveValue('')
+
+  await form.getByRole('button', { name: 'Save', exact: true }).click()
+  await expect(form, 'and saving it must be refused, not laundered').toBeVisible()
+
+  const after = await D.txnById(row.id)
+  expect(Number(after.amount), 'the stored amount must not have moved').toBe(base + 50)
+  expect(after.status).toBe('completed')
+
+  await form.getByLabel('Amount').fill('120')
+  await form.getByRole('button', { name: 'Save', exact: true }).click()
+  await expect(form).toBeHidden()
+  await expect.poll(async () => Number((await D.txnById(row.id)).amount), { timeout: 10_000 }).toBe(120)
+})
+
+/**
+ * Also from the fourth review. `generatedIds` outlives the rows it names, and
+ * the banner's "Review them" link walks the user to the Tracker without
+ * dismissing the banner — so Generate → Review them → Mark as paid → Undo
+ * deleted a transaction that had been paid, and reported only "Generated rows
+ * removed". A completed row records money that moved; Undo does not get it.
+ */
+test('Undo will not delete a generated row that has since been paid', async ({ page }) => {
+  await signIn(page)
+  await go(page, 'Masterlist')
+
+  // Two payables, so Undo has something it *may* remove as well as something it
+  // may not. Without the unpaid row there is no observable signal that Undo ran
+  // at all, and the spec would pass against the defect by racing a
+  // fire-and-forget delete.
+  const paidDesc = D.MARK + ' undo guard paid'
+  const openDesc = D.MARK + ' undo guard open'
+  for (const [desc, amount] of [[paidDesc, '700'], [openDesc, '800']]) {
+    await page.getByRole('button', { name: '+ Add payable' }).click()
+    const modal = page.locator('.modal')
+    await modal.getByLabel('Company').selectOption('GTOI')
+    await modal.getByLabel('Category').selectOption('Rental Expense')
+    await modal.getByLabel('Description').fill(desc)
+    await modal.getByLabel('Amount').fill(amount)
+    await modal.getByRole('button', { name: 'Save', exact: true }).click()
+    await expect(modal).toBeHidden()
+  }
+
+  await page.getByRole('button', { name: /^Generate / }).click()
+  await expect(page.locator('.banner')).toBeVisible()
+
+  // The banner stays up while the user goes and pays one of the rows — its own
+  // "Review them" link is what walks them over there.
+  await go(page, 'Tracker')
+  await page.locator('.sheet-row', { hasText: paidDesc })
+    .getByRole('button', { name: 'Mark as paid' }).click()
+  const pay = page.locator('.modal')
+  await pay.getByRole('button', { name: 'Mark as paid' }).click()
+  await expect(pay).toBeHidden()
+
+  // The write is fire-and-forget, so poll rather than read once.
+  await expect.poll(
+    async () => (await D.txnsTagged(paidDesc)).filter((t) => t.status === 'completed').length,
+    { timeout: 10_000 },
+  ).toBe(1)
+  const paid = (await D.txnsTagged(paidDesc)).find((t) => t.status === 'completed')
+  const [stillOpen] = await D.txnsTagged(openDesc)
+  expect(stillOpen).toBeTruthy()
+
+  await go(page, 'Masterlist')
+  await page.locator('.banner').getByRole('button', { name: 'Undo' }).click()
+
+  // Undo really ran: the untouched row is gone. Polling this first is what
+  // makes the assertion below meaningful rather than a race the defect wins.
+  await expect.poll(async () => await D.txnById(stillOpen.id), { timeout: 10_000 }).toBe(null)
+
+  const survivor = await D.txnById(paid.id)
+  expect(survivor, 'a paid transaction must survive Undo').toBeTruthy()
+  expect(survivor.status).toBe('completed')
+  expect(survivor.pay_type, 'and keep the payment that was recorded on it').toBeTruthy()
+
+  await D.cleanup()
+})
+
+/**
+ * Round 5, found in round 4's own fix. Making `amountOf` sign-aware meant a
+ * negative could reach seven writers that tested `!amt` — and `-25` is truthy.
+ * Sign-stripping had made that impossible before, so the fix for one defect
+ * opened another across the whole app.
+ *
+ * The e-cash charge is the worst of them: a negative charge is *added* to the
+ * amount, so it would quietly reduce a payable.
+ */
+test('a negative e-cash charge is refused, not added as a reduction', async ({ page }) => {
+  await signIn(page)
+  await go(page, 'Tracker')
+  const row = await addPendingRow(page, 'negative charge')
+  const base = Number(row.amount)
+
+  await page.locator('.sheet-row', { hasText: row.description })
+    .getByRole('button', { name: 'Mark as paid' }).click()
+  const pay = page.locator('.modal')
+  await pay.getByRole('button', { name: 'E-cash' }).click()
+  await pay.getByPlaceholder('0.00').fill('-25')
+  await pay.getByRole('button', { name: 'Mark as paid' }).click()
+
+  await expect(pay, 'the dialog must stay open rather than record it').toBeVisible()
+  const after = await D.txnById(row.id)
+  expect(after.status, 'nothing may be written').toBe('pending')
+  expect(Number(after.amount), 'and the amount must not have been reduced').toBe(base)
+
+  // The same dialog accepts a real charge straight afterwards.
+  await pay.getByPlaceholder('0.00').fill('25')
+  await pay.getByRole('button', { name: 'Mark as paid' }).click()
+  await expect(pay).toBeHidden()
+  await expect.poll(async () => Number((await D.txnById(row.id)).amount), { timeout: 10_000 })
+    .toBe(base + 25)
+})
+
+/**
+ * The same class, on the receipts side: a liquidation records what was actually
+ * spent, and a negative there corrupts the difference the sheet reports.
+ */
+test('a receipt will not liquidate to a negative actual amount', async ({ page }) => {
+  await signIn(page)
+  await go(page, 'AckRec')
+
+  const who = D.MARK + ' negative actual'
+  await page.getByRole('button', { name: '+ Add receipt' }).click()
+  let modal = page.locator('.modal')
+  await modal.getByLabel('Company').selectOption('GTOI')
+  await modal.getByLabel('Released to').fill(who)
+  await modal.getByLabel('Amount released').fill('4000')
+  await modal.getByRole('button', { name: 'Save', exact: true }).click()
+  await expect(modal).toBeHidden()
+
+  const c = await D.db()
+  await expect.poll(async () => ((await c.from('receipts').select('id').eq('name', who)).data || []).length,
+    { timeout: 10_000 }).toBe(1)
+  const [saved] = (await c.from('receipts').select('*').eq('name', who)).data
+
+  await page.locator('.sheet-row', { hasText: who }).getByRole('button', { name: 'Liquidate' }).click()
+  modal = page.locator('.modal')
+  await modal.getByLabel(/Actual amount/).fill('-500')
+  await modal.getByRole('button', { name: 'Save', exact: true }).click()
+
+  await expect(modal, 'a negative actual must be refused').toBeVisible()
+  const still = (await c.from('receipts').select('*').eq('id', saved.id)).data[0]
+  expect(still.actual, 'nothing may be recorded').toBe(null)
+  expect(still.status).not.toBe('liquidated')
+
+  await D.cleanup()
+})
+
+/**
+ * Found by the sixth adversarial review. The reminder Edit and Delete buttons
+ * were rendered only while `noteHover` was set, and that state is written by
+ * `onMouseEnter` alone — so the buttons were absent from the DOM, not merely
+ * hidden. Tab walked from one reminder's checkbox straight to the next, and a
+ * touch device never reached them at all. CSS could not rescue it.
+ *
+ * They are always in the DOM now and revealed by `:hover`/`:focus-within`, so
+ * this asserts reachability rather than visibility — presence in the tab order
+ * is what was broken.
+ */
+test('a reminder can be edited and deleted without a mouse', async ({ page }) => {
+  await signIn(page)
+  const first = page.locator('.note-row').first()
+  await expect(first).toBeVisible()
+
+  const label = (await first.locator('.text').innerText()).trim()
+  const edit = page.getByRole('button', { name: 'Edit reminder: ' + label })
+  const del = page.getByRole('button', { name: 'Delete reminder: ' + label })
+
+  // Present without any pointer having touched the row.
+  await expect(edit, 'the edit control must exist before any hover').toHaveCount(1)
+  await expect(del, 'and so must delete').toHaveCount(1)
+
+  // And genuinely focusable, which is what "reachable by keyboard" means.
+  await edit.focus()
+  await expect(edit).toBeFocused()
+
+  // `toBeVisible()` checks the bounding box and `visibility` — it does NOT look
+  // at opacity, so it passes on a fully transparent control. This spec shipped
+  // green once with the `:focus-within` reveal deleted and the button at
+  // opacity 0, which is precisely the regression it exists to catch. Read the
+  // computed value instead.
+  await expect(edit, 'focus must actually reveal it').toHaveCSS('opacity', '1')
+
+  // Keyboard activation opens the inline editor, then Escape backs out with the
+  // reminder unchanged — no write to the shared config row.
+  await page.keyboard.press('Enter')
+  await expect(page.locator('.note-input').first()).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(page.locator('.note-input')).toHaveCount(0)
+  await expect(page.locator('.note-row').first().locator('.text')).toHaveText(label)
+})
+
+/**
+ * Found by the seventh adversarial review. A masterlist edit arms two debounced
+ * writes — the payable's own row (`recurring:<id>`) and one push-down per field
+ * (`push:<id>:<field>`) — and `removeRec` cancelled only the first. Deleting a
+ * payable within the 500 ms debounce window therefore let the push-down fire
+ * afterwards, writing an **amount** onto live ledger rows whose payable no
+ * longer existed, immediately after telling the user those rows were unlinked.
+ *
+ * The race is the point, so this edits and deletes without waiting between.
+ */
+test('deleting a payable cancels the edit still in flight for it', async ({ page }) => {
+  await signIn(page)
+  await go(page, 'Masterlist')
+
+  const desc = D.MARK + ' cancel in flight'
+  await page.getByRole('button', { name: '+ Add payable' }).click()
+  const modal = page.locator('.modal')
+  await modal.getByLabel('Company').selectOption('GTOI')
+  await modal.getByLabel('Category').selectOption('Rental Expense')
+  await modal.getByLabel('Description').fill(desc)
+  await modal.getByLabel('Amount').fill('700')
+  await modal.getByRole('button', { name: 'Save', exact: true }).click()
+  await expect(modal).toBeHidden()
+
+  await page.getByRole('button', { name: /^Generate / }).click()
+  await expect(page.locator('.banner')).toBeVisible()
+  await expect.poll(async () => (await D.txnsTagged(desc)).length, { timeout: 10_000 }).toBeGreaterThan(0)
+  const generated = await D.txnsTagged(desc)
+  const originals = new Map(generated.map((t) => [t.id, Number(t.amount)]))
+
+  // The Masterlist keeps its description in an input VALUE, which `hasText`
+  // cannot match — locate the row by position instead. Production carries no
+  // recurring payables, so the one this spec added is the only row present.
+  const rows = page.locator('.sheet-row')
+  await expect(rows, 'this spec assumes it owns the only masterlist row').toHaveCount(1)
+  const row = rows.first()
+
+  // Retype the amount and delete the payable inside the 500 ms debounce window.
+  await row.getByLabel('Amount').fill('999999')
+  await row.getByRole('button', { name: 'Remove' }).click()
+
+  // Well past the 500 ms window: an armed push-down would have fired by now.
+  await page.waitForTimeout(2000)
+
+  for (const [id, amount] of originals) {
+    const after = await D.txnById(id)
+    expect(after, 'the generated row must survive the delete').toBeTruthy()
+    expect(Number(after.amount), 'a deleted payable must not write to the ledger afterwards').toBe(amount)
+    expect(after.src, 'and its link must be gone').toBe(null)
+  }
+
+  // And the screen must agree with the ledger. The first fix for this cancelled
+  // the database write but left the optimistic push-down painted, so the Tracker
+  // showed a number that was never saved — a worse failure than the one it
+  // replaced, because nothing contradicted it until a reload.
+  await go(page, 'Tracker')
+  const sheetRow = page.locator('.sheet-row', { hasText: desc })
+  await expect(sheetRow, 'the row must still be on the sheet').toHaveCount(1)
+  await expect(sheetRow, 'the screen must show the saved amount, not the cancelled one')
+    .toContainText('₱' + [...originals.values()][0].toLocaleString('en-US'))
+  await expect(sheetRow, 'the cancelled amount must not be on screen').not.toContainText('999,999')
+
+  await D.cleanup()
+})
+
+/**
+ * Found by the ninth adversarial review, and the most serious of the sequence.
+ *
+ * The "never rewrite a completed row" guard lived in `updRec`, filtering
+ * `state.txns` — a snapshot taken at page load, with no realtime subscription
+ * behind it. A row another session completed is therefore still `pending` in
+ * this tab, passes the filter, and has its **amount** overwritten by the next
+ * masterlist keystroke. The exposure is not the 500 ms debounce; it is however
+ * long the tab has been open.
+ *
+ * This drives the browser for the edit and a second Supabase client for the
+ * payment, because one session cannot hold a stale view of itself.
+ */
+test('a masterlist edit cannot rewrite a row another session already paid', async ({ page }) => {
+  await signIn(page)
+  await go(page, 'Masterlist')
+
+  const desc = D.MARK + ' stale snapshot'
+  await page.getByRole('button', { name: '+ Add payable' }).click()
+  const modal = page.locator('.modal')
+  await modal.getByLabel('Company').selectOption('GTOI')
+  await modal.getByLabel('Category').selectOption('Rental Expense')
+  await modal.getByLabel('Description').fill(desc)
+  await modal.getByLabel('Amount').fill('700')
+  await modal.getByRole('button', { name: 'Save', exact: true }).click()
+  await expect(modal).toBeHidden()
+
+  await page.getByRole('button', { name: /^Generate / }).click()
+  await expect(page.locator('.banner')).toBeVisible()
+  await expect.poll(async () => (await D.txnsTagged(desc)).length, { timeout: 10_000 }).toBeGreaterThan(0)
+  const [row] = await D.txnsTagged(desc)
+
+  // A second session pays it. The browser tab knows nothing about this.
+  const c = await D.db()
+  const { error } = await c.from('txns')
+    .update({ status: 'completed', done: '2026-09-05', pay_type: 'Cash', amount: 700 })
+    .eq('id', row.id)
+  expect(error, 'the second session must be able to record the payment').toBeFalsy()
+
+  // Now edit the payable in the stale tab. Its snapshot still says pending.
+  const rows = page.locator('.sheet-row')
+  await expect(rows).toHaveCount(1)
+  await rows.first().getByLabel('Amount').fill('98765')
+  await page.waitForTimeout(2000)
+
+  const after = await D.txnById(row.id)
+  expect(after.status, 'the row stays completed').toBe('completed')
+  expect(Number(after.amount), 'a completed row must keep what was actually paid').toBe(700)
+
+  await D.cleanup()
+})
+
+/**
+ * Found by the tenth adversarial review — D61's family, but for DELETE, which
+ * is worse: there is nothing left to discover afterwards.
+ *
+ * `undoGenerate` promises in its own toast to keep anything already paid, and
+ * filtered `state.txns` to decide. That is a page-load snapshot with no
+ * realtime subscription, so a row another session paid was still `pending` here
+ * and got deleted along with the rest — payment record and all.
+ *
+ * The existing spec pays through the UI in the same session, which keeps the
+ * snapshot fresh, so it could not see this. This one pays from a second client.
+ */
+test('Undo cannot delete a row another session paid, however stale this tab is', async ({ page }) => {
+  await signIn(page)
+  await go(page, 'Masterlist')
+
+  const paidDesc = D.MARK + ' undo cross-session paid'
+  const openDesc = D.MARK + ' undo cross-session open'
+  for (const [desc, amount] of [[paidDesc, '700'], [openDesc, '800']]) {
+    await page.getByRole('button', { name: '+ Add payable' }).click()
+    const modal = page.locator('.modal')
+    await modal.getByLabel('Company').selectOption('GTOI')
+    await modal.getByLabel('Category').selectOption('Rental Expense')
+    await modal.getByLabel('Description').fill(desc)
+    await modal.getByLabel('Amount').fill(amount)
+    await modal.getByRole('button', { name: 'Save', exact: true }).click()
+    await expect(modal).toBeHidden()
+  }
+
+  await page.getByRole('button', { name: /^Generate / }).click()
+  await expect(page.locator('.banner')).toBeVisible()
+  await expect.poll(async () => (await D.txnsTagged(paidDesc)).length, { timeout: 10_000 }).toBe(1)
+  const [paid] = await D.txnsTagged(paidDesc)
+  const [open] = await D.txnsTagged(openDesc)
+
+  // A second session records the payment. This tab never hears about it, and
+  // the banner is still up.
+  const c = await D.db()
+  const { error } = await c.from('txns')
+    .update({ status: 'completed', done: '2026-09-05', pay_type: 'Cash' })
+    .eq('id', paid.id)
+  expect(error, 'the second session must be able to record the payment').toBeFalsy()
+
+  await page.locator('.banner').getByRole('button', { name: 'Undo' }).click()
+
+  // Undo really ran — the untouched row is gone.
+  await expect.poll(async () => await D.txnById(open.id), { timeout: 10_000 }).toBe(null)
+
+  const survivor = await D.txnById(paid.id)
+  expect(survivor, 'a paid transaction must survive Undo even from a stale tab').toBeTruthy()
+  expect(survivor.status).toBe('completed')
+  expect(survivor.pay_type, 'and keep its recorded payment').toBe('Cash')
+
+  await D.cleanup()
+})
+
+/**
+ * Found by the twelfth adversarial review. The unique index from D63 refuses a
+ * due date that would collide with another generated row for the same payable
+ * — which is a legitimate thing to attempt ("we settled both on the 18th") —
+ * and `saveEdit` announced "Transaction updated" regardless, because every
+ * write here is fire-and-forget. The screen showed the new deadline, Postgres
+ * kept the old one, and the only evidence was a toast overwritten seconds later.
+ *
+ * The refusal is correct; claiming success is not. This pins both halves.
+ */
+test('a refused due-date change is undone on screen, not reported as saved', async ({ page }) => {
+  await signIn(page)
+  await go(page, 'Masterlist')
+
+  const desc = D.MARK + ' collide due date'
+  await page.getByRole('button', { name: '+ Add payable' }).click()
+  const modal = page.locator('.modal')
+  await modal.getByLabel('Company').selectOption('GTOI')
+  await modal.getByLabel('Category').selectOption('Rental Expense')
+  await modal.getByLabel('How often').selectOption('Weekly')
+  await modal.getByLabel('Description').fill(desc)
+  await modal.getByLabel('Amount').fill('300')
+  await modal.getByRole('button', { name: 'Save', exact: true }).click()
+  await expect(modal).toBeHidden()
+
+  await page.getByRole('button', { name: /^Generate/ }).click()
+  await expect(page.locator('.banner')).toBeVisible({ timeout: 15_000 })
+  await expect.poll(async () => (await D.txnsTagged(desc)).length, { timeout: 10_000 }).toBeGreaterThan(1)
+
+  const generated = (await D.txnsTagged(desc)).sort((a, b) => (a.due < b.due ? -1 : 1))
+  const [first, second] = generated
+  expect(first.due).not.toBe(second.due)
+
+  await go(page, 'Tracker')
+  await page.locator('.sheet-row', { hasText: desc }).first().click()
+  const form = page.getByRole('dialog')
+  await expect(form.getByRole('heading', { name: 'Transaction details' })).toBeVisible()
+  await form.getByLabel('Due date').fill(second.due)
+  await form.getByRole('button', { name: 'Save', exact: true }).click()
+  await expect(form).toBeHidden()
+
+  // Postgres refused it, so the stored date must not have moved...
+  await page.waitForTimeout(1500)
+  const after = await D.txnById(first.id)
+  expect(after.due, 'the refused change must not reach the ledger').toBe(first.due)
+
+  // ...and the screen must agree, rather than showing a date that was rejected.
+  //
+  // Targeted by the row's OWN full description, not the shared base: a Weekly
+  // payable generates several rows whose descriptions differ only by a date
+  // suffix, so `.first()` on the base text can land on a row this spec never
+  // edited — which is how the first version of this assertion passed against
+  // the very defect it was written for.
+  const edited = page.locator('.sheet-row', { hasText: first.description })
+  await expect(edited).toHaveCount(1)
+  await expect(edited, 'the row must show the date the database actually holds')
+    .toContainText(dstr(first.due))
+  await expect(edited, 'and must not show the date that was refused')
+    .not.toContainText(dstr(second.due))
+
+  await D.cleanup()
+})
+
+test('a decimal amount can be typed into the masterlist, key by key', async ({ page }) => {
+  // The field is controlled from the stored row and the store holds a number,
+  // so typing "1250.50" one key at a time used to lose the decimal point the
+  // instant it was typed: "1250." parsed to 1250, React restored "1250", and
+  // the remaining keys produced 125050 — a hundredfold payable that then pushed
+  // down onto every linked Tracker row.
+  const desc = D.MARK + ' decimal'
+  const payable = await D.makeRecurring({ amount: 100, description: desc })
+  await signIn(page)
+  await go(page, 'Masterlist')
+
+  // Every column on this screen is an input, so the row cannot be found by its
+  // text — match on the Description field's value instead.
+  const rows = page.locator('.sheet-row.compact')
+  await expect.poll(async () => rows.count(), { timeout: 15_000 }).toBeGreaterThan(0)
+  let amount = null
+  for (let i = 0; i < await rows.count(); i += 1) {
+    const r = rows.nth(i)
+    if ((await r.getByLabel('Description').inputValue()) === desc) { amount = r.getByLabel('Amount'); break }
+  }
+  expect(amount, 'the payable must be on screen').not.toBeNull()
+
+  await amount.fill('')
+  await amount.pressSequentially('1250.50', { delay: 40 })
+  await expect(amount, 'the field must show what was typed').toHaveValue('1250.50')
+
+  await page.getByRole('heading', { name: 'Masterlist' }).click()   // blur
+  await expect.poll(async () => (await D.recurringById(payable.id)).amount,
+    { timeout: 10_000 }).toBe(1250.5)
 })

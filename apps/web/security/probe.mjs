@@ -16,6 +16,15 @@ const KEY = process.env.VITE_SUPABASE_PUBLISHABLE_KEY
 const ORIGIN = process.env.SEC_ORIGIN || 'https://tracker-six-flax.vercel.app'
 const EMAIL = process.env.E2E_EMAIL
 const PASSWORD = process.env.E2E_PASSWORD
+const OCCURRENCE_IDENTITY_PHASE = process.env.OCCURRENCE_IDENTITY_PHASE || '1'
+
+if (!['1', '2'].includes(OCCURRENCE_IDENTITY_PHASE)) {
+  console.error('OCCURRENCE_IDENTITY_PHASE must be 1 or 2')
+  process.exit(2)
+}
+
+const OCCURRENCE_IDENTITY_UNAVAILABLE = 'generated occurrence identity rollout unavailable'
+const OCCURRENCE_IDENTITY_PERMISSIONS = 'generated occurrence identity rollout permissions are exact'
 
 /**
  * Checks that fail by decision rather than by defect.
@@ -31,10 +40,9 @@ const PASSWORD = process.env.E2E_PASSWORD
  * passing, because an exemption that outlives its reason is how a suite quietly
  * stops meaning anything.
  */
-// Empty, and that is the healthy state. Self-serve sign-up lived here on
-// 2026-09-01 and was closed the next day; its entry was deleted the moment the
-// check went green, which is the whole discipline.
-const DEFERRED = {}
+const DEFERRED = OCCURRENCE_IDENTITY_PHASE === '1'
+  ? { [OCCURRENCE_IDENTITY_UNAVAILABLE]: 'D79: phase 1 is owner-gated and not applied yet; remove this entry as soon as it lands.' }
+  : {}
 
 const results = []
 const check = (name, ok, detail = '') => {
@@ -183,6 +191,28 @@ const c = await (async () => signedIn)()
   // updated_at is server-managed too; a client must not be able to set it.
   const { error } = await c.from('app_config').update({ data: (await c.from('app_config').select('data').maybeSingle()).data.data, updated_at: '1999-01-01T00:00:00Z' }).eq('id', true)
   check('app_config.updated_at cannot be set by the client', !!error, error ? error.code : 'UPDATE SUCCEEDED')
+}
+
+{
+  // Prove both columns exist before exercising their UPDATE privileges: an
+  // unknown-column error (PGRST204/42703) is not evidence of immutability.
+  // Phase 1 locks occurrence_due while leaving src writable for the deployed
+  // old bundle. Set OCCURRENCE_IDENTITY_PHASE=2 after phase 2 locks src.
+  const { error: columnErr } = await c.from('txns').select('src, occurrence_due').limit(0)
+  if (columnErr) {
+    check(OCCURRENCE_IDENTITY_UNAVAILABLE, false, 'column probe rejected: ' + columnErr.code)
+  } else {
+    const { error: occurrenceErr } = await c.from('txns')
+      .update({ occurrence_due: '2000-01-01' }).eq('id', -1)
+    const { error: srcErr } = await c.from('txns')
+      .update({ src: null }).eq('id', -1)
+    const occurrenceLocked = occurrenceErr?.code === '42501'
+    const srcCorrect = OCCURRENCE_IDENTITY_PHASE === '2'
+      ? srcErr?.code === '42501'
+      : !srcErr
+    check(OCCURRENCE_IDENTITY_PERMISSIONS, occurrenceLocked && srcCorrect,
+      `phase ${OCCURRENCE_IDENTITY_PHASE}, occurrence_due: ${occurrenceErr?.code || 'UPDATE ALLOWED'}, src: ${srcErr?.code || 'UPDATE allowed'}`)
+  }
 }
 
 {

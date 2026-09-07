@@ -5,15 +5,20 @@
         "Accounting Services",
         "Advertising Expense",
         "Alan Expense",
+        "Communications",
         "Consultancy Fee",
         "Credit card",
+        "Final Pay",
         "General Expense",
         "Jack Expense",
         "Legal Services",
         "Other",
         "Petty Cash Fund",
         "Rental Expense",
+        "Repairs & Maintenance",
         "Salary & Wages",
+        "Security Deposit",
+        "Subscription",
         "Withholding Taxes"
       ],
       "companies": [
@@ -64,9 +69,25 @@
           "done": false,
           "linked": false,
           "t": "ZONE - if refunds, tag as Security Deposit"
+        },
+        {
+          "done": false,
+          "linked": false,
+          "t": "FEPA - CDV"
+        },
+        {
+          "done": false,
+          "linked": false,
+          "t": "GTOI - Liquidation August"
+        },
+        {
+          "done": false,
+          "linked": false,
+          "t": "Lee Pemberton - CC URGENT"
         }
       ],
       "settings": {
+        "__e2eHeld": null,
         "ackDefaultStatus": "Pending",
         "ackRequirePhoto": false,
         "dashDefaultScope": "All companies",
@@ -80,6 +101,6 @@
       }
     },
     "id": true,
-    "updated_at": "2026-09-03T21:30:11.404694+00:00"
+    "updated_at": "2026-09-06T18:00:51.537651+00:00"
   }
 ]

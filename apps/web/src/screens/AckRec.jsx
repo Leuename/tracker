@@ -11,6 +11,13 @@ const STATUSES = [
   { v: 'hold', label: 'On hold' },
 ]
 
+/**
+ * Keeps a keystroke inside the control it was typed into. Same reason as the
+ * transfer sheet: a row here opens on Enter or Space, and a control that stops
+ * clicks but not keys lets a space press reach the row and open the receipt.
+ */
+const stop = (ev) => ev.stopPropagation()
+
 export default function AckRec() {
   const { state, setReceiptStatus, openLiquidate, openReceipt, openReceiptFile, askRemoveReceipt, openReceiptRow } = useActions()
 
@@ -65,7 +72,7 @@ export default function AckRec() {
                 <div className="right bold">{fmt(r.amount)}</div>
                 <div style={{ display: 'flex', justifyContent: 'center' }}>
                   <select value={r.status} onChange={setReceiptStatus(r)} aria-label={'Status for ' + r.name}
-                          onClick={(ev) => ev.stopPropagation()}
+                          onClick={stop} onKeyDown={stop}
                           style={{
                             width: 104, textAlign: 'center', textAlignLast: 'center',
                             border: '1px solid var(--border)', borderRadius: 'var(--radius-md)',
@@ -85,15 +92,15 @@ export default function AckRec() {
                 <div className="right" style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
                   {r.filePath ? (
                     <button type="button" className="link"
-                            onClick={(ev) => { ev.stopPropagation(); openReceiptFile(r)() }}
+                            onClick={(ev) => { ev.stopPropagation(); openReceiptFile(r)() }} onKeyDown={stop}
                             title="Open the stored receipt">File</button>
                   ) : null}
                   {r.status !== 'liquidated' ? (
                     <button type="button" className="btn sm"
-                            onClick={(ev) => { ev.stopPropagation(); openLiquidate(r)() }}>Liquidate</button>
+                            onClick={(ev) => { ev.stopPropagation(); openLiquidate(r)() }} onKeyDown={stop}>Liquidate</button>
                   ) : null}
                   <button type="button" className="remove"
-                          onClick={(ev) => { ev.stopPropagation(); askRemoveReceipt(r)() }}
+                          onClick={(ev) => { ev.stopPropagation(); askRemoveReceipt(r)() }} onKeyDown={stop}
                           aria-label={'Delete the receipt for ' + r.name}>Remove</button>
                 </div>
               </div>

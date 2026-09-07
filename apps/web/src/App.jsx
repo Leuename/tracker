@@ -54,8 +54,13 @@ export default function App() {
           <IconSettings /><span>Settings {state.settingsMenuOpen ? '▾' : '▸'}</span>
         </button>
         <div className="spacer" />
+        {/* `scope: 'global'` is the library default, written out because it is a
+            choice rather than an accident: signing out here revokes this account
+            on every device it is signed in on. For a shared ledger that is the
+            point — a lost phone is killed from any other device. Decided by the
+            owner, see Decisions D47. `src/store.jsx` carries the same scope. */}
         <button type="button" title="Sign out" className="rail-item"
-                onClick={() => supabase.auth.signOut()}>
+                onClick={() => supabase.auth.signOut({ scope: 'global' })}>
           <IconSignOut /><span>Sign out</span>
         </button>
       </nav>

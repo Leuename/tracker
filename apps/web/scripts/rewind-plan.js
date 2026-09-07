@@ -40,7 +40,7 @@ export const PK = {
  *   every audit row written after the cut, in any order
  * @returns {{steps:Array, tables:Object, unknown:Array}}
  */
-export function planRewind(entries) {
+export function planRewind(entries, { occurrenceIdentity = false } = {}) {
   const ordered = [...entries].sort((a, b) => a.id - b.id)
   const seen = new Map()
   const unknown = []
@@ -49,6 +49,9 @@ export function planRewind(entries) {
     const pk = PK[e.tbl]
     if (!pk) { unknown.push(e.tbl); continue }
     const row = e.before || e.after || {}
+    if (occurrenceIdentity && e.tbl === 'txns' && e.op !== 'INSERT' && row.src != null && row.occurrence_due == null) {
+      throw new Error('Cannot rewind a linked txns row without occurrence_due; use the pre-migration schema or provide an explicit occurrence mapping.')
+    }
     const key = row[pk]
     // A row with no identifiable key cannot be aimed at, and guessing which
     // row to overwrite is worse than reporting that one entry was skipped.

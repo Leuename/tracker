@@ -2,11 +2,14 @@
 title: Remaining Work and Owner Decisions
 tags: [open-items, decisions, owner, erp, tracker, supabase, backups, testing, security]
 created: 2026-09-04
-status: awaiting owner decisions — C2 renamed and C3 resolved 2026-09-04
+status: occurrence-identity rollout awaits owner authorization; C1, C2, C3 and C4 resolved 2026-09-04; C5 deferred again; A and B still blocked
 supersedes: "[[Open Problems and Proposals]] as the current open-items record; that note remains the round-2 record of 2026-09-02"
 related:
-  - "[[Decisions]] — D1 to D45, the authority on what is authorised"
+  - "[[Decisions]] — D1 to D79, the authority on what is authorised"
+  - "[[2026-09-04 Three Answers, and a Finding That Corrected Itself]] — the current continuation package; C6 and C7 originate there"
+  - "[[2026-09-04 Owner Decision Brief, C5 to C7]] — the deep technical detail for C5, C6 and C7, written for a cold-context agent"
   - "[[2026-09-04 Open Items Brief for Codex, Second Pass]] — the same items written for an external agent"
+  - "[[Handoff Index]] — every handoff, and which are superseded records"
   - "[[Repository Evidence]] — the factual baseline"
   - "[Backups](../backups/README.md) — the restore procedure"
 up: "[[AI Agent Context]]"
@@ -14,12 +17,55 @@ up: "[[AI Agent Context]]"
 
 # Remaining Work and Owner Decisions
 
-Everything that was actionable has been done. What is left divides cleanly into three kinds, and
-**none of it is work I can simply go and finish** — two kinds are blocked on access I do not have,
-and the third is yours to decide.
+Everything that was actionable has been done. What is left divides into four kinds, and **none of
+it is work I can simply go and finish** — two kinds are blocked on access I do not have, one is
+yours to decide, and the last is what verification turned up on 2026-09-04.
 
 Read this by section. Each item says what it is, what is actually true today, what it would cost,
 and what I would do. Answer by item number; nothing here is urgent enough to answer all at once.
+Section C's answered items keep their original framing above the resolution, so the reasoning that
+produced the answer survives alongside it.
+
+---
+
+## Owner-gated occurrence-identity rollout
+
+The application and two additive migration files for [D79](Decisions.md) are implemented in the
+working tree. **Neither migration is applied, the application is not deployed, and production
+behavior has not changed.** The owner must authorize the database and deployment sequence because
+this is the one live ledger and a push to `main` deploys production.
+
+The order cannot be compressed or rearranged:
+
+1. Read the production and rehearsal preflight again; scrutinize every currently linked row's
+   `src`/`due` history and abort for an explicit owner mapping if it is ambiguous or if any
+   `(src, occurrence_due)` collision exists. Historical transitions on now-unlinked rows do not
+   block because those rows require no occurrence identity. Rehearse and
+   apply `20260907181000_generated_occurrence_identity.sql`.
+2. Deploy the identity-aware application. Run the new occurrence-identity e2e spec, which skips
+   safely before phase 1 and has not yet run against the hosted column; verify generated writes and
+   rescheduling. Run security with `OCCURRENCE_IDENTITY_PHASE=1`; require the single 57th probe to receive exact `42501` for
+   `occurrence_due` while confirming `src` remains updateable.
+3. Rehearse and apply `20260907182000_enforce_generated_occurrence_identity.sql`, which revokes
+   authenticated UPDATE(`src`). Set `OCCURRENCE_IDENTITY_PHASE=2` and require the 57th probe to
+   receive exact `42501` for both identity columns. In this mode the check is removed from
+   `DEFERRED`; any `src` or `occurrence_due` failure must be fatal/nonzero. Verify that
+   deleting a recurring parent still unlinks its transactions through `ON DELETE SET NULL` without
+   violating the new check.
+
+Deploying before phase 1 yields unknown-column failures. Phase 2 before deployment rejects stale
+clients. Once phase 1 exists, rewinding a linked transaction across the migration boundary requires
+the pre-migration schema or an explicit owner-approved occurrence mapping; the tool refuses to
+invent one.
+
+The local verification baseline is `npm test`: **191 assertions across 11 files**. `npm run
+security` now enumerates **57 checks**, with only the occurrence-column privilege check deferred
+until phase 1. Phase 1 revokes authenticated UPDATE only on `occurrence_due` and preserves
+UPDATE(`src`) for the old bundle; phase 2 revokes UPDATE(`src`), while the identity-aware
+application's `forUpdate` omits both. The e2e manifest has 50 tests—two setup and 48 specs—but its
+new hosted occurrence-identity spec has not run against the column. The 2026-09-07 preflight found **43 historical `src`
+transitions and zero currently linked production rows**; that is evidence from that moment, not a
+rollout invariant.
 
 ---
 
@@ -111,11 +157,14 @@ fold this in. The gap is narrow: three migrations, none of which is structurally
 
 ## C. Yours to decide
 
-Five items. I have deliberately not acted on any of them.
+Seven items now. C1, C3 and C4 were answered on 2026-09-04 and are recorded as decisions; C2 was
+answered in part; C5 was raised again and deferred again; C6 and C7 are new and untouched. Each
+item's original framing is kept above its resolution.
 
 ### C1 — `signOut()` revokes every device
 
-**Where.** `apps/web/src/App.jsx:58` — `supabase.auth.signOut()`, called bare.
+**Where.** `apps/web/src/App.jsx:58` at the time this was written — `supabase.auth.signOut()`,
+called bare. The same bare call was also at `apps/web/src/store.jsx:62`, which this framing missed.
 
 **What that means.** The library defaults to `scope: 'global'`. **Signing out on your laptop
 revokes that account's session on every device it is signed in on** — phone, tablet, another
@@ -126,12 +175,20 @@ browser. Nobody chose this; it is a library default nobody read.
   posture. If a device is lost, signing out from any other device kills it.
 - **Change it** to `{ scope: 'local' }` — one word. Signing out affects only the device you are on.
 
-**Cost of changing.** One word, plus updating one e2e assertion. It would also remove a constraint:
-the e2e specs that touch sessions are currently *ordered* because a global sign-out revokes the
-shared test session mid-run (D41).
+**Cost of changing.** One word, plus reordering the two session-mutating e2e specs and rewriting
+both of their comment blocks. It would also remove a constraint: those specs are *ordered* because a
+global sign-out revokes the shared test session mid-run (D41).
 
 **What I would do.** Ask you, which is what this is. It is live, user-visible behaviour on a system
 you use daily, and I will not change how your sign-out button behaves on my own judgement.
+
+**Resolved 2026-09-04: keep it global, and say so** ([D47](Decisions.md)). Runtime behaviour is
+unchanged, because `global` is what the unread default already did. What changed is that the scope
+is now written out at both same-browser call sites — `apps/web/src/App.jsx:63` and
+`apps/web/src/store.jsx:67` — so it reads as a decision instead of an accident, and neither can be
+edited without noticing the other. The session-expiry handler in `store.jsx` had been overlooked in
+the original framing of this item; it is the same user in the same browser and now carries the same
+scope. The Node scripts stay bare on purpose. The D41 ordering stands.
 
 ### C2 — The ₱0.00 proof row in your receipts screen
 
@@ -188,6 +245,17 @@ handing it an address list.
 is how you get an alert everyone ignores. If you want a recommendation: Telegram, because you will
 actually see it and it needs no email deliverability work.
 
+**Resolved 2026-09-04: no external channel** ([D48](Decisions.md)). The Telegram option was
+specified in full first — one dedicated bot, one private chat, an explicit `TELEGRAM_NOTIFICATIONS`
+on/off switch so the channel could be silenced without a code revert, and an aggregate-only payload
+(date, overdue count and total, awaiting-liquidation count) carrying no company, beneficiary,
+description, due date or per-row amount. The owner chose not to add it. The GitHub job summary and
+the workflow-failure notification are the accepted paths, `apps/web/scripts/schedule.mjs` is
+unchanged, no `TELEGRAM_*` secret or variable exists, and the repository secret count stays at
+thirteen. This is decided, not deferred; the unbuilt specification is kept in
+`docs/superpowers/plans/2026-09-04-c1-c4-c5-resolution.md` Tasks 4 and 5 so that reopening it is a
+build, not a redesign.
+
 ### C5 — The rates-account password, still deferred
 
 **What it is.** `admin@admin.com` / `admin` — the account the exchange-rate job signs in as, live on
@@ -207,7 +275,93 @@ nothing else changes, and the two migrations that name its uid are unaffected.
 condition you set for revisiting it. It is the highest-risk item on this page and the cheapest to
 close.
 
+**Raised again 2026-09-04, and deferred again** ([D44](Decisions.md)). The condition had been met
+and the reminder was delivered with this blast radius restated; the owner chose to wait. **This
+stays open and the reminder stands.** The rotation procedure is written and costed in
+`docs/superpowers/plans/2026-09-04-c1-c4-c5-resolution.md` Task 2, including its rollback rules and
+its evidence steps, so acting on it later needs a decision rather than any further design. Note one
+thing about its evidence: the FX cron runs hours behind its slot (C6 below), so waiting on a
+scheduled run is a poor rotation signal — Task 2 uses an explicitly dispatched run instead.
+
 ---
+
+## D. Found on 2026-09-04, during verification
+
+> Technical depth for C5, C6 and C7 — exact RLS policies and column grants, the measured
+> cron-delay dataset, the audit-log provenance of the three unpriced wires, a reviewed
+> backfill shape and the rotation procedure with rollback rules — is in
+> [2026-09-04 Owner Decision Brief, C5 to C7](../handoff/2026-09-04%20Owner%20Decision%20Brief,%20C5%20to%20C7.md). This section states the decisions; that file is what you
+> execute from.
+
+Two things the checks turned up that no earlier note records. Neither is damage, and neither was
+acted on, because both touch live behaviour.
+
+### C6 — the FX cron fires, but hours late, and the margin is smaller than it looks
+
+**How this item was found, and then corrected.** At 06:57 UTC on 2026-09-04 the workflow's entire
+run history was one `workflow_dispatch` at `2026-09-03T14:52:01Z`. The `0 2` cron had produced
+nothing, nearly five hours after its slot, and `fx_rates.fetched_at` still pointed at that manual
+run — so the table held four plausible rows because a human had pressed a button once. That was
+written up as "the cron has never fired."
+
+**Two minutes later it fired.** A `schedule` run started at `2026-09-04T06:59:08Z` and succeeded:
+**4 hours 59 minutes after its 02:00 UTC slot.** The original finding was true when it was written
+and false twenty minutes afterwards, which is worth keeping on the page rather than quietly
+rewriting — a scheduler that has not run yet and a scheduler that never runs look identical, and
+only waiting tells them apart.
+
+**It wrote nothing, correctly.** `fx_rates.fetched_at` is still `2026-09-03 14:43:59Z` and the run
+fired no audit trigger, because the ECB publishes once a day and its 2026-09-03 fix was already
+stored. That is exactly [D43](Decisions.md)'s idempotence — and this is the first time it has been
+demonstrated on the **scheduled** path rather than a manual one.
+
+**What is actually left, and it is narrower.** GitHub is queuing this repository's scheduled runs
+2.5 to 5 hours behind their cron slots. Both FX slots exist to land before the ECB's ~14:00 UTC
+publication so the stored rate is deliberately one working day old (D43). 08:00 UTC plus a
+five-hour delay is 13:00 UTC — still inside the window, but the margin is about an hour rather than
+the six the schedule appears to give. A longer delay would silently flip the stored rate from T+1 to
+T+0 with nothing on screen changing. The same delay affects `backup.yml`: its 06:00 UTC run had not
+appeared by 11:03 UTC, so `backups/MANIFEST.md` was around fourteen hours old.
+
+**What I would do.** Nothing urgent. Watch whether a run ever crosses 14:00 UTC, and decide then
+whether the app should record which ECB date it actually stored versus which it expected — it
+already stores `as_of`, so the check is cheap. **Do not "fix" this by moving the cron hours**: 02:00
+and 08:00 UTC are deliberate and decided (D43), and moving them earlier makes the delay worse, not
+better. And never read a late or absent cron run as a failed credential rotation (C5).
+
+### C7 — Three released wires carry no rate
+
+**What is true today.** `select status, count(*), count(rate) from public.transfers` returns
+`released 9, priced 6`. The owner moved the last three from `pending` to `released` at
+2026-09-04 02:26:59–02:27:03 UTC (`audit_log` 1697–1699): `GZZ` EUR 100,000, `ZPH` USD 79,180 and
+`MCR` USD 78,675. All three went across with `rate` and `rate_as_of` null. Ordinary owner work, not
+damage — but it happened four hours before the current handoff was written and that note still says
+"6 released, 3 pending."
+
+**Why it matters.** [D45](Decisions.md) says a released wire carries the rate it went out at, and
+`apps/web/src/logic.js:261` says the same in a comment: "once this is set nothing may re-price it."
+Nothing in the app stamps a rate when the status changes — the rate is a manual field on the
+transfer form — so the intent is not enforced. Those three wires now fall to rung 2 of `rateFor()`
+and are re-valued off `fx_latest` every time the feed moves. They are not on the stale constants
+today, because the feed rung is live, so this is drift rather than a wrong number on screen.
+
+**What I would do.** Ask, which is what this is. There are two separable questions: whether to stamp
+the three existing wires with the ECB rate for their release date (the same reasoning that made the
+2026-09-02 backfill legitimate — the release date is a recorded fact in `audit_log`), and whether
+release should stamp a rate automatically from then on. The first is a one-off write to a live money
+ledger; the second is a behaviour change to the transfer form. Neither is mine to take.
+
+### One more thing, and it is not an item
+
+**The 2026-09-04 work is uncommitted.** Fifteen modified files and four untracked:
+the resolution plan under `docs/superpowers/plans/`, the new continuation package, and the handoff
+index. Nothing was committed or pushed, because a push to `main` runs the gate
+and a green gate deploys production — that is your call, not something to slip into a documentation
+pass. `git status --short` shows the set; the change itself is four lines of application code, two
+e2e comment blocks, and documentation.
+
+Everything actionable and authorized has been done. What remains is C5, C6 and C7 for you, the
+pending commit, and the A and B items blocked on access nobody has.
 
 ## Summary
 
@@ -217,13 +371,15 @@ close.
 | **A2** | Run `backups/verify-restore.sql` | same string | Fold into A1 |
 | **B1** | F5 paging ceiling | 1,000+ objects somewhere disposable | Leave it. Logic is unit-tested; the live gap is theoretical |
 | **B2** | Blank-target replay | an empty Supabase project | Leave it. Fold into the next rehearsal |
-| **C1** | `signOut()` scope | your decision | Tell me global or local. No default is safe to assume |
+| **C1** | `signOut()` scope | ~~your decision~~ | **Done 2026-09-04** — kept global and made explicit at both browser call sites, D47 |
 | **C2** | ₱0.00 proof row | your decision | **Renamed 2026-09-04.** Keep it — deleting it destroys the storage-restore proof |
 | **C3** | `apps/api/` | ~~your decision~~ | **Done 2026-09-04** — deleted, D46 |
-| **C4** | Notifications | your decision | Pick a channel, or leave it. Telegram if you want one |
-| **C5** | `FX_PASSWORD` | your decision | **Rotate it now.** Cheapest and highest-risk item on this page |
+| **C4** | Notifications | ~~your decision~~ | **Done 2026-09-04** — no external channel, decided rather than deferred, D48 |
+| **C5** | `FX_PASSWORD` | your decision | **Still open.** Raised again 2026-09-04 and deferred again. Highest-risk item here and the cheapest to close |
+| **C6** | Scheduled runs land 2.5-5 h late | your decision | **New 2026-09-04.** The FX cron does fire; the delay eats the margin before ECB publication |
+| **C7** | Three wires released unpriced | your decision | **New 2026-09-04.** Nothing stamps a rate on release, so D45's intent is not enforced |
 
-Nothing on this page is half-finished. Everything actionable is committed, pushed, and verified.
+---
 
 ## Guideline Basis
 

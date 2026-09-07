@@ -59,7 +59,12 @@ export function StoreProvider({ children }) {
         // The session is gone for good, so drop it: the gate then shows the
         // sign-in form, which is the only thing that can help. Leaving a dead
         // session in place would strand the user on an error screen.
-        if (e.sessionExpired) { supabase.auth.signOut(); return }
+        //
+        // Same explicit scope as the Sign out button in `App.jsx` (D47). This
+        // is the same browser and the same user, so the two must not disagree.
+        // In practice a dead session has no usable refresh token left to revoke,
+        // which is why this reads as belt-and-braces rather than as the control.
+        if (e.sessionExpired) { supabase.auth.signOut({ scope: 'global' }); return }
         setLoadError(e.message || String(e))
       },
     )

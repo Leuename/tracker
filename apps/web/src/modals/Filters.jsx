@@ -1,6 +1,6 @@
 import { useActions } from '../actions.js'
 import { eff, visibleRows } from '../logic.js'
-import { Check, Select } from '../ui.jsx'
+import { Check, Select, useEscapeToClose } from '../ui.jsx'
 
 const STATUSES = [
   { k: 'pending', label: 'Pending' },
@@ -14,9 +14,20 @@ export default function Filters() {
   const close = () => set({ filtersOpen: false })
   const shown = visibleRows(state).length
 
+  // The backdrop no longer dismisses this, matching every other dialog and the
+  // design the owner approved. Escape is added with it rather than after it:
+  // taking away the mouse route while leaving no keyboard one would replace a
+  // stray-click problem with a worse trapped-drawer problem.
+  //
+  // Through the shared hook, not a listener of its own. This drawer is not a
+  // `Modal`, and its hand-rolled listener sat outside the stack — a keyboard
+  // user could reach a row behind the scrim, open the edit form on top, and the
+  // drawer would then swallow that form's Escape.
+  useEscapeToClose(close)
+
   return (
-    <div className="scrim anchor-right" onMouseDown={close}>
-      <aside className="drawer" onMouseDown={(e) => e.stopPropagation()} aria-label="Filters">
+    <div className="scrim anchor-right">
+      <aside className="drawer" aria-label="Filters">
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <div style={{ fontSize: 16, fontWeight: 700 }}>Show me</div>
           <div className="spacer" />

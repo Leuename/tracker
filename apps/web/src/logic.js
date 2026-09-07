@@ -23,7 +23,43 @@ export const dstr = (d) => {
 export const eff = (t, today = TODAY) => (t.status === 'pending' && t.due < today ? 'overdue' : t.status)
 
 /** Strips currency formatting off a typed amount. NaN when nothing numeric is left. */
-export const amountOf = (v) => parseFloat(String(v).replace(/[^0-9.]/g, ''))
+
+/**
+ * A money amount off a form field.
+ *
+ * Strips currency symbols, commas and spaces, and **keeps a leading minus** so
+ * a negative survives to be rejected. It used to strip the sign, which meant a
+ * field reading `-50` was stored as `50`: the screen and the ledger disagreeing
+ * with nothing in between to notice. Every caller that validates an amount
+ * requires it to be greater than zero, so a negative now stops at the form
+ * with a message instead of being laundered into a positive.
+ *
+ * Returns NaN for anything with no digits at all, which is what the `> 0`
+ * checks read as "no amount given".
+ */
+export const amountOf = (v) => {
+  const raw = String(v).trim()
+  const n = parseFloat(raw.replace(/[^0-9.]/g, ''))
+  return raw.startsWith('-') && Number.isFinite(n) ? -n : n
+}
+
+/**
+ * A user-entered amount that is only valid when positive. NaN otherwise.
+ *
+ * Every writer that accepts a typed amount uses this rather than `amountOf`,
+ * because `amountOf` deliberately preserves a negative so it can be caught —
+ * and a caller testing `!amt` accepts a negative, since `-25` is truthy. That
+ * combination is how a negative e-cash charge could reduce a payable and a
+ * negative liquidation could be stored. One helper, so a new writer inherits
+ * the guard instead of having to remember it.
+ *
+ * `amountOf` stays for intermediate arithmetic, where a negative is a signal
+ * rather than an input.
+ */
+export const positiveAmountOf = (v) => {
+  const n = amountOf(v)
+  return n > 0 ? n : NaN
+}
 
 export const monthLabel = (key) => {
   const p = String(key).split('-')
@@ -95,12 +131,28 @@ export const occurrences = (p, monthKey) => {
     }
     case 'Weekly':
     case 'Bi-weekly': {
-      const step = p.freq === 'Weekly' ? 7 : 14
-      const target = new Date(anchor + 'T00:00:00').getDay()
-      let d = 1
-      while (d <= dim && new Date(y, m - 1, d).getDay() !== target) d++
+      // Stepped from the anchor date itself, not from the first matching
+      // weekday of each month.
+      //
+      // The old version found the first weekday matching the anchor and stepped
+      // from there, which is right for a 7-day cadence and wrong for a 14-day
+      // one: the phase reset every month. A Bi-weekly payable due Fri 11 Sep
+      // generated the 4th and the 18th — never the date the owner actually
+      // entered — and produced a 7-day gap across a month boundary, so "every
+      // other Friday" silently became weekly for one cycle.
+      //
+      // Arithmetic in UTC on purpose. Local-time date maths crosses a DST
+      // boundary badly, and `addDays` in this file already learned that.
+      const step = (p.freq === 'Weekly' ? 7 : 14) * 86400000
+      const anchorMs = Date.UTC(ay, am - 1, ad)
+      const first = Date.UTC(y, m - 1, 1)
+      const skip = Math.ceil((first - anchorMs) / step)
       const out = []
-      for (; d <= dim && out.length < MAX_OCC; d += step) out.push(mk(d))
+      for (let t = anchorMs + skip * step; out.length < MAX_OCC; t += step) {
+        const iso = new Date(t).toISOString().slice(0, 10)
+        if (iso.slice(0, 7) !== monthKey) break
+        out.push(iso)
+      }
       return out
     }
     case 'Bi-monthly': {
@@ -119,28 +171,184 @@ export const occurrences = (p, monthKey) => {
 }
 
 /**
- * Expands the masterlist into Tracker rows for one month.
- * A row already carrying the same company, category, period and description is
- * skipped rather than duplicated, so re-running Generate is safe.
+ * Is this occurrence already on the sheet?
+ *
+ * Keyed on the payable and the due date whenever a row records its parent,
+ * because a description is not stable: the Masterlist pushes an edited
+ * description down onto its open rows, and the old description-based key then
+ * stopped matching — so re-running Generate wrote duplicates of rows already on
+ * the ledger, and the Tracker's sync line counted them as missing.
+ *
+ * Rows with no parent — hand-entered, or generated before `src` existed — keep
+ * the original key, so nothing already on the ledger stops deduplicating.
+ *
+ * `buildGeneratedRows` and `forecast` both call this. They have to agree
+ * exactly: the sync line promises "what Generate would write", and one rule is
+ * the only way that stays true.
  */
+/**
+ * Rows already on the sheet for this payable and month, and which of them still
+ * sit on one of its occurrences.
+ *
+ * The old rule asked only "is there a linked row with exactly this due date",
+ * which is also the key of the D63 unique index — so the index could not catch
+ * what the index and the client agreed to disagree about. **Move a generated
+ * row's due date and the original occurrence looks missing again**, so the
+ * unattended 22:00 job re-created it: one ₱5,000 bill, ₱10,000 of liability,
+ * reported as `Added 1 payable(s)`. The Dashboard and the Tracker sync line
+ * invited a human to do the same thing by hand.
+ *
+ * A rescheduled row is still a row for that occurrence. Coverage is therefore
+ * counted per payable per period: exact matches first, then any remaining
+ * linked row covers a remaining occurrence.
+ */
+export const coverageFor = (existing, p, label) => {
+  const linked = (existing || []).filter((t) => t.src != null && t.src === p.id)
+  const unresolved = linked.filter((t) => !t.occurrenceDue)
+  const month = (() => {
+    const m = String(label).match(/^([A-Za-z]{3}) (\d{4})$/)
+    if (!m) return null
+    const i = MON.indexOf(m[1]) + 1
+    return i ? m[2] + '-' + String(i).padStart(2, '0') : null
+  })()
+  const inMonth = linked.filter((t) => t.occurrenceDue && (!month || t.occurrenceDue.slice(0, 7) === month))
+  const dues = new Set(inMonth.map((t) => t.occurrenceDue))
+  return { dues, count: inMonth.length, unresolved, unresolvedIdentity: unresolved.length > 0 }
+}
+
+/**
+ * The legacy path, for rows generated before `txns.src` existed and so carrying
+ * no link back to the payable. Matched on the shape they were written with.
+ *
+ * `t.src == null` is the whole guard. This used to fall through to the shape
+ * match for any row whose `src` was set but belonged to a *different* payable,
+ * so two payables sharing a company, category, description and period silently
+ * suppressed each other's generation. A linked row is accounted for by
+ * `coverageFor`; only an unlinked one is matched on shape.
+ */
+export const alreadyOnSheet = (existing, p, label, due, desc) =>
+  (existing || []).some((t) => t.src == null
+    && t.co === p.co && t.cat === p.cat && t.period === label && t.desc === desc)
+
+/**
+ * Expands the masterlist into Tracker rows for one month.
+ * An occurrence already on the sheet is skipped rather than duplicated, so
+ * re-running Generate is safe. `alreadyOnSheet` owns that rule — it is not a
+ * description match any more, because a description can be edited.
+ */
+/**
+ * The occurrences of one payable in one month that nothing on the sheet covers.
+ *
+ * `buildGeneratedRows` and `forecast` both need this and each used to compute
+ * it inline. That is the shape of D67 and D68 — the sync line promises "what
+ * Generate would write", and a rule added to one and not the other made the bar
+ * offer a row Generate refused. One function now, so they cannot drift.
+ */
+export const uncoveredOccurrences = (existing, p, monthKey) => {
+  const label = monthLabel(monthKey)
+  const occ = occurrences(p, monthKey)
+  const cover = coverageFor(existing, p, label)
+  if (cover.unresolvedIdentity) {
+    return { label, uncovered: [], skipped: occ.length, unresolvedIdentity: cover.unresolved }
+  }
+  // Linked rows whose due date matches no occurrence: each is a row that was
+  // rescheduled, and it still covers the occurrence it came from.
+  let spare = cover.count - occ.filter((d) => cover.dues.has(d)).length
+  const uncovered = []
+  occ.forEach((due) => {
+    const desc = occ.length > 1 ? p.desc + ' — ' + dstr(due) : p.desc
+    if (cover.dues.has(due)) return
+    if (spare > 0) { spare--; return }
+    if (alreadyOnSheet(existing, p, label, due, desc)) return
+    uncovered.push({ due, desc })
+  })
+  return { label, uncovered, skipped: occ.length - uncovered.length }
+}
+
 export const buildGeneratedRows = (recurring, existing, monthKey, now = Date.now()) => {
   const label = monthLabel(monthKey)
   const rows = []
   let skipped = 0
   let n = 0
+  const unresolved = []
   recurring.forEach((p) => {
-    const occ = occurrences(p, monthKey)
-    const amt = Math.max(0, Number(p.amount) || 0)
-    occ.forEach((due) => {
-      const desc = occ.length > 1 ? p.desc + ' — ' + dstr(due) : p.desc
-      if (existing.some((t) => t.co === p.co && t.cat === p.cat && t.period === label && t.desc === desc)) {
-        skipped++
-        return
-      }
-      rows.push({ id: now + n++, co: p.co, cat: p.cat, desc, period: label, due, amount: amt, status: 'pending', done: '' })
+    const coverage = uncoveredOccurrences(existing, p, monthKey)
+    if (coverage.unresolvedIdentity?.length) unresolved.push(...coverage.unresolvedIdentity)
+    // A payable with no amount yet is not ready to become a Tracker row:
+    // `txns.amount` carries `> 0` (D65) and would refuse it with 23514,
+    // aborting the whole batch — including in the unattended 22:00 job. 0 is a
+    // legal *payable* state, meaning "not decided", and never a legal row.
+    const amt = Number(p.amount) || 0
+    if (!(amt > 0)) return
+    const { uncovered, skipped: covered } = coverage
+    skipped += covered
+    uncovered.forEach(({ due, desc }) => {
+      rows.push({ id: now + n++, src: p.id, occurrenceDue: due, co: p.co, cat: p.cat, desc, period: label, due, amount: amt, status: 'pending', done: '' })
     })
   })
-  return { rows, skipped, label }
+  return { rows, skipped, label, unresolved }
+}
+
+/**
+ * Payables that fall due in `monthKey` but carry no amount yet.
+ *
+ * One function because five places encoded this idea and drifted apart: the
+ * generator skipped them, `forecast` did not, `generate` blocked on a
+ * whole-masterlist scan, the scheduler reported them for months they were never
+ * candidates in, and the sync line said "in sync" while one sat unwritable.
+ * That is trap 90 twice over — so the rule lives here, and every caller asks.
+ *
+ * `0` is a legal payable state meaning "not decided yet" (D66); it is simply
+ * not something Generate can turn into a row.
+ */
+export const unpricedFor = (recurring, monthKey) =>
+  (recurring || []).filter((p) => !(Number(p.amount) > 0) && occurrences(p, monthKey).length > 0)
+
+/** Linked rows from before occurrence identity was stored; never infer their month. */
+export const unresolvedFor = (st) =>
+  (st?.txns || []).filter((t) => t.src != null && !t.occurrenceDue)
+
+/**
+ * Masterlist payables falling due inside `days` that no Tracker row covers yet.
+ *
+ * The horizon is a parameter, not a constant. It defaults to the 30 days the
+ * Tracker's sync line promises, but the Dashboard passes its own window — which
+ * the owner can set to 7 or 90 — and a hard-coded 30 made the masterlist half
+ * of that list stop early while the Tracker-row half honoured the setting.
+ *
+ * `alreadyOnSheet` decides "already there?" for both this and
+ * `buildGeneratedRows`, so what this returns is exactly what Generate would
+ * write. That is the
+ * point: the Tracker's sync line and the Generate button have to agree, and
+ * they only do if one rule decides both.
+ *
+ * Three months of keys are scanned because a 30-day horizon crosses a month
+ * boundary for most of any given month, and a quarterly rule can land in the
+ * third.
+ */
+export const forecast = (st, today = TODAY, days = 30) => {
+  const horizon = addDays(today, days)
+  const out = []
+  // Enough months to cover the horizon plus the month it starts in. This was
+  // three, which is right for the Tracker's fixed 30-day line and wrong for the
+  // Dashboard, whose window the owner can set to 90 — the scan has to follow
+  // the horizon or the far end of a wide window is silently empty.
+  const months = Math.max(3, Math.ceil(days / 28) + 1)
+  monthKeys(today).slice(0, months).forEach((month) => {
+    const label = monthLabel(month)
+    ;(st.recurring || []).forEach((p) => {
+      // The same skip `buildGeneratedRows` applies. These two have to agree
+      // exactly — the sync line promises "what Generate would write" — and the
+      // zero rule was added to one of them and not the other, so the bar
+      // counted a payable Generate would refuse to write.
+      if (!(Number(p.amount) > 0)) return
+      uncoveredOccurrences(st.txns, p, month).uncovered.forEach(({ due, desc }) => {
+        if (due < today || due > horizon) return
+        out.push({ src: p.id, co: p.co, cat: p.cat, desc, due, period: label, month, amount: Math.max(0, Number(p.amount) || 0) })
+      })
+    })
+  })
+  return out.sort((a, b) => (a.due < b.due ? -1 : a.due > b.due ? 1 : 0))
 }
 
 export const isMonthKey = (k) => /^\d{4}-(0[1-9]|1[0-2])$/.test(String(k))
@@ -190,6 +398,37 @@ export const visibleRows = (st, today = TODAY) => {
     if (anyStatus && !st.statuses[eff(t, today)]) return false
     if (st.search && (t.desc + ' ' + t.cat + ' ' + t.co).toLowerCase().indexOf(needle) < 0) return false
     return true
+  })
+}
+
+/** The sort keys the Tracker's Sort menu offers, in menu order. */
+export const SORTS = [
+  { k: 'none', label: 'Default' },
+  { k: 'co', label: 'By Company' },
+  { k: 'cat', label: 'By Category' },
+  { k: 'due', label: 'By Due date' },
+]
+
+/**
+ * Sorts the visible rows.
+ *
+ * 'none' returns a copy in arrival order, so choosing Default really does put
+ * the sheet back rather than leaving it in whatever order the last sort left.
+ * Company and category compare lowercased, because 'ZON' sorting before 'ang'
+ * is a code-point artefact, not an order anyone asked for.
+ */
+export const sortRows = (rows, key = 'none', dir = 'asc') => {
+  const list = [...(rows || [])]
+  if (key === 'none') return list
+  const sign = dir === 'desc' ? -1 : 1
+  const val = (t) =>
+    key === 'co' ? String(t.co || '').toLowerCase()
+      : key === 'cat' ? String(t.cat || '').toLowerCase()
+        : String(t.due || '')
+  return list.sort((a, b) => {
+    const x = val(a)
+    const y = val(b)
+    return (x < y ? -1 : x > y ? 1 : 0) * sign
   })
 }
 
@@ -341,6 +580,11 @@ export const VIEWER_MAY = new Set([
   'toggleStatus', 'toggleGroup', 'clearFilters',
   'closeAdd', 'closeTransfer', 'closeReceipt',
   'cancelPay', 'cancelRemoveReceipt', 'cancelRemoveTransfer',
+  // Sorting and exporting rearrange and print what this account can already
+  // read. Neither writes anything, so refusing them would only make the
+  // read-only account worse at reading.
+  'toggleSort', 'flipSort', 'pickSort', 'toggleExport', 'exportPng', 'exportPdf',
+  'hoverNote', 'unhoverNote',
 ])
 
 export function viewerActions(actions, flash) {
@@ -349,3 +593,171 @@ export function viewerActions(actions, flash) {
     return [name, () => flash('This account can view the ledger but not change it.')]
   }))
 }
+
+/**
+ * Escapes text going into the export summary.
+ *
+ * Everything interpolated below is authored by a signed-in user — company and
+ * category names come off the Masterlist screen, the search string comes off
+ * the toolbar — and the summary is written into a document with `document.write`
+ * in a popup on this origin. The prototype interpolated all of it raw. The app
+ * already treats a description as text rather than markup (there is an e2e spec
+ * pinning exactly that), so the export has to as well or printing a summary
+ * becomes the one screen where a stored payload runs.
+ */
+const esc = (v) => String(v == null ? '' : v)
+  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;').replace(/'/g, '&#39;')
+
+/**
+ * The printable summary of whatever the Tracker is currently showing.
+ *
+ * Built from `visibleRows` and `sortRows`, so the sheet's filters, search and
+ * sort are the summary's scope too — a summary of something other than what is
+ * on screen would be worse than none. Styles are inline because this string is
+ * also written into a bare popup window that has no stylesheet of its own.
+ */
+/**
+ * How the Tracker groups rows. Exported because `summaryHTML` and the Tracker
+ * screen both need it and each had its own copy: identical today, and the PNG
+ * export claims to summarise exactly what the screen shows, so a drift between
+ * the two would be a lie nobody would notice.
+ */
+export const groupKey = (groupBy) => (t) => (groupBy === 'company' ? t.co : t.cat)
+
+export const summaryHTML = (st, today = TODAY) => {
+  const rows = sortRows(visibleRows(st, today), st.sortKey, st.sortDir)
+  const byCompany = st.groupBy === 'company'
+  const keyOf = groupKey(st.groupBy)
+
+  const order = []
+  rows.forEach((t) => { if (order.indexOf(keyOf(t)) < 0) order.push(keyOf(t)) })
+
+  const chips = Object.keys(st.statuses).filter((k) => st.statuses[k]).map(cap).join(', ')
+  const scopeBits = [
+    st.coFilter, st.catFilter,
+    chips ? 'Status: ' + chips : '',
+    st.search ? 'Search: “' + st.search + '”' : '',
+  ].filter(Boolean).map(esc)
+
+  const th = 'text-align:left;padding:9px 12px;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#8B7079;border-bottom:1px solid #EFDCE4'
+  const td = 'padding:10px 12px;font-size:13px;border-bottom:1px solid #F5E7EE'
+
+  const groupRows = order.map((name) => {
+    const rs = rows.filter((t) => keyOf(t) === name)
+    const over = rs.filter((t) => eff(t, today) === 'overdue').length
+    return '<tr><td style="' + td + ';font-weight:600">' + esc(name) + '</td>'
+      + '<td style="' + td + ';text-align:right">' + rs.length + '</td>'
+      + '<td style="' + td + ';text-align:right;color:' + (over ? '#C4566E' : '#8B7079') + '">' + over + '</td>'
+      + '<td style="' + td + ';text-align:right;font-weight:600">' + esc(fmt(rs.reduce((a, t) => a + t.amount, 0))) + '</td></tr>'
+  }).join('')
+
+  const statusCells = ['pending', 'overdue', 'completed', 'hold'].map((k) => {
+    const rs = rows.filter((t) => eff(t, today) === k)
+    return '<div style="flex:1;border:1px solid #EFDCE4;border-radius:12px;padding:12px 14px">'
+      + '<div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#8B7079">' + esc(cap(k)) + '</div>'
+      + '<div style="font-size:17px;font-weight:700;margin-top:4px">' + esc(fmt(rs.reduce((a, t) => a + t.amount, 0))) + '</div>'
+      + '<div style="font-size:11px;color:#8B7079">' + rs.length + ' rows</div></div>'
+  }).join('')
+
+  const pend = forecast(st, today).length
+
+  return '<div style="font-family:Inter,system-ui,sans-serif;color:#2A1A22;padding:28px;background:#fff">'
+    + '<div style="display:flex;align-items:baseline;gap:10px;border-bottom:2px solid #A8577B;padding-bottom:12px">'
+    + '<div style="font-size:20px;font-weight:700">Tracker summary</div>'
+    + '<div style="font-size:12px;color:#8B7079">grouped by ' + (byCompany ? 'company' : 'category') + ' · ' + esc(dstr(today)) + '</div></div>'
+    + '<div style="font-size:12px;color:#8B7079;margin:12px 0 16px">' + (scopeBits.join(' · ') || 'No filters applied') + '</div>'
+    + '<div style="display:flex;gap:10px;margin-bottom:18px">' + statusCells + '</div>'
+    + '<table style="width:100%;border-collapse:collapse;border:1px solid #EFDCE4;border-radius:12px;overflow:hidden">'
+    + '<thead><tr style="background:#FCF5F8"><th style="' + th + '">' + (byCompany ? 'Company' : 'Category') + '</th>'
+    + '<th style="' + th + ';text-align:right">Rows</th><th style="' + th + ';text-align:right">Overdue</th>'
+    + '<th style="' + th + ';text-align:right">Amount</th></tr></thead><tbody>' + groupRows + '</tbody>'
+    + '<tfoot><tr style="background:#FCF5F8"><td style="' + td + ';font-weight:700">Grand total</td>'
+    + '<td style="' + td + ';text-align:right;font-weight:700">' + rows.length + '</td><td style="' + td + '"></td>'
+    + '<td style="' + td + ';text-align:right;font-weight:700">' + esc(fmt(rows.reduce((a, t) => a + t.amount, 0))) + '</td></tr></tfoot></table>'
+    + '<div style="margin-top:14px;font-size:11.5px;color:#8B7079">Masterlist: ' + (st.recurring || []).length + ' recurring payables · '
+    + (pend ? pend + ' due in the next 30 days not yet in the Tracker' : 'in sync with the Tracker') + '</div></div>'
+}
+
+/**
+ * Whether a masterlist edit is in a state fit to travel onto linked Tracker
+ * rows. `amount` carries `> 0` in the database (D65), and `description` is
+ * `not null default ''` with no emptiness check — so a blank one is accepted
+ * silently, which is worse. Empty means "not decided yet" on a payable and is
+ * never a state a Tracker row may hold, whichever field it arrives in.
+ */
+export const pushable = (k, val) => (k === 'amount' ? val > 0 : String(val ?? '').trim() !== '')
+
+/** The masterlist fields that travel onto linked Tracker rows, and the column each becomes. */
+export const PUSH_DOWN = { co: 'co', cat: 'cat', desc: 'description', amount: 'amount' }
+
+/**
+ * What a masterlist keystroke should do to the linked Tracker rows.
+ *
+ * Pure, and therefore testable — which is the point. `pushable` was extracted
+ * and tested on its own, and `updRec` could still be edited to stop consulting
+ * it with the whole suite green: the predicate was proved right while nothing
+ * proved the caller asked. This returns the whole decision, so a test pins the
+ * decision rather than one input to it.
+ *
+ * `retract` matters as much as `targets`. Typing `500` arms a push; clearing
+ * the field 200ms later must CANCEL that armed write, or it fires anyway with
+ * the value the user took back.
+ *
+ * It returns the `patch` too, so the caller has nothing left to assemble. The
+ * state key and the column differ — `desc` is stored in `description` — and a
+ * caller building the patch itself wrote `{ desc: … }`, a column that does not
+ * exist, with every test still green. Nothing a test cannot see should be left
+ * for the call site to get right.
+ *
+ * It does NOT return the rows to write. Choosing them here would mean choosing
+ * from a page-load snapshot, and a linked row another session created after
+ * this tab mounted would be left behind while the toast said otherwise. The
+ * write selects by `src` server-side instead.
+ */
+export const pushPlan = (k, val) => {
+  const ok = pushable(k, val)
+  const column = PUSH_DOWN[k]
+  return {
+    column,
+    retract: !ok,
+    patch: column && ok ? { [column]: val } : null,
+  }
+}
+
+/**
+ * What a masterlist keystroke actually stores, and the row it produces.
+ *
+ * Blank means 0 here, because this field saves on every keystroke and a
+ * half-typed number is not an error. A negative gets the same treatment: it
+ * lands as 0 and the field re-renders showing 0, so the stored value and the
+ * screen never disagree. `recurring.amount` would accept a negative, and the
+ * value also pushes down onto linked Tracker rows, so a negative must not
+ * survive this step.
+ *
+ * Pure, and separate from `updRec`, because `actions.js` imports React and
+ * nothing offline can reach it: three mutations here — dropping `Math.max`,
+ * storing the raw input instead of the sanitised value — all passed the whole
+ * suite while writing a negative or a string into a numeric column.
+ */
+export const recValue = (k, v) => (k === 'amount' ? Math.max(0, amountOf(v) || 0) : v)
+
+export const editRecurring = (row, k, v) => ({ ...row, [k]: recValue(k, v) })
+
+/**
+ * What an inline masterlist field shows while it is being typed into.
+ *
+ * The Masterlist edits in place, so its Amount input is controlled from the
+ * stored row — and `recValue` stores a **number**. Typing `1250.50` one key at
+ * a time meant the `.` keystroke parsed to `1250`, state did not change, and
+ * React restored the input to `"1250"`: the decimal point was erased as fast as
+ * it was typed, so the next keys produced `125050`. A hundredfold payable, which
+ * then pushed down onto the linked Tracker rows.
+ *
+ * Every other amount field in the app holds raw text and sanitises on save.
+ * This does the same for the one cell being edited: the draft is what the user
+ * typed, the stored value is what the ledger gets, and they reconcile the
+ * moment the field is left.
+ */
+export const draftText = (draft, id, k, stored) =>
+  (draft && draft.id === id && draft.k === k ? draft.text : String(stored ?? ''))

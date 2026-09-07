@@ -136,11 +136,13 @@ try {
 
 } finally {
   // Runs whether the assertions passed or threw.
+  // Files first, then the rows that point at them — the comment here used to
+  // claim this order while the code did the opposite. A kill between the two
+  // must leave a row still naming the file, or the file is unreachable forever.
+  if (created.files.length) await supabase.storage.from('receipts').remove(created.files)
   if (created.txns.length) await supabase.from('txns').delete().in('id', created.txns)
   if (created.receipts.length) await supabase.from('receipts').delete().in('id', created.receipts)
   if (created.transfers.length) await supabase.from('transfers').delete().in('id', created.transfers)
-  // Before the receipt rows go, so nothing is left that no row points at.
-  if (created.files.length) await supabase.storage.from('receipts').remove(created.files)
   // The category list is shared configuration, not a row this script owns.
   if (restoreConfig && first) await db.saveConfig(first)
 }

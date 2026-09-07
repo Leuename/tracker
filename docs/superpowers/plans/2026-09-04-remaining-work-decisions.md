@@ -1,5 +1,12 @@
 # Remaining Work and Owner Decisions
 
+> **Superseded on 2026-09-04.** C1, C4 and C5 were put to the owner and answered: sign-out stays
+> **global** and is now explicit at both browser call sites ([D47](../../Decisions.md)), the scheduler gets
+> **no external notification channel** ([D48](../../Decisions.md), which also closes D31), and the rates-account
+> password rotation was **deferred again** ([D44](../../Decisions.md)) and remains open as C5.
+> **Do not ask the owner to choose C1 or C4 again.** This file is kept as the dated record of
+> what was open before those answers. Current state: [Three Answers, and a Finding That Corrected Itself](../../../handoff/2026-09-04%20Three%20Answers,%20and%20a%20Finding%20That%20Corrected%20Itself.md)
+
 ## Goal
 
 Close the safe, explicitly recommended items from `docs/Remaining Work and Owner Decisions.md`, and leave database-connection, disposable-environment, and owner-choice blockers visible without inventing access or mutating production data beyond the requested proof-row cleanup.

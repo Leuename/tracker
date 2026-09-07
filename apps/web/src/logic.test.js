@@ -3,7 +3,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { CSYM, initialState, MAX_OCC, TODAY } from './data.js'
 import {
-  addDays, alphabetical, buildGeneratedRows, curFmt, dstr, eff, inPesos, monthKeys, occurrences, openingView, parsePeriod, periodLabel, rateFor, ruleLabel, transferTotals, visibleRows, windowDays, viewerActions, VIEWER_MAY} from './logic.js'
+  addDays, alphabetical, alreadyOnSheet, amountOf, buildGeneratedRows, curFmt, dstr, eff, forecast, inPesos, monthKeys, occurrences, openingView, parsePeriod, periodLabel, positiveAmountOf, unpricedFor, rateFor, ruleLabel, SORTS, sortRows, summaryHTML, transferTotals, visibleRows, windowDays, viewerActions, VIEWER_MAY, pushable, pushPlan, groupKey, editRecurring, recValue, draftText, coverageFor } from './logic.js'
 
 const rent = { co: 'GTOI', cat: 'Rental Expense', freq: 'Monthly', desc: 'Warehouse B monthly rent', dueDate: '2026-08-24', amount: 45000 }
 
@@ -70,11 +70,26 @@ test('parsePeriod round-trips a rendered range back into picker fields', () => {
   assert.equal(parsePeriod('Aug 2026').periodFrom, '2026-08')
 })
 
+// `eff` takes `today` precisely so it can be pinned. These assertions used the
+// real one, so `due: '2026-09-05'` meant "pending" on 2026-09-05 and "overdue"
+// on 2026-09-06 — the suite went red overnight with no code change. A test that
+// depends on the wall clock reports the calendar, not the code.
 test('eff derives overdue from the due date, never from stored status', () => {
-  assert.equal(eff({ status: 'pending', due: '2026-08-24' }), 'overdue')
-  assert.equal(eff({ status: 'pending', due: '2026-09-05' }), 'pending')
-  assert.equal(eff({ status: 'hold', due: '2026-08-01' }), 'hold')
-  assert.equal(eff({ status: 'completed', due: '2026-08-01' }), 'completed')
+  const on = '2026-09-05'
+  assert.equal(eff({ status: 'pending', due: '2026-08-24' }, on), 'overdue')
+  assert.equal(eff({ status: 'pending', due: '2026-09-05' }, on), 'pending', 'due today is not yet overdue')
+  assert.equal(eff({ status: 'pending', due: '2026-09-06' }, on), 'pending')
+  assert.equal(eff({ status: 'hold', due: '2026-08-01' }, on), 'hold')
+  assert.equal(eff({ status: 'completed', due: '2026-08-01' }, on), 'completed')
+})
+
+// The bug this file just demonstrated, pinned as its own case: the same row is
+// pending on its due date and overdue the next day, and nothing about the row
+// changed.
+test('a row becomes overdue by the calendar advancing, not by being written to', () => {
+  const row = { status: 'pending', due: '2026-09-05' }
+  assert.equal(eff(row, '2026-09-05'), 'pending')
+  assert.equal(eff(row, '2026-09-06'), 'overdue')
 })
 
 test('buildGeneratedRows skips a payable the month already has', () => {
@@ -178,7 +193,7 @@ test('the shipped company and category lists are already a–z', () => {
   assert.deepEqual(initialState.companies, alphabetical(initialState.companies))
   assert.deepEqual(initialState.categories, alphabetical(initialState.categories))
   assert.equal(initialState.companies.length, 21)
-  assert.equal(initialState.categories.length, 13)
+  assert.equal(initialState.categories.length, 19)
 })
 
 test('transfer totals convert to pesos and exclude what is not going anywhere', () => {
@@ -304,4 +319,524 @@ test('an action nobody listed is blocked, not allowed', () => {
   const guarded = viewerActions({ someBrandNewWrite: () => 'wrote' }, () => {})
   assert.notEqual(guarded.someBrandNewWrite(), 'wrote')
   assert.ok(!VIEWER_MAY.has('someBrandNewWrite'))
+})
+
+// ---- tracker sort ----------------------------------------------------------
+
+const sortable = [
+  { id: 1, co: 'ZON', cat: 'rental', due: '2026-09-10' },
+  { id: 2, co: 'ang', cat: 'Salary', due: '2026-08-02' },
+  { id: 3, co: 'MCR', cat: 'Accounting', due: '2026-12-31' },
+]
+
+test('sortRows leaves the arrival order alone when nothing is chosen', () => {
+  assert.deepEqual(sortRows(sortable, 'none').map((t) => t.id), [1, 2, 3])
+  assert.deepEqual(sortRows(sortable).map((t) => t.id), [1, 2, 3], 'no key is the same as none')
+})
+
+test('sortRows copies rather than reordering the array it was handed', () => {
+  const before = sortable.map((t) => t.id)
+  sortRows(sortable, 'co')
+  assert.deepEqual(sortable.map((t) => t.id), before)
+})
+
+// 'ZON' sorting before 'ang' is a code-point artefact — uppercase letters all
+// precede lowercase ones — not an order anyone would ask for on a company list.
+test('sortRows compares company and category case-insensitively', () => {
+  assert.deepEqual(sortRows(sortable, 'co').map((t) => t.co), ['ang', 'MCR', 'ZON'])
+  assert.deepEqual(sortRows(sortable, 'cat').map((t) => t.cat), ['Accounting', 'rental', 'Salary'])
+})
+
+test('sortRows reverses on desc, and sorts due dates as dates read left to right', () => {
+  assert.deepEqual(sortRows(sortable, 'due').map((t) => t.id), [2, 1, 3])
+  assert.deepEqual(sortRows(sortable, 'due', 'desc').map((t) => t.id), [3, 1, 2])
+})
+
+test('every sort key the menu offers is one sortRows understands', () => {
+  for (const o of SORTS) {
+    assert.equal(sortRows(sortable, o.k).length, 3, o.k + ' dropped rows')
+  }
+})
+
+// ---- masterlist forecast ---------------------------------------------------
+
+const fcState = (over = {}) => ({
+  recurring: [{ id: 7, co: 'GTOI', cat: 'Rental Expense', freq: 'Monthly', desc: 'Warehouse B monthly rent', dueDate: '2026-09-24', amount: 45000 }],
+  txns: [],
+  ...over,
+})
+
+test('forecast reports a payable due inside the window and not yet generated', () => {
+  const out = forecast(fcState(), '2026-09-05')
+  assert.equal(out.length, 1)
+  assert.equal(out[0].due, '2026-09-24')
+  assert.equal(out[0].src, 7, 'the line has to name the payable it came from')
+  assert.equal(out[0].month, '2026-09')
+})
+
+// A Monthly rule always has an occurrence inside any 30-day window, so the
+// horizon has to be tested with a rule that fires exactly once.
+test('forecast ignores anything past the 30-day horizon or already behind', () => {
+  const once = fcState({
+    recurring: [{ id: 8, co: 'GTOI', cat: 'Legal Services', freq: 'Once', desc: 'filing fee', dueDate: '2026-09-24', amount: 1000 }],
+  })
+  assert.equal(forecast(once, '2026-09-05').length, 1, 'inside the window')
+  assert.equal(forecast(once, '2026-08-01').length, 0, 'due date is beyond 30 days')
+  assert.equal(forecast(once, '2026-09-25').length, 0, 'due date has passed')
+})
+
+/**
+ * The whole point of the sync line: it must count exactly what Generate would
+ * write. If these two ever disagree the bar says "N due" and pressing Generate
+ * produces a different number, which is worse than saying nothing at all.
+ */
+// Round 14 caught this spec passing for a reason that no longer generalises:
+// its fixture was fully priced, so it could not see the zero rule being applied
+// to one of the two functions and not the other. An unpriced payable is now in
+// the fixture, which is the case that actually broke.
+test('forecast and buildGeneratedRows agree even when a payable has no amount', () => {
+  const st = {
+    recurring: [
+      { id: 7, co: 'GTOI', cat: 'Rental Expense', freq: 'Monthly', desc: 'Warehouse B monthly rent', dueDate: '2026-09-24', amount: 45000 },
+      { id: 8, co: 'GTOI', cat: 'Legal Services', freq: 'Monthly', desc: 'retainer, amount not set', dueDate: '2026-09-20', amount: 0 },
+    ],
+    txns: [],
+  }
+  const due = forecast(st, '2026-09-05')
+  const { rows } = buildGeneratedRows(st.recurring, st.txns, '2026-09')
+  assert.deepEqual(due.map((x) => x.desc).sort(), rows.map((r) => r.desc).sort(),
+    'the sync line must count exactly what Generate would write')
+  assert.equal(rows.length, 1, 'the unpriced payable produces nothing')
+})
+
+test('forecast and buildGeneratedRows agree on what is missing', () => {
+  const st = fcState()
+  const due = forecast(st, '2026-09-05')
+  const { rows } = buildGeneratedRows(st.recurring, st.txns, '2026-09')
+  assert.deepEqual(due.map((x) => x.desc), rows.map((r) => r.desc))
+
+  const after = { ...st, txns: rows }
+  assert.equal(forecast(after, '2026-09-05').length, 0, 'generating has to empty the forecast')
+})
+
+test('generated rows carry the payable that produced them', () => {
+  const { rows } = buildGeneratedRows(fcState().recurring, [], '2026-09')
+  assert.equal(rows[0].src, 7)
+})
+
+// ---- export summary --------------------------------------------------------
+
+const sumState = (over = {}) => ({
+  txns: [{ id: 1, co: 'GTOI', cat: 'Rental Expense', desc: 'rent', period: 'Sep 2026', due: '2026-09-24', amount: 45000, status: 'pending', done: '' }],
+  recurring: [], statuses: { pending: true, overdue: true, completed: false, hold: false },
+  coFilter: 'All companies', catFilter: 'All categories', search: '', groupBy: 'company',
+  sortKey: 'none', sortDir: 'asc', ...over,
+})
+
+test('the export summary reports the rows the sheet is showing', () => {
+  const html = summaryHTML(sumState(), '2026-09-05')
+  assert.match(html, /Tracker summary/)
+  assert.match(html, /GTOI/)
+  assert.match(html, /Grand total/)
+})
+
+// A description is already shown as text rather than markup everywhere else in
+// the app; the export writes into a popup with document.write, so it is the one
+// place a stored payload could start executing instead.
+test('the export summary escapes what a user typed rather than running it', () => {
+  const html = summaryHTML(sumState({ search: '<script>alert(1)</script>' }), '2026-09-05')
+  assert.ok(!html.includes('<script>'), 'a script tag must not survive into the summary')
+  assert.match(html, /&lt;script&gt;/)
+})
+
+test('the export summary escapes a company name too, not just the search box', () => {
+  const html = summaryHTML(sumState({
+    txns: [{ id: 1, co: '<img src=x onerror=1>', cat: 'c', desc: 'd', period: 'p', due: '2026-09-24', amount: 1, status: 'pending', done: '' }],
+  }), '2026-09-05')
+  assert.ok(!html.includes('<img'), 'a group name must not survive into the summary as markup')
+})
+
+// ---- amounts off a form ----------------------------------------------------
+
+// The sign used to be stripped, so a field reading -50 was stored as 50 — the
+// screen and the ledger disagreeing with nothing in between to notice. It now
+// survives so the callers' `> 0` checks can refuse it.
+test('amountOf keeps a negative so it can be rejected, rather than turning it positive', () => {
+  assert.equal(amountOf('-50'), -50)
+  assert.equal(amountOf('-20'), -20)
+  assert.ok(!(amountOf('-50') > 0), 'a negative must fail the positive check every writer applies')
+})
+
+test('amountOf still strips the things a person types around a number', () => {
+  assert.equal(amountOf('1,050.50'), 1050.5)
+  assert.equal(amountOf('₱500'), 500)
+  assert.equal(amountOf(' 42 '), 42)
+})
+
+test('amountOf reports no number at all as NaN, which is also not > 0', () => {
+  assert.ok(Number.isNaN(amountOf('')))
+  assert.ok(Number.isNaN(amountOf('abc')))
+  assert.ok(!(amountOf('') > 0))
+  assert.ok(!(amountOf('0') > 0), 'zero is not an amount either')
+})
+
+// Making `amountOf` sign-aware fixed one defect and opened another: seven
+// writers tested `!amt`, and -25 is truthy, so a negative could reach the
+// ledger where sign-stripping had previously made it impossible. One helper
+// carries the guard now, so a new writer inherits it rather than remembering it.
+test('positiveAmountOf refuses everything that is not a positive number', () => {
+  for (const bad of ['-25', '-0.01', '0', '-0', '', 'abc', '   ']) {
+    assert.ok(!positiveAmountOf(bad), JSON.stringify(bad) + ' must not pass as an amount')
+  }
+})
+
+test('positiveAmountOf keeps a real amount, punctuation and all', () => {
+  assert.equal(positiveAmountOf('500'), 500)
+  assert.equal(positiveAmountOf('1,050.50'), 1050.5)
+  assert.equal(positiveAmountOf('₱42'), 42)
+})
+
+// The two are deliberately different: `amountOf` reports the negative so
+// intermediate arithmetic can see it, `positiveAmountOf` refuses it so no
+// writer can store it.
+test('amountOf reports a negative while positiveAmountOf refuses one', () => {
+  assert.equal(amountOf('-25'), -25)
+  assert.ok(Number.isNaN(positiveAmountOf('-25')))
+})
+
+// ---- Generate stays idempotent after a masterlist edit ----------------------
+
+const meralco = { id: 1, co: 'GTOI', cat: 'General Expense', freq: 'Bi-monthly', desc: 'Meralco', dueDate: '2026-09-05', amount: 5000 }
+
+/**
+ * The Masterlist pushes an edited description down onto its open Tracker rows.
+ * Generate's dedupe key used to include that description, so an edit broke the
+ * match and re-running Generate wrote duplicates — real rows, real money, on a
+ * multi-occurrence payable where the description also carries a date suffix.
+ */
+test('re-running Generate after a description edit writes nothing', () => {
+  const first = buildGeneratedRows([meralco], [], '2026-09')
+  assert.equal(first.rows.length, 2, 'a bi-monthly payable produces two occurrences')
+
+  // exactly what updRec's push-down does: the bare description, suffix gone
+  const pushed = first.rows.map((r) => ({ ...r, desc: 'Meralco bill' }))
+  const edited = { ...meralco, desc: 'Meralco bill' }
+
+  const second = buildGeneratedRows([edited], pushed, '2026-09')
+  assert.equal(second.rows.length, 0, 'nothing may be written twice')
+  assert.equal(second.skipped, 2, 'both occurrences must be recognised as already present')
+})
+
+test('the sync line agrees with Generate after the same edit', () => {
+  const pushed = buildGeneratedRows([meralco], [], '2026-09').rows.map((r) => ({ ...r, desc: 'Meralco bill' }))
+  const edited = { ...meralco, desc: 'Meralco bill' }
+  assert.equal(forecast({ recurring: [edited], txns: pushed }, '2026-09-01').length, 0,
+    'the bar must not report rows that are already on the sheet')
+})
+
+// A row generated before `src` existed, or entered by hand, has no parent to
+// key on — it must still stop a duplicate.
+test('a row with no parent still deduplicates on the original key', () => {
+  const legacy = [{ co: 'GTOI', cat: 'General Expense', period: 'Sep 2026', desc: 'Meralco — Sep 05', due: '2026-09-05' }]
+  assert.equal(buildGeneratedRows([meralco], legacy, '2026-09').skipped, 1)
+})
+
+test('coverage keys on the link when there is one, and on shape when there is not', () => {
+  const p = { id: 7, co: 'GTOI', cat: 'Rent', desc: 'Retainer', amount: 5000, freq: 'Monthly', dueDate: '2026-09-15' }
+  const label = 'Sep 2026'
+
+  // A linked row is accounted for by `coverageFor`, whatever its due date now
+  // says — that is the whole of finding 78.
+  const linked = { id: 1, src: 7, occurrenceDue: '2026-09-15', co: 'GTOI', cat: 'Rent', desc: 'Retainer', period: label, due: '2026-09-15' }
+  assert.equal(coverageFor([linked], p, label).count, 1)
+  assert.ok(coverageFor([linked], p, label).dues.has('2026-09-15'))
+  assert.equal(coverageFor([{ ...linked, due: '2026-09-20' }], p, label).count, 1,
+    'a rescheduled row is still coverage')
+  assert.equal(coverageFor([{ ...linked, period: 'Aug 2026' }], p, label).count, 1, 'identity survives an editable period move')
+  assert.equal(coverageFor([{ ...linked, src: 99 }], p, label).count, 0, 'nor another payable')
+
+  // `alreadyOnSheet` is now ONLY the legacy path: rows written before
+  // `txns.src` existed, matched on the shape they were given.
+  const legacy = { id: 2, src: null, co: 'GTOI', cat: 'Rent', desc: 'Retainer', period: label, due: '2026-09-15' }
+  assert.equal(alreadyOnSheet([legacy], p, label, '2026-09-15', 'Retainer'), true)
+  assert.equal(alreadyOnSheet([legacy], p, label, '2026-09-15', 'Something else'), false)
+  assert.equal(alreadyOnSheet([{ ...legacy, period: 'Aug 2026' }], p, label, '2026-09-15', 'Retainer'), false)
+  // A row that HAS a link is never matched on shape — two payables sharing a
+  // company, category, description and period used to suppress each other.
+  assert.equal(alreadyOnSheet([{ ...legacy, src: 99 }], p, label, '2026-09-15', 'Retainer'), false,
+    'a linked row belonging to another payable is not this one\'s coverage')
+})
+
+// ---- fortnightly means fortnightly -----------------------------------------
+
+/**
+ * Weekly and Bi-weekly shared a branch that found the first matching weekday of
+ * each month and stepped from there. Correct for 7 days, wrong for 14: the
+ * phase reset every month, so the anchor date itself was never generated and a
+ * 7-day gap appeared at month boundaries — "every other Friday" became weekly
+ * for one cycle.
+ */
+test('a bi-weekly payable keeps a 14-day cadence across month boundaries', () => {
+  const p = { id: 1, freq: 'Bi-weekly', dueDate: '2026-09-11', amount: 1 }
+  const dates = ['2026-09', '2026-10', '2026-11', '2026-12'].flatMap((k) => occurrences(p, k))
+
+  assert.ok(dates.includes('2026-09-11'), 'the date the owner entered must be generated')
+  const gaps = dates.slice(1).map((d, i) => (Date.parse(d) - Date.parse(dates[i])) / 86400000)
+  assert.deepEqual([...new Set(gaps)], [14], 'every gap must be a fortnight: ' + gaps.join(','))
+})
+
+test('a weekly payable is still weekly, and still includes its anchor', () => {
+  const p = { id: 1, freq: 'Weekly', dueDate: '2026-09-11', amount: 1 }
+  const dates = ['2026-09', '2026-10'].flatMap((k) => occurrences(p, k))
+  assert.ok(dates.includes('2026-09-11'))
+  const gaps = dates.slice(1).map((d, i) => (Date.parse(d) - Date.parse(dates[i])) / 86400000)
+  assert.deepEqual([...new Set(gaps)], [7], 'every gap must be a week: ' + gaps.join(','))
+})
+
+// ---- the forecast horizon follows its caller -------------------------------
+
+/**
+ * `forecast` was written for the Tracker's fixed 30-day sync line and then
+ * reused by the Dashboard, whose window the owner sets to 7, 30 or 90 days. The
+ * horizon was hard-coded, so under "Next 90 days" the Tracker-row half of the
+ * deadline list honoured the setting while the masterlist half silently stopped
+ * at 30 — the exact gap the feature exists to close, still open for two thirds
+ * of the widest window.
+ */
+const monthlyOn20th = {
+  recurring: [{ id: 1, co: 'GTOI', cat: 'Rental Expense', freq: 'Monthly', desc: 'rent', dueDate: '2026-09-20', amount: 1 }],
+  txns: [],
+}
+
+test('forecast reaches as far as the window it is given', () => {
+  const due = (days) => forecast(monthlyOn20th, '2026-09-05', days).map((x) => x.due)
+  assert.deepEqual(due(7), [], 'nothing falls inside a week')
+  assert.deepEqual(due(30), ['2026-09-20'])
+  assert.deepEqual(due(90), ['2026-09-20', '2026-10-20', '2026-11-20'],
+    'a 90-day window must not stop at 30')
+})
+
+test('forecast still defaults to the 30 days the Tracker sync line promises', () => {
+  assert.deepEqual(forecast(monthlyOn20th, '2026-09-05').map((x) => x.due), ['2026-09-20'])
+})
+
+// The month scan has to widen with the horizon, or the far end of a long window
+// is empty however generous the date comparison is.
+test('the month scan widens with the horizon, so the far end is not silently empty', () => {
+  // A yearly payable has exactly one occurrence, four months out. It is only
+  // reachable if the scan follows the horizon rather than stopping at three
+  // months — which is what the old fixed `slice(0, 3)` did.
+  const yearly = {
+    recurring: [{ id: 1, co: 'GTOI', cat: 'Rental Expense', freq: 'Yearly', desc: 'insurance', dueDate: '2025-12-20', amount: 1 }],
+    txns: [],
+  }
+  assert.deepEqual(forecast(yearly, '2026-09-05', 30).map((x) => x.due), [],
+    'nothing is due inside a month')
+  assert.deepEqual(forecast(yearly, '2026-09-05', 120).map((x) => x.due), ['2026-12-20'],
+    'a due date four months out must be reachable at a 120-day horizon')
+})
+
+// ---- a payable with no amount is not a Tracker row -------------------------
+
+/**
+ * `recurring.amount >= 0` and `txns.amount > 0` are both real constraints
+ * (D65), and they disagree about zero on purpose: 0 means "not decided yet" on
+ * a payable, and is never a legal state for a row on the ledger. The generator
+ * used to emit it anyway, so one cleared Amount field would make Postgres
+ * refuse the whole batch with 23514 — in the browser and in the unattended
+ * 22:00 job alike.
+ */
+test('a payable with no amount yet generates nothing, rather than a row the ledger refuses', () => {
+  const priced = { id: 1, co: 'GTOI', cat: 'Rental Expense', freq: 'Monthly', desc: 'rent', dueDate: '2026-09-24', amount: 45000 }
+  const unpriced = { id: 2, co: 'GTOI', cat: 'Legal Services', freq: 'Monthly', desc: 'retainer', dueDate: '2026-09-20', amount: 0 }
+
+  const { rows } = buildGeneratedRows([priced, unpriced], [], '2026-09')
+  assert.equal(rows.length, 1, 'only the priced payable may produce a row')
+  assert.equal(rows[0].cat, 'Rental Expense')
+  assert.ok(rows.every((r) => r.amount > 0), 'every generated amount must satisfy txns_amount_positive')
+})
+
+test('a negative payable amount is treated the same way', () => {
+  const bad = { id: 3, co: 'GTOI', cat: 'Other', freq: 'Monthly', desc: 'x', dueDate: '2026-09-10', amount: -5 }
+  assert.equal(buildGeneratedRows([bad], [], '2026-09').rows.length, 0)
+})
+
+// ---- one rule for "this payable has no amount yet" -------------------------
+
+/**
+ * Five places encoded this idea and drifted apart across two rounds: the
+ * generator skipped an unpriced payable, `forecast` did not, `generate` blocked
+ * on a whole-masterlist scan, the scheduler reported them for months they were
+ * never candidates in, and the sync line announced "in sync" while one sat
+ * unwritable. `unpricedFor` is the single rule they now all ask.
+ */
+const monthlyUnpriced = { id: 1, co: 'GTOI', cat: 'Legal Services', freq: 'Monthly', desc: 'retainer', dueDate: '2026-09-20', amount: 0 }
+const yearlyUnpriced = { id: 2, co: 'GTOI', cat: 'Other', freq: 'Yearly', desc: 'insurance', dueDate: '2025-12-20', amount: 0 }
+const priced = { id: 3, co: 'GTOI', cat: 'Rental Expense', freq: 'Monthly', desc: 'rent', dueDate: '2026-09-24', amount: 45000 }
+
+test('unpricedFor names only payables that are actually due in the month asked about', () => {
+  assert.deepEqual(unpricedFor([monthlyUnpriced, yearlyUnpriced, priced], '2026-09').map((p) => p.id), [1],
+    'the December yearly payable is not a September candidate')
+  assert.deepEqual(unpricedFor([monthlyUnpriced, yearlyUnpriced, priced], '2026-12').map((p) => p.id).sort(), [1, 2])
+})
+
+test('unpricedFor ignores a priced payable, however it is written', () => {
+  assert.deepEqual(unpricedFor([priced], '2026-09'), [])
+  assert.deepEqual(unpricedFor([{ ...priced, amount: '45000' }], '2026-09'), [], 'a numeric string is an amount')
+  assert.deepEqual(unpricedFor([{ ...priced, amount: -1 }], '2026-09').map((p) => p.id), [3], 'a negative is not')
+})
+
+// The whole point of scoping: an unpriced Monthly payable has an occurrence in
+// EVERY month, so an unscoped rule blocks or mis-reports all of them.
+test('an unpriced Monthly payable is a candidate every month, which is why scope matters', () => {
+  for (const m of ['2026-09', '2026-10', '2026-11']) {
+    assert.equal(unpricedFor([monthlyUnpriced], m).length, 1, m + ' must see it')
+  }
+  assert.equal(unpricedFor([yearlyUnpriced], '2026-09').length, 0,
+    'a yearly December payable must not be reported during September')
+})
+
+// Generate must still be able to write the priced siblings alongside it.
+test('an unpriced payable does not stop its priced siblings being generated', () => {
+  const { rows } = buildGeneratedRows([monthlyUnpriced, priced], [], '2026-09')
+  assert.equal(rows.length, 1)
+  assert.equal(rows[0].desc, 'rent')
+  assert.ok(rows.every((r) => r.amount > 0))
+})
+
+test('pushable stops a mid-edit value travelling onto linked Tracker rows', () => {
+  // amount: the database refuses 0 with a CHECK, so this one was already guarded
+  assert.equal(pushable('amount', 500), true)
+  assert.equal(pushable('amount', 0), false)
+  assert.equal(pushable('amount', -1), false)
+  // description: `txns.description` is `not null default ''` and accepts a
+  // blank silently, so an unguarded clear wrote '' onto live rows and the
+  // toast claimed they matched.
+  assert.equal(pushable('desc', 'Retainer'), true)
+  assert.equal(pushable('desc', ''), false)
+  assert.equal(pushable('desc', '   '), false)
+  assert.equal(pushable('desc', undefined), false)
+  assert.equal(pushable('desc', null), false)
+  assert.equal(pushable('co', 'GTOI'), true)
+  assert.equal(pushable('cat', ''), false)
+})
+
+// Round 20: `pushable` was extracted and tested, and `updRec` could still be
+// edited to stop consulting it with the whole suite green. These pin the whole
+// decision, not one input to it.
+test('pushPlan refuses to push a mid-edit value and gives the caller the patch', () => {
+  const good = pushPlan('amount', 500)
+  assert.equal(good.column, 'amount')
+  assert.equal(good.retract, false)
+  assert.deepEqual(good.patch, { amount: 500 })
+
+  // Cleared to 0: nothing may travel, AND the write the last keystroke armed
+  // must be cancelled or it fires with the value the user took back (D67).
+  const cleared = pushPlan('amount', 0)
+  assert.equal(cleared.patch, null)
+  assert.equal(cleared.retract, true, 'the armed push must be retracted')
+
+  // The state key and the column differ. A caller that built this itself wrote
+  // `{ desc: … }` — a column that does not exist — with every test green.
+  assert.deepEqual(pushPlan('desc', 'Retainer').patch, { description: 'Retainer' })
+  assert.equal(pushPlan('desc', '').patch, null, 'a cleared description never travels')
+  assert.equal(pushPlan('desc', '').retract, true)
+
+  // A field that does not travel: nothing to write, and nothing to retract.
+  const untravelled = pushPlan('freq', 'Monthly')
+  assert.equal(untravelled.column, undefined)
+  assert.equal(untravelled.patch, null)
+  assert.equal(untravelled.retract, false)
+})
+
+// The PNG export and the Tracker screen each had their own copy of this.
+// Identical today, but the export claims to summarise what the screen shows,
+// so a drift between them would be a lie nobody would notice.
+test('groupKey is the one rule the export and the screen share', () => {
+  const row = { co: 'GTOI', cat: 'Legal Services' }
+  assert.equal(groupKey('company')(row), 'GTOI')
+  assert.equal(groupKey('category')(row), 'Legal Services')
+  assert.equal(groupKey(undefined)(row), 'Legal Services', 'anything but company groups by category')
+})
+
+// Round 23 landed three mutations inside `updRec` that the whole suite passed,
+// because `actions.js` imports React and nothing offline can reach it. These
+// pin the part that decides what actually gets stored.
+test('recValue keeps a half-typed or negative amount out of the ledger', () => {
+  assert.equal(recValue('amount', '500'), 500)
+  assert.equal(recValue('amount', ''), 0, 'a cleared field is 0, not NaN')
+  assert.equal(recValue('amount', 'abc'), 0, 'and so is nonsense')
+  assert.equal(recValue('amount', '-5'), 0, 'a negative must not survive — it pushes down')
+  assert.equal(recValue('amount', '-0.01'), 0)
+  assert.equal(recValue('amount', '1,250.50'), 1250.5, 'thousands separators are ordinary typing')
+  // Every other field is stored as typed.
+  assert.equal(recValue('desc', '  Retainer '), '  Retainer ')
+  assert.equal(recValue('co', 'GTOI'), 'GTOI')
+})
+
+test('editRecurring stores the sanitised value, never the raw input', () => {
+  const row = { id: 7, co: 'GTOI', amount: 100, desc: 'Retainer' }
+  assert.deepEqual(editRecurring(row, 'amount', '-5'), { ...row, amount: 0 })
+  assert.deepEqual(editRecurring(row, 'amount', '250'), { ...row, amount: 250 })
+  assert.deepEqual(editRecurring(row, 'desc', 'Fuel'), { ...row, desc: 'Fuel' })
+  assert.equal(typeof editRecurring(row, 'amount', '250').amount, 'number',
+    'a string would reach a numeric column')
+})
+
+// The Masterlist Amount field is controlled from the stored row, and the store
+// holds a number. Typing `1250.50` meant the `.` parsed to 1250, state did not
+// change, React restored `"1250"`, and the next keys produced 125050 — a
+// hundredfold payable that then pushed down onto the linked Tracker rows.
+test('draftText shows what is being typed, not what is stored', () => {
+  const draft = { id: 7, k: 'amount', text: '1250.' }
+  assert.equal(draftText(draft, 7, 'amount', 1250), '1250.', 'the half-typed decimal survives')
+  assert.equal(draftText(draft, 7, 'desc', 'Retainer'), 'Retainer', 'another field on the same row is unaffected')
+  assert.equal(draftText(draft, 9, 'amount', 400), '400', 'and so is the same field on another row')
+  assert.equal(draftText(null, 7, 'amount', 1250), '1250', 'no draft, show the stored value')
+  assert.equal(draftText(undefined, 7, 'amount', 0), '0', 'zero renders, it is not blank')
+  assert.equal(draftText(null, 7, 'desc', undefined), '', 'and a missing value is empty, never "undefined"')
+})
+
+// Round 25, and the worst defect the loop produced: `alreadyOnSheet` matched a
+// linked row by exact due date — the same key as the D63 unique index — so the
+// index could not catch what the index and the client agreed to disagree about.
+// Move a generated row's due date and the occurrence looked missing again, so
+// the unattended 22:00 job re-created it: one bill, twice the liability,
+// reported as "Added 1 payable(s)".
+test('a rescheduled generated row is not generated again', () => {
+  const p = { id: 7, co: 'GTOI', cat: 'Rent', desc: 'Retainer', amount: 5000, freq: 'Monthly', dueDate: '2026-09-15' }
+  const gen = { id: 1, src: 7, occurrenceDue: '2026-09-15', co: 'GTOI', cat: 'Rent', desc: 'Retainer', period: 'Sep 2026', due: '2026-09-15', amount: 5000, status: 'pending' }
+
+  assert.equal(buildGeneratedRows([p], [gen], '2026-09').rows.length, 0, 'untouched: nothing to add')
+
+  // The owner moves the Tracker row to the 20th.
+  assert.equal(buildGeneratedRows([p], [{ ...gen, due: '2026-09-20' }], '2026-09').rows.length, 0,
+    'a row that moved still covers the occurrence it came from')
+
+  // The owner moves the payable's own due date instead.
+  assert.equal(buildGeneratedRows([{ ...p, dueDate: '2026-09-20' }], [gen], '2026-09').rows.length, 0,
+    'and so does the row, when the payable is what moved')
+
+  assert.equal(buildGeneratedRows([p], [], '2026-09').rows.length, 1, 'nothing on the sheet: generate it')
+  assert.equal(buildGeneratedRows([p], [{ ...gen, src: null }], '2026-09').rows.length, 0,
+    'a legacy row with no link is still matched on its shape')
+})
+
+test('coverage is per payable per period, so a partial month still fills in', () => {
+  const bi = { id: 7, co: 'GTOI', cat: 'Rent', desc: 'Fee', amount: 100, freq: 'Bi-weekly', dueDate: '2026-09-01' }
+  const all = buildGeneratedRows([bi], [], '2026-09').rows
+  assert.ok(all.length >= 2, 'a bi-weekly payable has several occurrences in a month')
+
+  // One of them exists and has been rescheduled to a date no occurrence uses.
+  const one = { ...all[0], src: 7, occurrenceDue: all[0].due, period: 'Sep 2026', due: '2026-09-29' }
+  const rest = buildGeneratedRows([bi], [one], '2026-09')
+  assert.equal(rest.rows.length, all.length - 1, 'the rest are still generated')
+  assert.equal(rest.skipped, 1, 'and exactly one is counted as covered')
+
+  // Another payable's rows never count as coverage for this one.
+  assert.equal(buildGeneratedRows([bi], [{ ...one, src: 99 }], '2026-09').rows.length, all.length)
+  // Nor do rows in another period.
+  const stale = buildGeneratedRows([bi], [{ ...one, occurrenceDue: null, period: 'Aug 2026' }], '2026-09')
+  assert.equal(stale.rows.length, 0, 'a stale linked row blocks generation rather than guessing a month')
+  assert.equal(stale.unresolved.length, 1, 'the scheduler can report the unresolved identity')
 })

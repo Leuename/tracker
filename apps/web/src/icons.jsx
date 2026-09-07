@@ -39,6 +39,18 @@ export const IconChevronDown = (p) => svg({ ...p, w: 2.4 }, <path d="M5 9l7 7 7-
 export const IconFilter = (p) => svg({ ...p, w: 1.9 }, <>
   <path d="M4 6h16" /><path d="M7 12h10" /><path d="M10 18h4" />
 </>)
+// The up/down arrow pair the Sort control uses, and the tray-arrow for Export.
+export const IconSort = (p) => svg({ ...p, w: 1.9 }, <>
+  <path d="M7 4v16" /><path d="M4 8l3-4 3 4" />
+  <path d="M17 20V4" /><path d="M14 16l3 4 3-4" />
+</>)
+export const IconExport = (p) => svg({ ...p, w: 1.9 }, <>
+  <path d="M12 4v11" /><path d="M8 11l4 4 4-4" /><path d="M4 19h16" />
+</>)
+export const IconPencil = (p) => svg({ ...p, w: 2 }, <>
+  <path d="M4 20h4l10-10-4-4L4 16v4z" /><path d="M14 6l4 4" />
+</>)
+
 export const IconCheckCircle = (p) => svg({ ...p, w: 2 }, <>
   <circle cx="12" cy="12" r="9" /><path d="M8 12.5l2.6 2.5L16 9.5" />
 </>)

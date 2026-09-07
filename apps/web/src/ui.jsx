@@ -1,18 +1,77 @@
-import { cloneElement, isValidElement, useEffect, useId } from 'react'
+import { cloneElement, isValidElement, useEffect, useId, useRef } from 'react'
 import { periodLabel } from './logic.js'
 import { useActions } from './actions.js'
 
-/** Modal shell: click-outside and Escape both close. */
-export function Modal({ onClose, width, align = 'top', children }) {
+/**
+ * Which dialogs are open, innermost last.
+ *
+ * Dialogs stack: the edit form opens the payment dialog on top of itself. Both
+ * used to listen for Escape on `window`, and the outer one won because it
+ * registered first — so Escape closed the form and left the payment dialog
+ * sitting over nothing. Confirming from that orphan wrote **nothing at all**,
+ * because `confirmPay`'s edit path only stages into the form and the form is
+ * what saves. The dialog closed, no toast, no error, and a payment the user had
+ * just confirmed did not exist.
+ *
+ * A module-level stack rather than context: this is one rule about the whole
+ * window, and every Modal has to agree on it whether or not it shares a parent.
+ */
+const openModals = []
+
+/**
+ * Modal shell. Escape closes the innermost dialog; clicking the backdrop does
+ * not close anything.
+ *
+ * Every dialog here is a form over a live money ledger, and a mis-aimed click
+ * beside one used to discard whatever had been typed into it with no warning
+ * and no undo. Escape stays, because a keyboard user needs a way out that does
+ * not depend on finding the Cancel button — it is deliberate and reachable in a
+ * way a stray click is not.
+ */
+/**
+ * Escape closes this dialog, but only while it is the innermost one open.
+ *
+ * Exported because `Modal` is not the only dialog: the Filters drawer has its
+ * own shell and had its own bare `window` listener, which put it outside the
+ * stack and reintroduced exactly the bug the stack exists to prevent — a
+ * keyboard user can reach a row behind the drawer's scrim, open the edit form
+ * on top, and the drawer's listener then swallowed the form's Escape. Any
+ * dialog anywhere uses this; nothing binds Escape on `window` by hand.
+ */
+export function useEscapeToClose(onClose) {
+  const self = useRef({})
+
+  // Registration is its own effect so it does not re-run when `onClose`
+  // changes identity, which it does on every render — re-pushing on each
+  // render would corrupt the order this depends on.
   useEffect(() => {
-    const onKey = (e) => { if (e.key === 'Escape') onClose() }
+    const me = self.current
+    openModals.push(me)
+    return () => {
+      const i = openModals.indexOf(me)
+      if (i >= 0) openModals.splice(i, 1)
+    }
+  }, [])
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key !== 'Escape') return
+      // Only the innermost dialog answers. Without this the outer one closes
+      // and orphans the inner one over an empty screen.
+      if (openModals[openModals.length - 1] !== self.current) return
+      onClose()
+    }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose])
+}
+
+export function Modal({ onClose, width, align = 'top', children }) {
+  useEscapeToClose(onClose)
 
   return (
-    <div className={'scrim' + (align === 'center' ? ' centered' : '')} onMouseDown={onClose}>
-      <div className="modal" style={{ width }} role="dialog" aria-modal="true" onMouseDown={(e) => e.stopPropagation()}>
+    <div className={'scrim' + (align === 'center' ? ' centered' : '')}>
+      <div className="modal" style={{ width }} role="dialog" aria-modal="true">
         {children}
       </div>
     </div>

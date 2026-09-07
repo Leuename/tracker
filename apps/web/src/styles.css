@@ -114,10 +114,12 @@ input, select, button { font-family: inherit; }
 .topbar {
   height: var(--topbar-h); flex: none; background: var(--surface);
   border-bottom: 1px solid var(--border); display: flex; align-items: center;
-  gap: var(--space-14); padding: 0 var(--space-28);
+  gap: var(--space-12); padding: 0 var(--space-28);
 }
-.topbar h1 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.2px; }
+.topbar h1 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.2px; white-space: nowrap; }
 .topbar .sub { font-size: 13px; color: var(--muted); white-space: nowrap; }
+/* The subtitle is the only thing in a topbar allowed to give up room. */
+.ellipsis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 /* Topbar controls size to content; only form fields stretch. */
 .topbar .field { width: auto; }
 
@@ -142,6 +144,8 @@ input, select, button { font-family: inherit; }
 .btn.quiet:hover { border-color: var(--accent); color: var(--accent); }
 .btn.danger { border-color: var(--danger-soft); color: var(--danger); font-weight: 700; display: inline-flex; align-items: center; gap: 8px; }
 .btn.danger:hover { background: #FADCE6; border-color: var(--danger); color: var(--danger); }
+.btn.row-btn { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+.btn.on { border-color: var(--accent); color: var(--accent); }
 .btn.sm { padding: 5px 10px; font-size: 12px; color: var(--accent); }
 .btn.sm:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
 
@@ -289,6 +293,12 @@ input[type='date'].field, input[type='month'].field { padding: 9px 10px; }
 .split-btn { position: relative; display: flex; }
 .split-btn .left { border-radius: var(--radius-md) 0 0 var(--radius-md); border-right: none; padding: 10px var(--space-14); }
 .split-btn .right-cap { border-radius: 0 var(--radius-md) var(--radius-md) 0; padding: 10px; display: flex; align-items: center; }
+/* An anchor so a dropdown positions against its button, not the whole bar. */
+.menu-anchor { position: relative; flex: none; }
+.menu.drop { top: 44px; }
+.menu-rule { height: 1px; background: var(--border); margin: 5px 8px; }
+.menu button.accent { color: var(--accent); font-weight: 600; }
+
 .menu {
   position: absolute; top: 46px; right: 0; width: 252px; background: var(--surface);
   border: 1px solid var(--border); border-radius: var(--radius-counter);
@@ -460,3 +470,86 @@ input[type='date'].inline-field { padding: 5px 7px; }
 .auth-card { width: 100%; max-width: 360px; }
 .auth-card .btn { width: 100%; }
 .auth-card .btn:disabled { opacity: .6; cursor: default; }
+
+/* ---------- masterlist sync line ---------- */
+/* Sits between the Tracker's toolbar and its sheet and answers one question:
+   is what I am looking at everything that is due? Amber when the Masterlist
+   has payables the sheet has not been given yet, green when it does not. */
+.sync-bar {
+  flex: none; display: flex; align-items: center; gap: 11px;
+  padding: 9px var(--space-28); border-bottom: 1px solid var(--border);
+  background: #F3F8F4; color: #4A6E58; font-size: 12.5px;
+}
+.sync-bar.pending { background: #FDF3E7; color: #8A6224; }
+.sync-bar .dot { width: 7px; height: 7px; flex: none; border-radius: 7px; background: #5C8F72; }
+.sync-bar.pending .dot { background: #BE8A38; }
+.sync-bar .link { font-size: 12.5px; }
+.sync-action {
+  border: 1px solid var(--border-check); border-radius: var(--radius-input);
+  padding: 4px 11px; font-size: 12px; font-weight: 600; cursor: pointer;
+  background: var(--surface); color: var(--accent); white-space: nowrap;
+}
+.sync-action:hover { background: var(--accent); color: #fff; }
+
+/* ---------- denser tracker sheet ---------- */
+/* Scoped to the Tracker rather than every sheet: AckRec, Telegraphic and the
+   Masterlist were not retuned, and shrinking their type as a side effect of
+   this one screen would be a change nobody asked for. */
+.sheet.tight .sheet-head { font-size: 9px; padding-top: 9px; padding-bottom: 9px; }
+.sheet.tight .sheet-row { font-size: 11px; padding-top: 11px; padding-bottom: 11px; }
+.sheet.tight .tag { font-size: 10px; }
+.sheet.tight .btn.sm { padding: 4px 9px; font-size: 11px; }
+.sheet.tight .group-head .name { font-size: 12px; }
+.sheet.tight .group-head .meta { font-size: 11px; }
+.sheet.tight .group-head .sum { font-size: 12px; }
+
+.sheet-head.compact { font-size: 10px; }
+.sheet-row.compact { font-size: 12px; }
+
+/* The row came from a recurring payable rather than being typed in. Kept to a
+   dot because the column it shares is the one already fighting for room. */
+.from-master {
+  width: 5px; height: 5px; flex: none; border-radius: 5px; background: var(--accent);
+}
+
+/* ---------- editable reminders ---------- */
+.note-row {
+  min-height: 30px; padding: 2px 4px; margin: 0 -4px;
+  border-radius: var(--radius-input); background: transparent;
+}
+.note-row.active { background: var(--sunken); }
+.note-input {
+  flex: 1; min-width: 0; border: 1px solid var(--border-check);
+  border-radius: 8px; padding: 5px 8px; font: inherit; font-size: 13.5px;
+  outline: none; color: var(--ink); background: var(--surface);
+}
+.note-row .link { font-size: 12px; }
+/* Present for everyone, revealed on hover or keyboard focus.
+   These used to be rendered only on mouse hover, which put editing and deleting
+   a reminder out of reach of a keyboard entirely — and of any touch device.
+
+   `opacity`, deliberately, and not `visibility` or `display`: both of those
+   remove an element from the accessibility tree AND the tab order, which is the
+   same defect written in CSS instead of JSX. The first attempt at this fix used
+   `visibility: hidden` and Playwright's `getByRole` could not see the buttons at
+   all — the check that caught it. Opacity keeps them focusable, and focus
+   reveals them. */
+.note-row .row-icon { opacity: 0; transition: opacity 100ms linear; }
+.note-row:hover .row-icon,
+.note-row:focus-within .row-icon { opacity: 1; }
+
+.row-icon {
+  display: flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; flex: none; border: 0; padding: 0;
+  border-radius: 8px; cursor: pointer; background: transparent; color: var(--muted);
+}
+.row-icon:hover, .row-icon:focus-visible { background: var(--accent-wash); color: var(--accent); }
+.row-icon.danger:hover { background: #FADCE6; color: var(--danger); }
+
+/* ---------- deadlines that are still only scheduled ---------- */
+.deadline .chip-date.sched { border-color: var(--border-check); color: var(--accent); }
+.badge {
+  border: 1px solid var(--border-check); color: var(--accent); background: var(--sunken);
+  border-radius: var(--radius-sm); padding: 1px 7px;
+  font-size: 10px; font-weight: 700; letter-spacing: .03em; white-space: nowrap;
+}

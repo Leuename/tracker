@@ -1,12 +1,14 @@
 import { useActions } from '../actions.js'
 import { FREQ } from '../data.js'
-import { monthKeys, monthLabel, ruleLabel } from '../logic.js'
+import { draftText, monthKeys, monthLabel, ruleLabel } from '../logic.js'
 import { IconCheckCircle, IconChevronDown } from '../icons.jsx'
 
-const COLS = '78px 158px 126px minmax(190px,1fr) 168px 116px 80px'
+// Category and description gained the room; how-often, due date, amount and the
+// remove button gave it up. Nothing here wraps at the retuned widths.
+const COLS = '78px 186px 118px minmax(240px,1fr) 160px 110px 76px'
 
 export default function Masterlist() {
-  const { state, set, go, generate, undoGenerate, generatedFor, openRecurring, updRec, removeRec } = useActions()
+  const { state, set, go, generate, undoGenerate, generatedFor, openRecurring, updRec, blurRec, removeRec } = useActions()
 
   return (
     <div className="screen">
@@ -16,8 +18,9 @@ export default function Masterlist() {
         <div className="spacer" />
 
         <div className="split-btn">
-          <button type="button" className="btn left" onClick={generate(state.genMonth)}>
-            Generate {monthLabel(state.genMonth)}
+          <button type="button" className="btn left" disabled={state.generating}
+                  onClick={generate(state.genMonth)}>
+            {state.generating ? "Generating…" : "Generate " + monthLabel(state.genMonth)}
           </button>
           <button type="button" className="btn right-cap" title="Pick a month"
                   aria-expanded={state.genMenuOpen}
@@ -63,13 +66,13 @@ export default function Masterlist() {
         <div className="hscroll"><div style={{ minWidth: 1000 }}>
           <div className="eyebrow" style={{ padding: '21px 28px 10px' }}>Recurring payables</div>
 
-          <div className="sheet-head" style={{ gridTemplateColumns: COLS, columnGap: 9, borderTop: '1px solid var(--border)', position: 'static' }}>
+          <div className="sheet-head compact" style={{ gridTemplateColumns: COLS, columnGap: 9, borderTop: '1px solid var(--border)', position: 'static' }}>
             <div>Company</div><div>Category</div><div>How often</div><div>Description</div>
             <div>Due date</div><div className="right">Amount</div><div />
           </div>
 
           {state.recurring.map((p) => (
-            <div key={p.id} className="sheet-row" style={{ gridTemplateColumns: COLS, columnGap: 9, padding: '9px 28px' }}>
+            <div key={p.id} className="sheet-row compact" style={{ gridTemplateColumns: COLS, columnGap: 9, padding: '9px 28px' }}>
               <select className="inline-field bold" value={p.co} onChange={(e) => updRec(p.id, 'co', e.target.value)} aria-label="Company">
                 {state.companies.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
@@ -85,8 +88,13 @@ export default function Masterlist() {
                        onChange={(e) => updRec(p.id, 'dueDate', e.target.value)} aria-label="Due date" />
                 <span className="rule">{ruleLabel(p.freq, p.dueDate)}</span>
               </div>
-              <input className="inline-field right bold" value={p.amount}
-                     onChange={(e) => updRec(p.id, 'amount', e.target.value)} aria-label="Amount" />
+              {/* Shows what is being typed, not what is stored: the store holds a
+                  number, and rendering the field from it erased a decimal point
+                  as fast as it was typed. `blurRec` drops the draft on leaving. */}
+              <input className="inline-field right bold"
+                     value={draftText(state.recDraft, p.id, 'amount', p.amount)}
+                     onChange={(e) => updRec(p.id, 'amount', e.target.value)}
+                     onBlur={blurRec} aria-label="Amount" />
               <div className="right">
                 <button type="button" className="remove" onClick={removeRec(p)}>Remove</button>
               </div>

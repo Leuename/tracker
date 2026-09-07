@@ -5,7 +5,7 @@ created: 2026-09-02
 updated: 2026-09-02
 status: round 2 — items 3, 6, 7, 8 awaiting approval; 1 moved to its own note; 2 built; 4 and 5 resolved by experiment
 related:
-  - "[Decisions](Decisions.md) — D1 to D31, the authority on what is authorised"
+  - "[Decisions](Decisions.md) — D1 to D48 now; this note was written when the record ended at D31"
   - "[Everything Held Back, Built](../handoff/2026-09-02%20Everything%20Held%20Back,%20Built.md) — the current handoff, whose open-items table this expands"
   - "[Repository Evidence](Repository%20Evidence.md) — the factual baseline"
   - "[Backups](../backups/README.md) — the restore procedure"
@@ -634,7 +634,7 @@ Ranked by the consultation, which I agree with on five of six and disagree with 
 
 | Rank | Item | Proposal |
 |---|---|---|
-| 1 | **8c — Scheduler has no notification channel** ([Decisions](Decisions.md) D31) | **Do next of these.** A report only the Actions job summary carries is a report nobody reads, which makes the daily run decorative. Still blocked on your decision: which provider, which addresses, who is accountable when it stops |
+| 1 | ~~**8c — Scheduler has no notification channel**~~ ([Decisions](Decisions.md) D31) | **Answered 2026-09-04: no external channel** ([D48](Decisions.md)). A Telegram design was specified in full — one bot, one private chat, an explicit on/off switch, aggregate-only payload — costed, and declined. The GitHub job summary and workflow-failure notification are the accepted paths. Decided, not deferred; see [Remaining Work and Owner Decisions](Remaining%20Work%20and%20Owner%20Decisions.md) C4 |
 | 2 | **8a — No viewer account exists** | Issue one when a named person needs read-only access. Cheap and reversible: an account plus *no* `profiles` row. Needs an address from you |
 | 3 | **8b — Viewer affordances** | After 8a exists, and only if refusals actually confuse someone. Server-side refusal stays authoritative — a disabled button is presentation, not authorization. Six screens, twelve modals |
 | 4 | **8d — Node 20 deprecation warnings** | Routine maintenance once `actions/checkout@v5` and `actions/setup-node@v5` exist. Bump both together. Nothing today |

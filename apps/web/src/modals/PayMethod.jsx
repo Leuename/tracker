@@ -1,5 +1,5 @@
 import { useActions } from '../actions.js'
-import { dstr, fmt } from '../logic.js'
+import { amountOf, dstr, fmt } from '../logic.js'
 import { Field, Modal } from '../ui.jsx'
 
 const TYPES = ['Cash', 'Check', 'E-cash']
@@ -12,6 +12,12 @@ export default function PayMethod() {
   const subtitle = state.payFor === 'edit'
     ? [e.co || '', e.cat || '', e.desc || ''].join(' · ')
     : (row ? row.co + ' · ' + row.cat + ' · ' + fmt(row.amount) + ' due ' + dstr(row.due) : '')
+
+  // What the row is worth before any charge. Re-opening a paid e-cash row has
+  // to show the new total replacing the old charge, not stacked on top of it.
+  const base = state.payFor === 'edit'
+    ? (amountOf(e.amount) || 0) - (e.fee || 0)
+    : (row ? row.amount - (row.fee || 0) : 0)
 
   return (
     <Modal onClose={cancelPay} width={420} align="center">
@@ -37,10 +43,29 @@ export default function PayMethod() {
 
       {state.payType === 'Check' ? (
         <div style={{ animation: 'pop 140ms ease-out' }}>
-          <Field label={<>Check number <span className="required">required</span></>}>
-            <input className={'field sunken' + (state.payErr ? ' invalid' : '')} placeholder="e.g. 004821"
-                   value={state.payCheck} onChange={(ev) => set({ payCheck: ev.target.value, payErr: false })} />
+          {/* A check written today often has no number to hand yet, and refusing
+              the payment over it left the row reading pending when the money had
+              already gone out. The number can be filled in later from the row. */}
+          <Field label={<>Check number <span className="optional">optional</span></>}>
+            <input className="field sunken" placeholder="e.g. 004821"
+                   value={state.payCheck} onChange={(ev) => set({ payCheck: ev.target.value })} />
           </Field>
+        </div>
+      ) : null}
+
+      {state.payType === 'E-cash' ? (
+        <div style={{ animation: 'pop 140ms ease-out' }}>
+          {/* Folded into the amount, so the row totals what actually left the
+              account, and kept separately so the sheet can still name it. */}
+          <Field label={<>Additional charge <span className="optional">optional</span></>}>
+            <input className="field sunken num" type="number" min="0" step="0.01" placeholder="0.00"
+                   value={state.payFee} onChange={(ev) => set({ payFee: ev.target.value })} />
+          </Field>
+          <div style={{ display: 'flex', gap: 6, fontSize: 11.5, color: 'var(--muted)', marginTop: 6 }}>
+            <span>Recorded amount</span>
+            <span className="spacer" />
+            <span style={{ fontWeight: 600, color: 'var(--ink)' }}>{fmt(base + (amountOf(state.payFee) || 0))}</span>
+          </div>
         </div>
       ) : null}
 

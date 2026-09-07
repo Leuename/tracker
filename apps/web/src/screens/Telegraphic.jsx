@@ -2,7 +2,19 @@ import { useActions } from '../actions.js'
 import { CSYM, CUR, TAG } from '../data.js'
 import { curFmt, dstr, fmt, transferTotals } from '../logic.js'
 
-const COLS = '84px 172px 92px 132px 124px minmax(200px,1fr) 92px'
+const COLS = '84px 172px 124px 92px 132px 124px minmax(190px,1fr) 92px'
+
+/**
+ * Keeps a keystroke inside the control it was typed into.
+ *
+ * A sheet row here is operable by keyboard, so it opens on Enter *or* Space.
+ * Every control inside one already stopped clicks from reaching it; none of
+ * them stopped keys. Typing a space into the note therefore bubbled up and
+ * opened the transfer mid-sentence — reported from the live app. The row keeps
+ * its keyboard handler, because removing it would strand anyone not using a
+ * mouse; the controls simply stop feeding it.
+ */
+const stop = (ev) => ev.stopPropagation()
 
 const STATUSES = [
   { v: 'pending', label: 'Pending' },
@@ -47,9 +59,9 @@ export default function Telegraphic() {
       </div>
 
       <div className="sheet" style={{ background: 'var(--surface)' }}>
-        <div style={{ minWidth: 1152 }}>
+        <div style={{ minWidth: 1276 }}>
           <div className="sheet-head plain" style={{ gridTemplateColumns: COLS, columnGap: 14 }}>
-            <div>Company</div><div>Name</div><div>Currency</div>
+            <div>Company</div><div>Name</div><div>Inv No.</div><div>Currency</div>
             <div className="right">Amount</div><div className="center">Status</div>
             <div>Note</div><div />
           </div>
@@ -65,8 +77,14 @@ export default function Telegraphic() {
                 <div className="bold">{w.co}</div>
                 <div>{w.name}</div>
                 <div>
+                  <input className="inline-field" value={w.inv} placeholder="Add inv no.…"
+                         aria-label={'Invoice number for ' + w.name}
+                         onClick={stop} onKeyDown={stop}
+                         onChange={(ev) => updTel(w.id, 'inv', ev.target.value)} />
+                </div>
+                <div>
                   <select value={w.cur} aria-label={'Currency for ' + w.name}
-                          onClick={(ev) => ev.stopPropagation()}
+                          onClick={stop} onKeyDown={stop}
                           onChange={(ev) => updTel(w.id, 'cur', ev.target.value)}
                           style={{
                             width: '100%', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)',
@@ -81,7 +99,7 @@ export default function Telegraphic() {
                 <div className="right bold">{curFmt(w.cur, w.amount, CSYM)}</div>
                 <div style={{ display: 'flex', justifyContent: 'center' }}>
                   <select value={w.status} aria-label={'Status for ' + w.name}
-                          onClick={(ev) => ev.stopPropagation()}
+                          onClick={stop} onKeyDown={stop}
                           onChange={(ev) => updTel(w.id, 'status', ev.target.value)}
                           style={{
                             width: 112, textAlign: 'center', textAlignLast: 'center',
@@ -95,12 +113,13 @@ export default function Telegraphic() {
                 <div>
                   <input className="inline-field" value={w.note} placeholder="Add a note…"
                          aria-label={'Note for ' + w.name}
-                         onClick={(ev) => ev.stopPropagation()}
+                         onClick={stop} onKeyDown={stop}
                          onChange={(ev) => updTel(w.id, 'note', ev.target.value)} />
                 </div>
                 <div className="right">
                   <button type="button" className="remove"
                           onClick={(ev) => { ev.stopPropagation(); askRemoveTransfer(w)() }}
+                          onKeyDown={stop}
                           aria-label={'Delete the transfer to ' + w.name}>Remove</button>
                 </div>
               </div>
@@ -116,7 +135,7 @@ export default function Telegraphic() {
       </div>
 
       <div style={{ flex: 'none', padding: '16px 28px', borderTop: '1px solid var(--border)', background: 'var(--sunken)', fontSize: 12.5, color: 'var(--muted)' }}>
-        Currency, status and note are editable in place; click a row for the rest.{' '}
+        Invoice number, currency, status and note are editable in place; click a row for the rest.{' '}
         <strong style={{ color: 'var(--ink)' }}>Cancelled</strong> and{' '}
         <strong style={{ color: 'var(--ink)' }}>Onhold</strong> transfers stay on the sheet for the audit
         trail and drop out of the totals above. Those two totals convert to pesos at fixed rates, so treat

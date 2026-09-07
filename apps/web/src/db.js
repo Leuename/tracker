@@ -1,4 +1,6 @@
 import { supabase } from './supabase.js'
+import { pageAll } from './pending.js'
+import { deleteGeneratedTxns, pushDownTxns } from './queries.js'
 import { initialState } from './data.js'
 import { isAuthError, sessionExpired } from './errors.js'
 import { alphabetical } from './logic.js'
@@ -11,6 +13,9 @@ import {
  * Every query the app makes, in one place. Row shape translation lives next
  * door in `rows.js`; this file is only about talking to Supabase.
  */
+
+/** The client's own `from`, handed to `queries.js` so those builds are testable. */
+const from = (table) => supabase.from(table)
 
 /** Throw on a Supabase error so callers can use one try/catch. */
 const ok = ({ data, error }) => {
@@ -102,13 +107,45 @@ async function isAdmin() {
   }
 }
 
+/**
+ * Read a whole table, in pages, with the row count asserted.
+ *
+ * PostgREST silently truncates a plain `.select()` at 1,000 rows — it returns
+ * 1,000 and no error, so the app simply believes the ledger is smaller than it
+ * is. This file already documented that cap for `fx_rates` four lines below and
+ * then did not apply it to the tables that actually grow.
+ *
+ * The consequence was not merely a short list. `alreadyOnSheet` decides what
+ * Generate writes by comparing against what was read, so a truncated read makes
+ * rows past the cap invisible and Generate duplicates them — and since D63 the
+ * unique index turns that into a 23505 that aborts the whole batch. At roughly
+ * 30 generated rows a month the cap is about two and a half years out; the
+ * failure it produces is a nightly job that stops working.
+ *
+ * Termination is a short page: fewer rows than asked for means there are no
+ * more. That is sound with keyset paging, where the cursor names a position, in
+ * a way it is not with offset paging — an earlier version counted with
+ * `count: 'exact'` and still lost rows, because a concurrent insert shifted
+ * every later page while the count went on matching.
+ *
+ * The cursor is the last row's `id`, so a caller passing a projection that
+ * omits `id` would page once and stop. Every caller passes `'*'`.
+ */
+const PAGE = 1000
+
+const readAll = (table, columns = '*', ascending = false) => pageAll((cursor) => {
+  let q = supabase.from(table).select(columns).order('id', { ascending }).limit(PAGE)
+  if (cursor !== null) q = ascending ? q.gt('id', cursor) : q.lt('id', cursor)
+  return q.then(ok)
+}, PAGE)
+
 /** Read the shared dataset, seeding it on the workspace's first run. */
 async function read() {
   const [txns, receipts, recurring, transfers, fx, config, admin] = await Promise.all([
-    supabase.from('txns').select('*').order('id', { ascending: false }).then(ok),
-    supabase.from('receipts').select('*').order('id').then(ok),
-    supabase.from('recurring').select('*').order('id').then(ok),
-    supabase.from('transfers').select('*').order('id').then(ok),
+    readAll('txns'),
+    readAll('receipts', '*', true),
+    readAll('recurring', '*', true),
+    readAll('transfers', '*', true),
     // `fx_latest`, not `fx_rates`: the view is one row per currency and stays
     // that size, while the table grows by four rows every working day and would
     // cross PostgREST's silent 1,000-row cap inside a year.
@@ -192,9 +229,68 @@ export const signedReceiptUrl = retryOnce(async (path) => {
 const queries = {
   insertTxn: (t) => supabase.from('txns').insert(toTxn(t)).then(ok),
   insertTxns: (rows) => supabase.from('txns').insert(rows.map(toTxn)).then(ok),
+  /**
+   * The Tracker as Postgres has it right now, not as this tab last read it.
+   *
+   * Generate decides what to write by comparing against `state.txns`, a
+   * page-load snapshot — and the scheduler writes the same month unattended at
+   * 22:00 UTC. A tab opened that morning would see none of those rows and
+   * duplicate the lot. This is the re-read that closes the window; the partial
+   * unique index added by `20260905…_one_generated_row_per_due_date` is the
+   * backstop for the case where two writers race anyway.
+   */
+  freshTxns: () => readAll('txns').then((rows) => rows.map(fromTxn)),
   updateTxn: (t) => supabase.from('txns').update(forUpdate(toTxn(t))).eq('id', t.id).then(ok),
   deleteTxn: (id) => supabase.from('txns').delete().eq('id', id).then(ok),
-  deleteTxns: (ids) => supabase.from('txns').delete().in('id', ids).then(ok),
+  /**
+   * Undo's bulk delete. Its only caller is `undoGenerate`.
+   *
+   * The `completed` and `done` filters live here rather than in the caller for
+   * the reason D61 records: `state.txns` is a page-load snapshot with no
+   * realtime subscription, so a row another session has since paid is still
+   * `pending` in this tab. Undo promises — in its own toast — to keep anything
+   * already paid, and a client-side filter cannot keep that promise. This one
+   * can, because Postgres evaluates it against the row as it actually is.
+   *
+   * Deleting is worse than the mis-write D61 fixed: there is nothing left to
+   * discover afterwards. Resolves to the ids actually removed, so the caller
+   * drops exactly those from the screen and counts truthfully.
+   */
+  deleteTxns: (ids) => deleteGeneratedTxns(from, ids)
+    .then(ok)
+    .then((rows) => (rows || []).map((r) => Number(r.id))),
+  /**
+   * One column, one value, many rows — what a masterlist edit pushes down.
+   *
+   * `patch` arrives already in database column names, because the caller is the
+   * only thing that knows which app field it came from.
+   *
+   * The two filters beyond `id` are the point. `state.txns` is a snapshot taken
+   * at page load and there is no realtime subscription, so a row another
+   * session has since **completed** is still `pending` in this tab — and the
+   * client-side "never rewrite a completed row" guard could not see it. A
+   * masterlist keystroke would then overwrite the amount of a payable that had
+   * already been paid, with a window as long as the tab had been open.
+   *
+   * Enforcing it here means the database decides, from the row's real current
+   * state, not from whatever this tab last read. `src` is checked too, so a row
+   * unlinked by ON DELETE SET NULL or re-parented since is left alone.
+   *
+   * Returns the ids actually written, so the caller can paint exactly those and
+   * report a count that is true.
+   */
+  /**
+   * Push a masterlist change onto the payable's linked open rows.
+   *
+   * Selected by `src` in the WRITE, not by a list of ids gathered on the
+   * client. `state.txns` is a page-load snapshot, so a linked row another
+   * session created after this tab mounted was simply never in the list: the
+   * payable and that row diverged, and the toast still said the rows had been
+   * updated to match. The database knows which rows are linked; this asks it.
+   */
+  patchTxns: (patch, src) => pushDownTxns(from, patch, src)
+    .then(ok)
+    .then((rows) => (rows || []).map((r) => Number(r.id))),
 
   insertReceipt: (r) => supabase.from('receipts').insert(toReceipt(r)).then(ok),
   updateReceipt: (r) => supabase.from('receipts').update(forUpdate(toReceipt(r))).eq('id', r.id).then(ok),

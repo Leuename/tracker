@@ -5,6 +5,7 @@
     "created_at": "2026-09-02T01:48:10.848843+00:00",
     "cur": "EUR",
     "id": 1788313691178,
+    "inv": "",
     "name": "Julius Mars",
     "note": "GZINC009",
     "rate": 72.415,
@@ -17,6 +18,7 @@
     "created_at": "2026-09-02T01:48:48.694538+00:00",
     "cur": "EUR",
     "id": 1788313728904,
+    "inv": "",
     "name": "Thesis LTD",
     "note": "INV NO. 18",
     "rate": 72.415,
@@ -29,11 +31,12 @@
     "created_at": "2026-09-02T01:49:16.736655+00:00",
     "cur": "EUR",
     "id": 1788313757081,
+    "inv": "",
     "name": "Rafnar Hellas",
     "note": "PRINV 14",
     "rate": null,
     "rate_as_of": null,
-    "status": "pending"
+    "status": "released"
   },
   {
     "amount": 80554.1,
@@ -41,6 +44,7 @@
     "created_at": "2026-09-02T01:50:26.102448+00:00",
     "cur": "USD",
     "id": 1788313826422,
+    "inv": "",
     "name": "North Bridge",
     "note": "NBCB-0008",
     "rate": 62.545345,
@@ -53,6 +57,7 @@
     "created_at": "2026-09-02T01:51:10.371965+00:00",
     "cur": "USD",
     "id": 1788313870693,
+    "inv": "",
     "name": "Lumevo",
     "note": "INV 1044",
     "rate": 62.545345,
@@ -65,6 +70,7 @@
     "created_at": "2026-09-02T01:51:46.554955+00:00",
     "cur": "USD",
     "id": 1788313906869,
+    "inv": "",
     "name": "Cordelia Commercial",
     "note": "CCB-2026-032",
     "rate": 62.545345,
@@ -77,6 +83,7 @@
     "created_at": "2026-09-02T03:02:04.175297+00:00",
     "cur": "GBP",
     "id": 1788318122863,
+    "inv": "",
     "name": "Dominic & Partners",
     "note": "PI/1304/DP/2025",
     "rate": 84.330965,
@@ -89,11 +96,12 @@
     "created_at": "2026-09-02T03:02:45.63852+00:00",
     "cur": "USD",
     "id": 1788318165685,
+    "inv": "",
     "name": "The Lymm Commercial",
     "note": "THLY-0019 - For Out 03 Sept 2026",
     "rate": null,
     "rate_as_of": null,
-    "status": "pending"
+    "status": "released"
   },
   {
     "amount": 78675,
@@ -101,10 +109,11 @@
     "created_at": "2026-09-02T03:03:21.918837+00:00",
     "cur": "USD",
     "id": 1788318201948,
+    "inv": "",
     "name": "The Lymm Commercial",
     "note": "THLY-0020 - For Out 03 Sept 2026",
     "rate": null,
     "rate_as_of": null,
-    "status": "pending"
+    "status": "released"
   }
 ]

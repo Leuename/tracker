@@ -5,7 +5,7 @@ import { IconTrash } from '../icons.jsx'
 const EMPTY = { co: '', cat: '', desc: '', period: '', due: '', amount: '', status: 'pending', done: '', notes: '' }
 
 export default function EditTransaction() {
-  const { state, set, setE, setEditStatus, saveEdit, deleteEdit } = useActions()
+  const { state, set, setE, setEditStatus, openPayForEdit, saveEdit, deleteEdit } = useActions()
   const e = state.edit || EMPTY
   const close = () => set({ editOpen: false })
 
@@ -63,11 +63,10 @@ export default function EditTransaction() {
           {payLabel ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 5, fontSize: 11.5, color: 'var(--muted)' }}>
               <span>{payLabel}</span>
-              <button type="button" className="link"
-                      onClick={() => set((s) => ({
-                        payOpen: true, payFor: 'edit', payPrev: 'completed',
-                        payType: (s.edit || {}).payType || 'Cash', payCheck: (s.edit || {}).checkNo || '', payErr: false,
-                      }))}>change</button>
+              {/* Seeded by `paySeedFor` in actions.js, never inline: this call
+                  site once forgot `payFee` and the dialog opened carrying the
+                  previous one's charge. */}
+              <button type="button" className="link" onClick={openPayForEdit}>change</button>
             </div>
           ) : null}
         </Field>

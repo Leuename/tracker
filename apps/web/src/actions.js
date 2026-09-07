@@ -1,7 +1,9 @@
 import { useStore } from './store.jsx'
+import { createPending } from './pending.js'
 import { CUR, TODAY, blankForm } from './data.js'
 import { db } from './db.js'
-import { alphabetical, amountOf, buildGeneratedRows, isMonthKey, longDate, monthLabel, parsePeriod, periodLabel, viewerActions } from './logic.js'
+import { applyMasterlistEdit, recEffects } from './masterlist.js'
+import { alphabetical, amountOf, buildGeneratedRows, fmt, isMonthKey, longDate, monthLabel, parsePeriod, periodLabel, positiveAmountOf, summaryHTML, unpricedFor, viewerActions } from './logic.js'
 
 // The masterlist and the transfer sheet both edit in place, so their text
 // fields fire on every keystroke. One pending write per row, coalesced,
@@ -11,23 +13,11 @@ import { alphabetical, amountOf, buildGeneratedRows, isMonthKey, longDate, month
 // Keys carry the table name because ids are Date.now() and two tables can
 // mint the same millisecond; a bare id would let one row's pending write
 // cancel an unrelated row's.
-const pendingRow = new Map()
-const keyOf = (table, id) => table + ':' + id
-
-const queueRow = (table, row, save, write, what) => {
-  const key = keyOf(table, row.id)
-  clearTimeout(pendingRow.get(key))
-  pendingRow.set(key, setTimeout(() => {
-    pendingRow.delete(key)
-    save(write(row), what)
-  }, 500))
-}
-
-const cancelRow = (table, id) => {
-  const key = keyOf(table, id)
-  clearTimeout(pendingRow.get(key))
-  pendingRow.delete(key)
-}
+// The debounced-write registry lives in `pending.js` so it can be tested:
+// three defects in this session were cancellation bugs in it, and the last fix
+// could be deleted with the whole suite still green (D68, trap 91).
+const pending = createPending()
+const { queueRow, queueCall, cancelRow, cancelPush, cancelForRecurring } = pending
 
 /**
  * Every mutation in one hook, ported from the prototype's DCLogic methods.
@@ -78,9 +68,9 @@ export function useActions() {
 
   const commit = (keepOpen) => () => {
     const f = state.form || blankForm()
-    const amt = amountOf(f.amount)
+    const amt = positiveAmountOf(f.amount)
     if (!f.co || !f.cat || !f.desc || !amt) {
-      set({ formError: 'Company, category, description and amount are required.' })
+      set({ formError: 'Company, category, description and a positive amount are required.' })
       return
     }
 
@@ -118,6 +108,7 @@ export function useActions() {
     const e = {
       co: t.co, cat: t.cat, desc: t.desc, period: t.period, due: t.due, amount: String(t.amount),
       status: t.status, done: t.done || '', notes: t.notes || '', payType: t.payType || '', checkNo: t.checkNo || '',
+      fee: t.fee || 0,
     }
     set({ editOpen: true, editId: t.id, edit: e, editOrig: e })
   }
@@ -126,37 +117,118 @@ export function useActions() {
     set((s) => ({ edit: { ...s.edit, [k]: v } }))
   }
 
-  /** Choosing Completed in the edit form routes through the payment-method dialog. */
+  /**
+   * Everything the payment dialog needs, seeded from the row being edited.
+   *
+   * There are three ways into that dialog — choosing Completed on the edit
+   * form, the "change" link beside an existing payment, and Mark as paid on the
+   * sheet — and each used to write these keys itself. One of them never wrote
+   * `payFee`, so the dialog opened carrying whatever the *previous* dialog had
+   * left in it: empty after a reload, which silently deleted a recorded charge
+   * on confirm, or another row's charge mid-session, which moved it onto this
+   * row. Both wrote a wrong amount to a live ledger with nothing on screen
+   * saying so.
+   *
+   * Seeding lives here now so a fourth caller cannot reintroduce it. Every key
+   * the dialog reads is set on every open, from the row, never inherited.
+   */
+  const paySeedFor = (e, prev) => ({
+    payOpen: true, payFor: 'edit', payPrev: prev,
+    payType: e.payType || 'Cash',
+    payCheck: e.checkNo || '',
+    payFee: e.fee ? String(e.fee) : '',
+    payErr: false,
+  })
+
+  /**
+   * Choosing Completed in the edit form routes through the payment-method
+   * dialog. Choosing anything else gives the e-cash charge back **here**, on
+   * screen, rather than silently at save time.
+   *
+   * That subtraction used to live in `saveEdit`, which was wrong in a way no
+   * test caught: it assumed `amount` still contained the charge, and the user
+   * can retype Amount in between. Setting a paid ₱550 row (₱500 + ₱50) back to
+   * Pending and typing 2000 saved **1950** — a number the screen never showed.
+   * Doing it at the moment the charge stops being recorded means the field
+   * updates in front of the user, and what is on screen is what gets written.
+   */
   const setEditStatus = (ev) => {
     const v = ev.target.value
     if (v !== 'completed') {
-      set((s) => ({ edit: { ...s.edit, status: v, payType: '', checkNo: '' } }))
+      set((s) => {
+        const e = s.edit || {}
+        const charge = e.fee || 0
+        const shown = amountOf(e.amount)
+        // Only take the charge out of an amount that still contains it. If the
+        // field has been cleared or already typed below the charge, the charge
+        // is not in there to remove, and subtracting anyway produced a negative
+        // — which `amountOf` then stripped the sign from, storing the absolute
+        // value. Leaving the field alone means `saveEdit` refuses it and says
+        // so, instead of writing a number nobody saw.
+        const removable = charge > 0 && Number.isFinite(shown) && shown >= charge
+        return {
+          edit: {
+            ...e, status: v, payType: '', checkNo: '', fee: null,
+            // Left byte-for-byte as typed whenever there is nothing to remove,
+            // so switching status never silently reformats what was entered.
+            amount: removable ? String(shown - charge) : e.amount,
+          },
+        }
+      })
       return
     }
-    const e = state.edit || {}
     set((s) => ({
       edit: { ...s.edit, status: 'completed' },
-      payOpen: true, payFor: 'edit', payPrev: (s.edit || {}).status || 'pending',
-      payType: e.payType || 'Cash', payCheck: e.checkNo || '', payErr: false,
+      ...paySeedFor(s.edit || {}, (s.edit || {}).status || 'pending'),
     }))
   }
+
+  /**
+   * The "change" link beside a recorded payment, on the edit form. The row is
+   * already completed, so cancelling has to leave it that way.
+   */
+  const openPayForEdit = () => set((s) => paySeedFor(s.edit || {}, 'completed'))
 
   const saveEdit = () => {
     const e = state.edit
     const id = state.editId
-    const amt = amountOf(e.amount)
-    if (!e.desc || !amt) { flash('Description and amount are required'); return }
+    const amt = positiveAmountOf(e.amount)
+    if (!e.desc || !amt) { flash('Description and a positive amount are required'); return }
     const next = {
       ...state.txns.find((t) => t.id === id),
       co: e.co, cat: e.cat, desc: e.desc, period: e.period, due: e.due, amount: amt, status: e.status,
       payType: e.status === 'completed' ? (e.payType || 'Cash') : '',
       checkNo: e.status === 'completed' ? (e.checkNo || '') : '',
+      // No arithmetic here. `setEditStatus` already took the charge out of the
+      // amount when the row left completed, in front of the user, so this saves
+      // exactly what the form is showing. Subtracting again here would take it
+      // out twice; subtracting from a retyped amount is what made this wrong
+      // before.
+      fee: e.status === 'completed' ? (e.fee || null) : null,
+      amount: amt,
       done: e.status === 'completed' ? (e.done || TODAY) : '',
       notes: e.notes,
     }
+    const before = state.txns.find((t) => t.id === id)
     set((s) => ({ txns: s.txns.map((t) => t.id === id ? next : t), editOpen: false }))
-    save(db.updateTxn(next), 'the transaction')
-    flash('Transaction updated')
+
+    // Awaited, and reverted on failure. Every other write here is
+    // fire-and-forget, which is the honest trade for an instant screen — but
+    // this one can be *refused* rather than merely fail: the unique index from
+    // D63 rejects a due date that would collide with another generated row for
+    // the same payable. Announcing "Transaction updated" while Postgres kept
+    // the old date is exactly the screen-versus-record divergence D60 was
+    // about, and the toast that carried the error was overwritten seconds later.
+    db.updateTxn(next).then(
+      () => flash('Transaction updated'),
+      (e) => {
+        console.error('[supabase]', 'the transaction', e)
+        set((s) => ({ txns: s.txns.map((t) => t.id === id ? before : t) }))
+        flash(String(e && e.code) === '23505'
+          ? 'Another row for this payable already has that due date — the change was not saved'
+          : "Couldn't save the transaction — the change was undone")
+      },
+    )
   }
 
   const deleteEdit = () => {
@@ -169,25 +241,67 @@ export function useActions() {
   // ---- payment method --------------------------------------------------
   const openPay = (t) => (ev) => {
     if (ev && ev.stopPropagation) ev.stopPropagation()
-    set({ payOpen: true, payFor: 'row', payId: t.id, payType: 'Cash', payCheck: '', payErr: false })
+    set({ payOpen: true, payFor: 'row', payId: t.id, payType: 'Cash', payCheck: '', payFee: '', payErr: false })
   }
 
+  /**
+   * A check number is no longer required to mark a row paid. It was the only
+   * hard stop in this dialog, and it stopped the wrong thing: a check written
+   * today often has no number to hand yet, and refusing the payment left the
+   * row reading pending when it had actually gone out.
+   *
+   * An e-cash charge is added *into* `amount`, so the row totals what really
+   * left the account, and kept in `fee` so the line can still say how much of
+   * that was the charge. Re-opening a paid row and changing the charge has to
+   * replace the old one rather than stack on it, which is what `base` is for:
+   * every recalculation starts from the amount with any previous fee removed.
+   */
   const confirmPay = () => {
     const { payId: id, payType: type } = state
     const num = String(state.payCheck).trim()
-    if (type === 'Check' && !num) { set({ payErr: true }); return }
     const check = type === 'Check' ? num : ''
-    if (state.payFor === 'edit') {
-      set((s) => ({
-        edit: { ...s.edit, status: 'completed', done: s.edit.done || TODAY, payType: type, checkNo: check },
-        payOpen: false, payErr: false,
-      }))
+    // A charge below zero is not a charge, and adding one would *reduce* the
+    // payable. Left blank means no charge, which is 0; anything negative is
+    // refused rather than quietly clamped, so the field and the ledger agree.
+    const typedFee = String(state.payFee).trim()
+    const fee = type === 'E-cash' ? (typedFee === '' ? 0 : amountOf(typedFee)) : 0
+    if (type === 'E-cash' && !(fee >= 0)) {
+      set({ payErr: true })
+      flash('An additional charge cannot be negative')
       return
     }
-    const paid = { ...state.txns.find((t) => t.id === id), status: 'completed', done: TODAY, payType: type, checkNo: check }
+    if (state.payFor === 'edit') {
+      // This path stages into the edit form; `saveEdit` is what reaches the
+      // database. If the form is gone there is nothing to stage into, and
+      // closing quietly would swallow a payment the user just confirmed. The
+      // dialog can no longer outlive the form (see the modal stack in ui.jsx),
+      // so this should be unreachable — it is here because the failure it
+      // guards is silent, and a silent one on a money path is the worst kind.
+      if (!state.editOpen || !state.edit) {
+        set({ payOpen: false, payErr: false })
+        flash('That payment was not recorded — reopen the transaction and set it again')
+        return
+      }
+      set((s) => {
+        const base = (amountOf(s.edit.amount) || 0) - (s.edit.fee || 0)
+        return {
+          edit: {
+            ...s.edit, status: 'completed', done: s.edit.done || TODAY,
+            payType: type, checkNo: check, fee: fee || null, amount: String(base + fee),
+          },
+          payOpen: false, payErr: false,
+        }
+      })
+      return
+    }
+    const row = state.txns.find((t) => t.id === id)
+    const base = row.amount - (row.fee || 0)
+    const paid = { ...row, status: 'completed', done: TODAY, payType: type, checkNo: check, fee: fee || null, amount: base + fee }
     set((s) => ({ txns: s.txns.map((t) => t.id === id ? paid : t), payOpen: false, payErr: false }))
     save(db.updateTxn(paid), 'the payment')
-    flash('Paid by ' + type.toLowerCase() + (type === 'Check' ? ' #' + num : '') + ' — date completed filled in as ' + longDate(TODAY))
+    flash('Paid by ' + type.toLowerCase() + (type === 'Check' && num ? ' #' + num : '')
+      + (fee ? ' — ' + fmt(fee) + ' charge added to the amount' : '')
+      + ' — date completed filled in as ' + longDate(TODAY))
   }
 
   /** Cancelling from the edit form rolls the status back to what it was. */
@@ -214,7 +328,11 @@ export function useActions() {
   const setReceiptStatus = (r) => (e) => {
     const v = e.target.value
     if (v === 'liquidated') {
-      set({ liqOpen: true, liqId: r.id, liqDate: TODAY, liqAmount: String(r.amount), liqErr: false })
+      // Seeded identically to `openLiquidate`, `liqFile` included. It was the
+      // one key this call site omitted — the same two-call-site drift as D52,
+      // and one stray close away from attaching one receipt's document to
+      // another. Both openers now set every key the dialog reads.
+      set({ liqOpen: true, liqId: r.id, liqDate: TODAY, liqAmount: String(r.amount), liqErr: false, liqFile: null })
       return
     }
     const next = { ...r, status: v, date: '', actual: null }
@@ -241,9 +359,9 @@ export function useActions() {
 
   const saveReceipt = () => {
     const r = state.rcp
-    const amt = amountOf(r.amount)
+    const amt = positiveAmountOf(r.amount)
     if (!r.co || !r.name.trim() || !amt) {
-      set({ rcpError: 'Company, who received the cash, and amount are required.' })
+      set({ rcpError: 'Company, who received the cash, and a positive amount are required.' })
       return
     }
     const row = {
@@ -267,7 +385,7 @@ export function useActions() {
    * than a slow dialog.
    */
   const saveLiq = async () => {
-    const amt = amountOf(state.liqAmount)
+    const amt = positiveAmountOf(state.liqAmount)
     if (!amt || !state.liqDate) { set({ liqErr: true }); return }
     if (state.settings.ackRequirePhoto && !state.liqFile) {
       set({ liqErr: 'A receipt file is required. Settings · AckRec can turn that off.' })
@@ -320,9 +438,9 @@ export function useActions() {
   const saveReceiptEdit = () => {
     const e = state.rcpEdit || RCP_EMPTY
     const id = state.rcpEditId
-    const amt = amountOf(e.amount)
+    const amt = positiveAmountOf(e.amount)
     if (!e.co || !e.name.trim() || !amt) {
-      set({ rcpEditError: 'Company, who received the cash, and amount are required.' })
+      set({ rcpEditError: 'Company, who received the cash, and a positive amount are required.' })
       return
     }
 
@@ -330,7 +448,7 @@ export function useActions() {
     // claim it without a date and an actual amount would put a receipt in the
     // settled column with nothing to reconcile against.
     const liquidated = e.status === 'liquidated'
-    const actual = amountOf(e.actual)
+    const actual = positiveAmountOf(e.actual)
     if (liquidated && (!e.date || !actual)) {
       set({ rcpEditError: 'A liquidated receipt needs both the date and the actual amount.' })
       return
@@ -388,7 +506,7 @@ export function useActions() {
   // The sheet edits currency, status and note in place, the way the masterlist
   // does, so those go through the same coalescing queue: one write per row
   // after typing stops, not one per keystroke in the note field.
-  const TEL_BLANK = () => ({ co: '', name: '', cur: 'USD', amount: '', status: 'pending', note: '', rate: '', rate_as_of: '' })
+  const TEL_BLANK = () => ({ co: '', name: '', cur: 'USD', amount: '', status: 'pending', inv: '', note: '', rate: '', rate_as_of: '' })
 
   /**
    * The rate a form should open with, from the stored `fx_latest` map.
@@ -436,18 +554,24 @@ export function useActions() {
 
   const saveTransfer = () => {
     const w = state.tel || TEL_BLANK()
-    const amt = amountOf(w.amount)
+    const amt = positiveAmountOf(w.amount)
     if (!w.co || !w.name.trim() || !amt) {
-      set({ telError: 'Company, beneficiary and amount are required.' })
+      set({ telError: 'Company, beneficiary and a positive amount are required.' })
       return
     }
     if (CUR.indexOf(w.cur) < 0) {
       set({ telError: 'Pick a currency.' })
       return
     }
+    // `transfers.rate` carries `>= 0` (D65). Caught here so the form says so,
+    // rather than the sheet keeping a rate Postgres refused.
+    if (w.rate !== '' && w.rate != null && !(Number(w.rate) >= 0)) {
+      set({ telError: 'A rate cannot be negative.' })
+      return
+    }
     const row = {
       id: Date.now(), co: w.co, name: w.name.trim(), cur: w.cur,
-      amount: amt, status: w.status, note: w.note.trim(),
+      amount: amt, status: w.status, inv: (w.inv || '').trim(), note: w.note.trim(),
       // Empty stays empty rather than becoming 0: `rows.js` turns '' into null,
       // meaning "never priced", while a stored 0 would mean "worth nothing".
       rate: w.rate, rate_as_of: w.rate_as_of,
@@ -470,7 +594,7 @@ export function useActions() {
     // offer is only stored if somebody saves, and it is editable first.
     const priced = w.rate != null && w.rate !== ''
     const e = {
-      co: w.co, name: w.name, cur: w.cur, amount: String(w.amount), status: w.status, note: w.note || '',
+      co: w.co, name: w.name, cur: w.cur, amount: String(w.amount), status: w.status, inv: w.inv || '', note: w.note || '',
       ...(priced ? { rate: String(w.rate), rate_as_of: w.rate_as_of || '' } : rateDefault(w.cur)),
     }
     set({ telEditOpen: true, telEditId: w.id, telEdit: e, telEditOrig: e, telEditError: '' })
@@ -484,14 +608,19 @@ export function useActions() {
   const saveTransferEdit = () => {
     const e = state.telEdit || TEL_BLANK()
     const id = state.telEditId
-    const amt = amountOf(e.amount)
+    const amt = positiveAmountOf(e.amount)
     if (!e.co || !e.name.trim() || !amt) {
-      set({ telEditError: 'Company, beneficiary and amount are required.' })
+      set({ telEditError: 'Company, beneficiary and a positive amount are required.' })
+      return
+    }
+    if (e.rate !== '' && e.rate != null && !(Number(e.rate) >= 0)) {
+      set({ telEditError: 'A rate cannot be negative.' })
       return
     }
     const next = {
       ...state.transfers.find((w) => w.id === id),
-      co: e.co, name: e.name.trim(), cur: e.cur, amount: amt, status: e.status, note: e.note.trim(),
+      co: e.co, name: e.name.trim(), cur: e.cur, amount: amt, status: e.status,
+      inv: (e.inv || '').trim(), note: e.note.trim(),
       rate: e.rate, rate_as_of: e.rate_as_of,
     }
     cancelRow('transfers', id)
@@ -514,18 +643,50 @@ export function useActions() {
   }
 
   // ---- masterlist ------------------------------------------------------
-  const updRec = (id, k, v) => {
-    const val = k === 'amount' ? (amountOf(v) || 0) : v
-    const next = { ...state.recurring.find((p) => p.id === id), [k]: val }
-    set((s) => ({ recurring: s.recurring.map((p) => p.id === id ? next : p) }))
-    queueRow('recurring', next, save, db.updateRecurring, 'the masterlist row')
-  }
+  /**
+   * The four fields a Tracker row inherits from the payable that generated it.
+   * `freq` and `dueDate` are deliberately absent: they decide what future rows
+   * Generate writes, and rewriting the due date of a row already on the sheet
+   * would move a real deadline nobody asked to move.
+   */
 
+  /**
+   * Editing a payable reaches the open rows it produced.
+   *
+   * Only rows still linked (`src`) and not yet completed. A completed row is a
+   * record of what was actually paid, so a later correction to the masterlist
+   * must not rewrite history — it applies from the next Generate onward.
+   */
+  /**
+   * Leaving an inline cell drops the draft, so the field goes back to showing
+   * what is actually stored — and a half-typed `1250.` settles to `1250`.
+   */
+  const blurRec = () => set({ recDraft: null })
+
+  const updRec = (id, k, v) => applyMasterlistEdit(state.recurring.find((p) => p.id === id), k, v,
+    recEffects({ set, save, db, queueRow, queueCall, cancelPush, flash, id, key: k }))
+
+  /**
+   * Removing a payable unlinks its rows rather than taking them with it.
+   *
+   * The Tracker rows are real payables that were really due; the masterlist
+   * only says they recur. Postgres does the unlink itself — `txns.src` is a
+   * foreign key with ON DELETE SET NULL — so the local state is mirroring the
+   * database here, not driving it.
+   */
   const removeRec = (p) => () => {
-    cancelRow('recurring', p.id)
-    set((s) => ({ recurring: s.recurring.filter((x) => x.id !== p.id) }))
+    // Everything armed for this payable, not just its own row write — see
+    // `cancelForRecurring`. A push-down that survives the delete writes an
+    // amount to the ledger for a payable that is gone.
+    cancelForRecurring(p.id)
+    const kept = state.txns.filter((t) => t.src === p.id).length
+    set((s) => ({
+      recurring: s.recurring.filter((x) => x.id !== p.id),
+      txns: s.txns.map((t) => t.src === p.id ? { ...t, src: null } : t),
+    }))
     save(db.deleteRecurring(p.id), 'the removal')
-    flash(p.co + ' · ' + p.cat + ' removed from the masterlist')
+    flash(p.co + ' · ' + p.cat + ' removed'
+      + (kept ? ' — ' + kept + ' Tracker ' + (kept === 1 ? 'row stays' : 'rows stay') + ', now unlinked' : ''))
   }
 
   const openRecurring = () => set({
@@ -540,38 +701,142 @@ export function useActions() {
 
   const saveRecurring = () => {
     const r = state.rec
-    const amt = amountOf(r.amount)
-    if (!r.co || !r.cat || !amt) { flash('Company, category and amount are required'); return }
+    const amt = positiveAmountOf(r.amount)
+    if (!r.co || !r.cat || !amt) { flash('Company, category and a positive amount are required'); return }
     const row = { id: Date.now(), co: r.co, cat: r.cat, freq: r.freq, desc: r.desc || r.cat, dueDate: r.dueDate || TODAY, amount: amt }
     set((s) => ({ recurring: [...s.recurring, row], recOpen: false }))
     save(db.insertRecurring(row), 'the recurring payable')
     flash('Recurring payable added')
   }
 
-  const generate = (key) => () => {
+  /**
+   * Generate re-reads the ledger before deciding what to write.
+   *
+   * `alreadyOnSheet` is the dedupe rule, and it was being asked about
+   * `state.txns` — the page-load snapshot. The scheduler writes this same month
+   * unattended, so a tab opened in the morning could be hours stale, see none
+   * of those rows, and duplicate a whole month of liability on one click. Same
+   * family as D61 and D62: a guard evaluated against a snapshot is advisory.
+   *
+   * Re-reading costs one query and makes the "idempotent by construction" claim
+   * in `scripts/schedule.mjs` true against concurrent writers rather than only
+   * against itself.
+   */
+  const generate = (key) => async () => {
     const month = isMonthKey(key) ? key : state.genMonth
     if (!isMonthKey(month)) { flash('Pick a valid month first'); return }
-    const { rows, skipped, label } = buildGeneratedRows(state.recurring, state.txns, month)
-    if (!rows.length) {
-      flash('Every recurring payable already exists for ' + label)
-      set({ genMenuOpen: false })
+
+    if (state.generating) return
+    // Claimed BEFORE the await, not after it. Setting it only once the re-read
+    // returned left a whole round trip in which a second click passed this
+    // guard and both buttons were still enabled.
+    set({ generating: true })
+    let existing
+    try {
+      existing = await db.freshTxns()
+    } catch (e) {
+      console.error('[supabase]', 'the ledger re-read before Generate', e)
+      set({ generating: false })
+      flash("Couldn't check what is already on the sheet — nothing was generated")
       return
     }
-    save(db.insertTxns(rows), 'the generated payables')
+    set({ txns: existing })
+    const { rows, skipped, label, unresolved } = buildGeneratedRows(state.recurring, existing, month)
+    // Reported, not refused. `buildGeneratedRows` already excludes an unpriced
+    // payable, so nothing here can violate `txns.amount > 0` — the guard that
+    // used to stand here blocked work it did not need to block, and because a
+    // Monthly payable has an occurrence in every month, one unpriced row
+    // refused Generate for all thirteen months the menu offers, priced siblings
+    // included.
+    const unpriced = unpricedFor(state.recurring, month)
+    if (!rows.length) {
+      flash(unresolved.length
+        ? unresolved.length + ' linked Tracker ' + (unresolved.length === 1 ? 'row has' : 'rows have') + ' no occurrence identity; generation was refused for those payables'
+        : unpriced.length
+        ? unpriced.length + ' ' + label + ' ' + (unpriced.length === 1 ? 'payable needs' : 'payables need')
+          + ' an amount before ' + (unpriced.length === 1 ? 'it' : 'they') + ' can be generated'
+        : 'Every recurring payable already exists for ' + label)
+      set({ genMenuOpen: false, generating: false })
+      return
+    }
+    // Painted only after the insert commits. Postgres aborts a multi-row insert
+    // whole when the unique index refuses one row (D63), so an optimistic paint
+    // put a phantom month on screen with a banner that does not expire — and
+    // Undo could not clear it, because `generatedIds` named rows that had never
+    // existed. Same lesson as D60: never paint what has not been written.
+    set({ genMenuOpen: false, genMonth: month })
+    try {
+      await db.insertTxns(rows)
+    } catch (e) {
+      console.error('[supabase]', 'the generated payables', e)
+      set({ generating: false })
+      flash(String(e && e.code) === '23505'
+        ? 'Someone generated ' + label + ' first — nothing was written. Reopen the month to see it.'
+          + (unresolved.length ? ' ' + unresolved.length + ' linked Tracker ' + (unresolved.length === 1 ? 'row has' : 'rows have') + ' no occurrence identity; generation remains paused.' : '')
+        : "Couldn't generate " + label + ' — nothing was written')
+      return
+    }
     set((s) => ({
       txns: [...rows, ...s.txns],
       generatedIds: rows.map((r) => r.id),
-      bannerOpen: true, genMenuOpen: false, genMonth: month,
+      bannerOpen: true, generating: false,
       bannerText: rows.length + ' ' + label + ' payables were added to the Tracker' +
-        (skipped ? ' — ' + skipped + ' skipped as duplicates' : '') + '.',
+        (skipped ? ' — ' + skipped + ' skipped as duplicates' : '') +
+        (unpriced.length ? ' — ' + unpriced.length + ' skipped for having no amount yet' : '') +
+        (unresolved.length ? ' — ' + unresolved.length + ' linked rows lack occurrence identity' : '') + '.',
     }))
   }
 
+  /**
+   * Undo removes the rows Generate just wrote — but only the ones nobody has
+   * acted on since.
+   *
+   * `generatedIds` outlives the rows it names, and the banner's own "Review
+   * them" link walks the user to the Tracker without dismissing it. So the
+   * sequence Generate → Review them → Mark as paid → Undo was reachable, and
+   * it deleted a transaction that had been paid, taking the recorded payment
+   * with it and saying only "Generated rows removed".
+   *
+   * A completed row is a record of money that moved; Generate's convenience
+   * does not get to erase one. This is the same rule `updRec` already applies
+   * when a masterlist edit pushes down, for the same reason.
+   */
   const undoGenerate = () => {
     const ids = state.generatedIds
-    set((s) => ({ txns: s.txns.filter((t) => ids.indexOf(t.id) < 0), generatedIds: [], bannerOpen: false }))
-    save(db.deleteTxns(ids), 'the undo')
-    flash('Generated rows removed')
+    const mine = state.txns.filter((t) => ids.indexOf(t.id) >= 0)
+    const removable = mine.filter((t) => t.status !== 'completed' && !t.done)
+    const removableIds = removable.map((t) => t.id)
+
+    // The client filter above is a first pass over a page-load snapshot and
+    // cannot see a row another session has paid since — `deleteTxns` carries
+    // the real guard, and the screen and the toast are painted from what it
+    // actually removed (D61/D62, trap 88).
+    if (!removableIds.length) {
+      set({ generatedIds: [], bannerOpen: false })
+      flash('Nothing to undo — every generated row has been paid')
+      return
+    }
+
+    // The banner is the ONLY way to reach this action, so it is dismissed on
+    // success rather than on click. Clearing it first meant a failed delete —
+    // a dropped connection, a session past `retryOnce`'s one refresh — left the
+    // rows in the ledger and Undo permanently unreachable, because
+    // `generatedIds` had already gone.
+    save(db.deleteTxns(removableIds).then((removed) => {
+      set((s) => ({
+        txns: s.txns.filter((t) => removed.indexOf(t.id) < 0),
+        generatedIds: [], bannerOpen: false,
+      }))
+      // How many were left behind, without claiming why. `removable` was chosen
+      // from a stale snapshot, so a row missing from `removed` may have been
+      // paid by another session — or deleted by one. Asserting "already paid"
+      // would be the toast promising something the database never said.
+      const spared = removableIds.length - removed.length
+      flash(spared
+        ? removed.length + ' removed — ' + spared + ' left in place, ' +
+          (spared === 1 ? 'it changed' : 'they changed') + ' in another session'
+        : 'Generated rows removed')
+    }), 'the undo')
   }
 
   /** How many Tracker rows already carry a given month's period label. */
@@ -586,6 +851,95 @@ export function useActions() {
 
   const toggleNote = (i) => () =>
     set((s) => ({ notes: s.notes.map((x, j) => j === i ? { ...x, done: !x.done } : x) }))
+
+  const hoverNote = (i) => () => set({ noteHover: i })
+  const unhoverNote = (i) => () => set((s) => ({ noteHover: s.noteHover === i ? null : s.noteHover }))
+
+  const editNote = (i) => () => set((s) => ({ noteEditing: i, noteEditDraft: s.notes[i].t }))
+  const cancelNote = () => set({ noteEditing: null, noteEditDraft: '' })
+
+  /** An empty reminder is a deletion nobody asked for, so it is refused. */
+  const saveNote = (i) => () => {
+    const v = String(state.noteEditDraft).trim()
+    if (!v) { flash('A reminder needs some text'); return }
+    set((s) => ({
+      notes: s.notes.map((x, j) => j === i ? { ...x, t: v } : x),
+      noteEditing: null, noteEditDraft: '',
+    }))
+  }
+
+  const removeNote = (i) => () => {
+    set((s) => ({ notes: s.notes.filter((x, j) => j !== i), noteEditing: null, noteHover: null }))
+    flash('Reminder deleted')
+  }
+
+  // ---- tracker sort ----------------------------------------------------
+  const toggleSort = () => set((s) => ({ sortOpen: !s.sortOpen, exportOpen: false }))
+  const flipSort = () => set((s) => ({ sortDir: s.sortDir === 'desc' ? 'asc' : 'desc' }))
+
+  /** Picking the key already in use flips the direction, the way a column header does. */
+  const pickSort = (k) => () => set((s) => (s.sortKey === k
+    ? { sortDir: s.sortDir === 'desc' ? 'asc' : 'desc', sortOpen: false }
+    : { sortKey: k, sortOpen: false }))
+
+  // ---- tracker export --------------------------------------------------
+  const toggleExport = () => set((s) => ({ exportOpen: !s.exportOpen, sortOpen: false }))
+
+  /**
+   * Renders the summary to a PNG and downloads it.
+   *
+   * `html2canvas` rasterises a real DOM node, so the node has to exist and be
+   * laid out — hence a detached-looking element parked far off-screen rather
+   * than `display:none`, which has no dimensions to measure. It is removed
+   * again in a `finally`, so a failed render leaves nothing behind.
+   *
+   * The import is dynamic on purpose. The library is ~200 kB and only matters
+   * to somebody who clicks Export, so Vite splits it into its own chunk and the
+   * app's first paint carries none of it. It is bundled rather than loaded from
+   * a CDN because the deployment sends `script-src 'self'`, which blocks the
+   * prototype's jsdelivr tag outright.
+   */
+  const exportPng = async () => {
+    set({ exportOpen: false })
+    const node = document.createElement('div')
+    node.style.cssText = 'position:fixed;left:-12000px;top:0;width:940px;background:#fff'
+    node.innerHTML = summaryHTML(state)
+    document.body.appendChild(node)
+    try {
+      const { default: html2canvas } = await import('html2canvas')
+      const canvas = await html2canvas(node, { scale: 2, backgroundColor: '#ffffff' })
+      const a = document.createElement('a')
+      a.href = canvas.toDataURL('image/png')
+      a.download = 'tracker-summary-' + TODAY + '.png'
+      a.click()
+      flash('Summary PNG downloaded')
+    } catch (e) {
+      console.error('[export]', e)
+      flash('Could not render the PNG — try Save as PDF')
+    } finally {
+      node.remove()
+    }
+  }
+
+  /**
+   * Prints the summary from a popup and lets the browser's own print dialog
+   * save the PDF.
+   *
+   * No rendering library on this path: the page is written into a window this
+   * app opened, and `print()` is the one PDF writer already installed on every
+   * machine.
+   */
+  const exportPdf = () => {
+    set({ exportOpen: false })
+    const w = window.open('', '_blank', 'width=980,height=760')
+    if (!w) { flash('Allow pop-ups to save the PDF'); return }
+    w.document.write('<!DOCTYPE html><html><head><title>Tracker summary ' + TODAY + '</title>'
+      + '<style>@page{margin:14mm}body{margin:0;font-family:Inter,system-ui,sans-serif}</style>'
+      + '</head><body>' + summaryHTML(state) + '</body></html>')
+    w.document.close()
+    setTimeout(() => { w.focus(); w.print() }, 450)
+    flash('Print dialog opened — choose “Save as PDF”')
+  }
 
   // ---- masterlist settings lists --------------------------------------
   const addCompany = () => {
@@ -618,7 +972,7 @@ export function useActions() {
   const actions = {
     state, set, flash, go, goSettings, setS, tileFilter, field,
     openAdd, closeAdd, setF, pickFormStatus, commit,
-    openRow, setE, setEditStatus, saveEdit, deleteEdit,
+    openRow, setE, setEditStatus, openPayForEdit, saveEdit, deleteEdit,
     openPay, confirmPay, cancelPay,
     openPeriod, applyPeriod,
     setReceiptStatus, openLiquidate, saveLiq, pickLiqFile, openReceiptFile,
@@ -628,11 +982,12 @@ export function useActions() {
     openTransferRow, setTelE, saveTransferEdit,
     askRemoveTransfer, cancelRemoveTransfer, confirmRemoveTransfer,
     openReceipt, closeReceipt, setRcp, saveReceipt,
-    updRec, removeRec, openRecurring, setR, saveRecurring,
+    updRec, blurRec, removeRec, openRecurring, setR, saveRecurring,
     generate, undoGenerate, generatedFor,
-    addNote, toggleNote,
+    addNote, toggleNote, hoverNote, unhoverNote, editNote, saveNote, cancelNote, removeNote,
     addCompany, addCategory, removeCompany, removeCategory,
     toggleStatus, toggleGroup, clearFilters,
+    toggleSort, flipSort, pickSort, toggleExport, exportPng, exportPdf,
   }
 
   return state.readOnly ? viewerActions(actions, flash) : actions

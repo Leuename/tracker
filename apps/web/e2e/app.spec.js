@@ -79,18 +79,12 @@ test('every screen loads its own data', async ({ page }) => {
   await expect(page.getByText('Recurring payables')).toBeVisible()
 })
 
-// Isolated state, and ordered ahead of the sign-out spec below. Two reasons,
-// both of which would otherwise poison a shared snapshot even at one worker:
-//
-//   1. Forcing a refresh ROTATES the refresh token. The saved snapshot on disk
-//      keeps the old one, which the server has now spent, so anything reusing it
-//      later holds a credential that fails the moment it needs to refresh. Its
-//      own session, written by a second sign-in in the setup project, means the
-//      rotation reaches nothing else.
-//   2. supabase-js `signOut()` defaults to `scope: 'global'` and revokes EVERY
-//      refresh token this account holds. The sign-out spec below therefore has
-//      to run after this one, or this spec's refresh is rejected. Order within a
-//      file is declaration order, which `fullyParallel: false` preserves.
+// This isolated REFRESH_STATE runs before the global sign-out test for two
+// reasons. Forcing a refresh ROTATES this state's token, so no later test may
+// reuse the saved file. The sign-out spec below passes `scope: 'global'`
+// explicitly (D47) and revokes EVERY refresh token this account holds, so this
+// forced refresh must happen first or it is rejected. Order within a file is
+// declaration order, which `fullyParallel: false` preserves.
 test.describe('token refresh', () => {
   test.use({ storageState: REFRESH_STATE })
 
@@ -123,12 +117,13 @@ test.describe('token refresh', () => {
   })
 })
 
-// Last in this file on purpose: the app's Sign out calls supabase-js
-// `signOut()`, whose default scope is 'global', so it revokes every refresh
-// token this account holds — including the ones inside both saved snapshots.
-// Nothing after it may force a refresh. functional.spec.js runs on the access
-// token minted minutes earlier by the setup project and never refreshes, so it
-// is unaffected; a new spec that refreshes would need its own session.
+// Last in this file on purpose: the app's Sign out passes `scope: 'global'`
+// explicitly (D47), so it revokes every refresh token this account holds —
+// including the ones inside both saved snapshots. Nothing after it may force a
+// refresh. Later specs survive only on the access tokens the setup project
+// minted minutes earlier, and would fail if a run ever outlived the token's
+// hour; functional.spec.js never refreshes, so it is unaffected today. A new
+// spec that refreshes would need its own session.
 test('the session survives a reload, and signing out ends it', async ({ page }) => {
   await signIn(page)
   await page.reload()

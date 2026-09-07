@@ -93,3 +93,14 @@ test('a delete step emits no insert', () => {
   assert.match(sql, /delete from public\.txns where id = 7;/)
   assert.equal(sql.includes('jsonb_populate_record(null::public.txns'), false)
 })
+
+test('identity-aware rewinds refuse linked pre-migration images', () => {
+  const entry = e(1, 'txns', 'DELETE', { id: 7, src: 3, due: '2026-09-20' }, null)
+  assert.throws(() => planRewind([entry], { occurrenceIdentity: true }), /pre-migration schema|occurrence mapping/)
+  assert.equal(planRewind([entry]).steps.length, 1)
+})
+
+test('identity-aware rewinds may delete a linked post-migration insert', () => {
+  const entry = e(1, 'txns', 'INSERT', null, { id: 7, src: 3 })
+  assert.equal(planRewind([entry], { occurrenceIdentity: true }).steps[0].action, 'delete')
+})
