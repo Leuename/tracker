@@ -54,8 +54,8 @@ exercises the application against the final grant set. One spec drew its refusal
 index phase 2 drops. Any future staged grant change must re-run its acceptance suite **after the
 last phase**. See [D80](Decisions.md).
 
-Current baseline: `npm test` **191 assertions across 11 files**, `npm run security` **57 checks, 0
-failed, 0 deferred** at `OCCURRENCE_IDENTITY_PHASE=2`, e2e **50/50** against the deployed bundle.
+Current baseline: `npm test` **197 assertions across 11 files**, `npm run security` **57 checks, 0
+failed, 0 deferred** (the variable now defaults to `2`), e2e **51/51** against the deployed bundle.
 Rewinding a linked transaction across the migration boundary now requires the pre-migration schema
 or an explicit owner-approved occurrence mapping; the tool refuses to invent one.
 

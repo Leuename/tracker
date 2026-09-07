@@ -548,13 +548,13 @@ omits it from update payloads, coverage treats a linked row without identity as 
 than guessing from editable dates, and the scheduler reports that state. `rewind-plan.js` refuses a
 linked pre-migration before-image when the hosted schema has the identity column. The backup query
 plan also has executable coverage for its key guard and `fx_rates` ordering. `npm test` passes
-**191 assertions across 11 files**. The probe enumerates **57 checks** and the
+**197 assertions across 11 files**. The probe enumerates **57 checks** and the
 generated-identity privilege check is no longer deferred. Its staged contract remains explicit:
 `OCCURRENCE_IDENTITY_PHASE=1` describes a database between the two phases, where exact `42501` is
 required for `occurrence_due` while `src` remains updateable; `OCCURRENCE_IDENTITY_PHASE=2`
 describes the current one, requires exact `42501` for both, and makes either failure fatal/nonzero.
 Phase 1 revokes authenticated UPDATE only on `occurrence_due`, phase 2 revokes it on `src`, and the
-identity-aware `forUpdate` omits both. The e2e manifest has **50 tests: two setup tests and 48
+identity-aware `forUpdate` omits both. The e2e manifest has **51 tests: two setup tests and 49
 specs**.
 
 **Read live on 2026-09-08, before and after every production-writing check.** Twenty-one migrations
@@ -564,8 +564,8 @@ present, `txns_one_generated_row_per_due_date` dropped, CHECK
 `txns_generated_occurrence_has_identity` validated. Deployment moved from `index-DQlFRu57.js` to
 `index-D1mhlrBq.js`. `npm test` **191/191 across 11 files**, `npm run build` green at `vite v8.2.2`,
 `npm audit` **0 vulnerabilities**, `OCCURRENCE_IDENTITY_PHASE=2 npm run security` **57 checks, 0
-failed, 0 deferred**, `npx playwright test --workers=1` **50 passed** — run once before phase 2 and
-again after it, which is the only reason two spec defects were caught (D80). `txns` 49 rows,
+failed, 0 deferred**, `npx playwright test --workers=1` **51 passed** — the suite was run before phase 2, again after it
+(which is the only reason two spec defects were caught, D80), and again after the round-27 fixes. `txns` 49 rows,
 ₱2,226,438.00, `id:amount:status` fingerprint `a76686384422360d47403627c35f4f7f` unchanged
 throughout; the whole-row fingerprint moved to `08a747319f890079f3e107ec258bec51` because a column
 was added. `app_config` settings at rest, `__e2eHeld` null, 19 categories — `Refund` was added to
