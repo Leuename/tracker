@@ -358,15 +358,13 @@ ledger; the second is a behaviour change to the transfer form. Neither is mine t
 
 ### One more thing, and it is not an item
 
-**The 2026-09-04 work is uncommitted.** Fifteen modified files and four untracked:
-the resolution plan under `docs/superpowers/plans/`, the new continuation package, and the handoff
-index. Nothing was committed or pushed, because a push to `main` runs the gate
-and a green gate deploys production — that is your call, not something to slip into a documentation
-pass. `git status --short` shows the set; the change itself is four lines of application code, two
-e2e comment blocks, and documentation.
+**The pending-commit item is closed.** Everything through 2026-09-08 is committed and pushed to
+`main`, the gate ran green on each push, and production is deployed — including the
+occurrence-identity rollout ([D80](Decisions.md)) and the round-27 fixes ([D81](Decisions.md)).
+`git status --short` is the only trustworthy reading of what is outstanding; this line is not.
 
-Everything actionable and authorized has been done. What remains is C5, C6 and C7 for you, the
-pending commit, and the A and B items blocked on access nobody has.
+What remains is C5, C6 and C7 for you, and the A and B items blocked on access nobody has. Every
+one of those is a decision or a credential, not work waiting to be done.
 
 ## Summary
 
