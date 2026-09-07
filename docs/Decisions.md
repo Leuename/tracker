@@ -2343,10 +2343,18 @@ Fixed by reading each variable by name. **Proved by canary, not by argument:** a
 variable exported into the build appears in the bundle before the change and is absent after, and
 the live bundle now contains no `VITE_` names at all.
 
-**Two things this leaves open.** Vercel keeps older immutable deployments, and those still serve the
-old bundle with the old commit text; retiring them is a separate act nobody has taken. And the
-underlying cause is a Vercel project setting that exposes system variables to the framework prefix —
-the code no longer reads them, which is the durable fix, but the setting is still on.
+**Residual exposure, measured rather than assumed.** Vercel keeps older immutable deployments and
+those bundles still contain the old commit text, so the first read of this was that retiring them
+was an outstanding act. It is not. The project runs `ssoProtection` at
+`all_except_custom_domains`, and every older deployment URL answers **302 to `vercel.com/sso-api`**;
+following the redirect returns an SSO page carrying no bundle and no commit text. Only the
+production alias `tracker-six-flax.vercel.app` is anonymous, and it now serves the fixed bundle.
+Checked on 2026-09-08 against two of the leaky deployments.
+
+**What does stay open** is the cause rather than the effect: the Vercel project setting that exposes
+system variables to the framework prefix is still on. The code no longer reads them, which is the
+durable fix and does not depend on that setting — but a future file that touches `import.meta.env`
+as an object would reopen this, so the setting is worth turning off as well.
 
 ### A refused write must not advance the baseline
 
