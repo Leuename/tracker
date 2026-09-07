@@ -28,44 +28,42 @@ produced the answer survives alongside it.
 
 ---
 
-## Owner-gated occurrence-identity rollout
+## Occurrence-identity rollout — CLOSED 2026-09-08
 
-The application and two additive migration files for [D79](Decisions.md) are implemented in the
-working tree. **Neither migration is applied, the application is not deployed, and production
-behavior has not changed.** The owner must authorize the database and deployment sequence because
-this is the one live ledger and a push to `main` deploys production.
+The owner authorized the sequence and it ran end to end. **Both migrations are applied, the
+identity-aware application is deployed, and production behavior has changed.** The full record,
+with the rehearsal evidence and MD5s, is [D80](Decisions.md).
 
-The order cannot be compressed or rearranged:
+What was done, in the order [D79](Decisions.md) requires and nothing rearranged:
 
-1. Read the production and rehearsal preflight again; scrutinize every currently linked row's
-   `src`/`due` history and abort for an explicit owner mapping if it is ambiguous or if any
-   `(src, occurrence_due)` collision exists. Historical transitions on now-unlinked rows do not
-   block because those rows require no occurrence identity. Rehearse and
-   apply `20260907181000_generated_occurrence_identity.sql`.
-2. Deploy the identity-aware application. Run the new occurrence-identity e2e spec, which skips
-   safely before phase 1 and has not yet run against the hosted column; verify generated writes and
-   rescheduling. Run security with `OCCURRENCE_IDENTITY_PHASE=1`; require the single 57th probe to receive exact `42501` for
-   `occurrence_due` while confirming `src` remains updateable.
-3. Rehearse and apply `20260907182000_enforce_generated_occurrence_identity.sql`, which revokes
-   authenticated UPDATE(`src`). Set `OCCURRENCE_IDENTITY_PHASE=2` and require the 57th probe to
-   receive exact `42501` for both identity columns. In this mode the check is removed from
-   `DEFERRED`; any `src` or `occurrence_due` failure must be fatal/nonzero. Verify that
-   deleting a recurring parent still unlinks its transactions through `ON DELETE SET NULL` without
-   violating the new check.
+1. Rehearsed both phases on `tracker-rehearsal` against seeded cases production does not have —
+   a linked row never moved, one rescheduled with its insert audit, one rescheduled with only an
+   update audit. Every rescheduled row kept its **original** occurrence; a duplicate insert at an
+   existing `(src, occurrence_due)` was refused; deleting the recurring parent unlinked its rows
+   without violating the new check. Preflight re-read on production immediately before applying:
+   `linked_rows=0`, `rescheduled_linked=0`, `relinks=0`, `collisions=0`, so the backfill was a
+   no-op and `audit_log` did not move.
+2. Applied phase 1, deployed, and ran the suite. `OCCURRENCE_IDENTITY_PHASE=1` returned
+   `occurrence_due: 42501, src: UPDATE allowed`.
+3. Applied phase 2. `OCCURRENCE_IDENTITY_PHASE=2` returned `occurrence_due: 42501, src: 42501`,
+   57 checks, 0 failed, 0 deferred.
 
-Deploying before phase 1 yields unknown-column failures. Phase 2 before deployment rejects stale
-clients. Once phase 1 exists, rewinding a linked transaction across the migration boundary requires
-the pre-migration schema or an explicit owner-approved occurrence mapping; the tool refuses to
-invent one.
+**The suite was then run a second time, after phase 2, and that is the only reason two defects were
+caught.** The prescribed order runs e2e once, between the deploy and phase 2, so nothing in it
+exercises the application against the final grant set. One spec drew its refusal from the very
+index phase 2 drops. Any future staged grant change must re-run its acceptance suite **after the
+last phase**. See [D80](Decisions.md).
 
-The local verification baseline is `npm test`: **191 assertions across 11 files**. `npm run
-security` now enumerates **57 checks**, with only the occurrence-column privilege check deferred
-until phase 1. Phase 1 revokes authenticated UPDATE only on `occurrence_due` and preserves
-UPDATE(`src`) for the old bundle; phase 2 revokes UPDATE(`src`), while the identity-aware
-application's `forUpdate` omits both. The e2e manifest has 50 tests—two setup and 48 specs—but its
-new hosted occurrence-identity spec has not run against the column. The 2026-09-07 preflight found **43 historical `src`
-transitions and zero currently linked production rows**; that is evidence from that moment, not a
-rollout invariant.
+Current baseline: `npm test` **191 assertions across 11 files**, `npm run security` **57 checks, 0
+failed, 0 deferred** at `OCCURRENCE_IDENTITY_PHASE=2`, e2e **50/50** against the deployed bundle.
+Rewinding a linked transaction across the migration boundary now requires the pre-migration schema
+or an explicit owner-approved occurrence mapping; the tool refuses to invent one.
+
+**`Refund` is also closed.** It was missing from production's `app_config.data.categories` while
+`src/data.js` had shipped it all along, which is why `npm test` was green against a short list. It
+was added on 2026-09-07 under a guarded write that pinned the existing eighteen values, so a
+concurrent owner edit would have been a no-op rather than a clobber. Nineteen categories now, in
+the order `alphabetical()` produces.
 
 ---
 

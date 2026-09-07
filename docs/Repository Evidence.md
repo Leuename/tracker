@@ -25,13 +25,16 @@ This note separates observed repository facts from future assumptions.
 
 No workspace declaration, `dc-runtime` source, API implementation, or backend service exists in this checkout. The embedded `cd dc-runtime && bun run build` text is export provenance, not a runnable command here.
 
-The database schema **is** checked in as of 2026-09-01. `supabase/migrations/` holds nineteen files
-that are applied to production plus two 2026-09-07 occurrence-identity files that are **written but
-unapplied**. The applied set's last four are `masterlist_link_and_ecash_fee`,
-`transfer_invoice_number`, `one_generated_row_per_due_date` and `money_constraints`; the pending
-files are `generated_occurrence_identity` and `enforce_generated_occurrence_identity`. Neither
-pending file has run on `tracker-rehearsal` or production, so their presence proves proposed SQL,
-not hosted schema or live behavior. The twelve that existed on 2026-09-02 were re-verified then,
+The database schema **is** checked in as of 2026-09-01. `supabase/migrations/` holds **twenty-one
+files, all applied to production** as of 2026-09-08. The last four are
+`one_generated_row_per_due_date`, `money_constraints`, `generated_occurrence_identity` and
+`enforce_generated_occurrence_identity`. The two 2026-09-07 occurrence-identity files were
+rehearsed on `tracker-rehearsal` and then applied to production in the order
+[D80](Decisions.md) records, each registered with a stored statement whose MD5 matches its file
+byte-for-byte — `1d164ba0be70f52f709ec3facef2b48f` and `69cf1c0b932287d1710966c65e375d2e`. Phase 2
+drops `one_generated_row_per_due_date`'s index, so that file remains the record of a constraint
+that no longer exists in the hosted schema; the live partial unique index is
+`txns_one_generated_row_per_occurrence` on `(src, occurrence_due)`. The twelve that existed on 2026-09-02 were re-verified then,
 read back out of `supabase_migrations.schema_migrations` in Supabase project `baby`
 (`jusifpditdigqdjiwdaj`) and each verified byte-for-byte by MD5 against the stored statement. They
 are a faithful record of what was applied **and** a rebuild that has been replayed twice. On
@@ -107,13 +110,14 @@ removed the same day; no API implementation exists in this checkout.
 **R7 is applied to production.** The rehearsal and production projects now have 15 migrations:
 `fx_rates`, `private_is_viewer`, and `drop_public_is_viewer` were applied exactly. In production,
 the public RPC is absent (`404` / `PGRST202`), the private schema is refused (`406` / `PGRST106`),
-all 17 write policies plus `merge_app_config` use `private.is_viewer()`. The current security probe
-has 57 checks: 56 pass and the generated-identity check is deferred until phase 1. Rolled-back
+all 17 write policies plus `merge_app_config` use `private.is_viewer()`. The security probe
+now has 57 checks, all passing and none deferred, since the generated-identity rollout landed
+([D80](Decisions.md)). Rolled-back
 administrator and viewer simulations passed with row counts unchanged;
 the ledger is unchanged. The deployed production bundle contains zero `is_viewer` RPC calls.
 
 The safe order was migration 1, confirm the deployment and reload open tabs, then migration 2 and
-`npm run security`; the current probe has 57 checks, with 56 passing and one deferred until phase 1.
+`npm run security`; the probe has 57 checks, all passing and none deferred since [D80](Decisions.md).
 
 **The sequence failure was reproduced rather than described**, 2026-09-03 on the rehearsal project: with `audit_log_id_seq` left behind, an audited write failed `23505 duplicate key value violates unique constraint "audit_log_pkey"`; after the prescribed `setval` the same write was accepted.
 
@@ -537,34 +541,44 @@ Both accounts now exist in `auth.users`, and the two-user model was verified wit
 
 Partly verified: the browser path. The sign-in gate renders and the running app reaches it, observed at `http://localhost:5173/`. The signed-in screens have not been observed against live data, because no session was established through a browser. `npm run smoke` issues the same queries those screens make, so the gap is rendering, not the data path.
 
-**Occurrence-identity closure exists only in the working tree as of 2026-09-07.** Source inspection
+**Occurrence-identity closure was written on 2026-09-07 and applied to production on 2026-09-08
+([D80](Decisions.md)).** Source inspection
 shows generated rows carry `occurrenceDue`, `src/rows.js` maps it to `occurrence_due` on insert and
 omits it from update payloads, coverage treats a linked row without identity as unresolved rather
 than guessing from editable dates, and the scheduler reports that state. `rewind-plan.js` refuses a
 linked pre-migration before-image when the hosted schema has the identity column. The backup query
 plan also has executable coverage for its key guard and `fx_rates` ordering. `npm test` passes
-**191 assertions across 11 files**. The probe now enumerates **57 checks**, but the
-generated-identity privilege check is deliberately deferred until phase 1 exists. Its staged
-contract is explicit: `OCCURRENCE_IDENTITY_PHASE=1` is used before and after phase 1, where an absent
-column is `DEFER`, then exact `42501` is required only for `occurrence_due` while `src` remains
-updateable. Deferral is available only while phase 1 is unapplied or phase-1 compatibility is being
-verified. `OCCURRENCE_IDENTITY_PHASE=2` is set only after phase 2; it removes the check from
-`DEFERRED`, requires exact `42501` for both, and makes either failure fatal/nonzero. Source
-inspection shows phase 1 revokes authenticated UPDATE only on `occurrence_due`, phase 2 revokes it
-on `src`, and the identity-aware `forUpdate` omits both. The e2e manifest now has **50 tests: two
-setup tests and 48 specs**. The new hosted occurrence-identity spec skips safely before phase 1 and
-has not run against the hosted column.
+**191 assertions across 11 files**. The probe enumerates **57 checks** and the
+generated-identity privilege check is no longer deferred. Its staged contract remains explicit:
+`OCCURRENCE_IDENTITY_PHASE=1` describes a database between the two phases, where exact `42501` is
+required for `occurrence_due` while `src` remains updateable; `OCCURRENCE_IDENTITY_PHASE=2`
+describes the current one, requires exact `42501` for both, and makes either failure fatal/nonzero.
+Phase 1 revokes authenticated UPDATE only on `occurrence_due`, phase 2 revokes it on `src`, and the
+identity-aware `forUpdate` omits both. The e2e manifest has **50 tests: two setup tests and 48
+specs**.
 
-None of that changes the hosted facts: the two SQL files have not been applied to rehearsal or
-production, the identity-aware application has not been deployed, and the current production
-schema still keys generated uniqueness on `(src, due)`. The required owner-gated order is phase 1,
-then deployment and verification—including occurrence-identity e2e coverage that cannot run against
-the current schema—then removal of the security deferral, then phase 2. The phase-1
-preflight recorded **43 historical `src` transitions and zero currently linked production rows** on
-2026-09-07, so none of those historical transitions required an occurrence identity. The migration
-scrutinizes `src`/`due` history for every row that is linked when it runs; transitions on now-unlinked
-rows do not block. These values must be read again before application rather than treated as
-invariants.
+**Read live on 2026-09-08, before and after every production-writing check.** Twenty-one migrations
+applied, latest `20260907182000`. `txns.occurrence_due` exists; authenticated holds INSERT but not
+UPDATE on it, and after phase 2 no UPDATE on `src` either. `txns_one_generated_row_per_occurrence`
+present, `txns_one_generated_row_per_due_date` dropped, CHECK
+`txns_generated_occurrence_has_identity` validated. Deployment moved from `index-DQlFRu57.js` to
+`index-D1mhlrBq.js`. `npm test` **191/191 across 11 files**, `npm run build` green at `vite v8.2.2`,
+`npm audit` **0 vulnerabilities**, `OCCURRENCE_IDENTITY_PHASE=2 npm run security` **57 checks, 0
+failed, 0 deferred**, `npx playwright test --workers=1` **50 passed** — run once before phase 2 and
+again after it, which is the only reason two spec defects were caught (D80). `txns` 49 rows,
+₱2,226,438.00, `id:amount:status` fingerprint `a76686384422360d47403627c35f4f7f` unchanged
+throughout; the whole-row fingerprint moved to `08a747319f890079f3e107ec258bec51` because a column
+was added. `app_config` settings at rest, `__e2eHeld` null, 19 categories — `Refund` was added to
+production on 2026-09-07, closing the one open masterlist gap — 21 companies, zero `E2E-` residue,
+receipt `1788471059637` intact with its stored object, `recurring` empty, `audit_log` 8508 and
+append-only. `apps/web/test-results` deleted after every Playwright run; the password appeared in
+zero files, which is the tracing-off setup project working as designed.
+
+The phase-1 preflight recorded **43 historical `src` transitions and zero currently linked
+production rows** on 2026-09-07, re-confirmed immediately before application on 2026-09-08, so the
+backfill was a no-op and `audit_log` did not move across it. The migration scrutinizes `src`/`due`
+history for every row that is linked when it runs; transitions on now-unlinked rows do not block.
+These values must be read again in any future environment rather than treated as invariants.
 
 **Corrected 2026-09-04.** This sentence read "The app still has no server component, no CI, no deployment, no logging or telemetry…" and had been false since 2026-09-01, contradicting this note's own CI and deployment paragraph above. What is actually still absent: a server component, logging or telemetry, conflict detection between concurrent editors, and a realtime subscription. CI and deployment exist — five workflows, a gate on every push to `main`, and a live Vercel deployment. `TODAY` remains frozen at `2026-08-30` in `src/data.js`, so completion dates it writes carry that date rather than the real one.
 

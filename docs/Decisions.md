@@ -2124,10 +2124,10 @@ the deployed old bundle still works. Phase 2, only after deployment, revokes UPD
 Hand-entered rows remain outside this constraint, preserving their deliberately advisory duplicate
 warning.
 
-The implementation is written in the working tree, including two additive migrations, but **neither
-migration has been applied to rehearsal or production and the application has not been deployed**.
-Production behavior remains D63's `(src, due)` index and the currently deployed client until the
-owner authorizes this exact rollout:
+**The rollout is complete as of 2026-09-08 ([D80](#d80--the-occurrence-identity-rollout-is-applied)).**
+Both migrations are applied to production, the identity-aware application is deployed, and D63's
+`(src, due)` index is dropped. The steps below are kept as the record of the order that was
+followed, because that order is load-bearing and any future environment must repeat it:
 
 1. Re-run the identity/collision preflight, then rehearse and apply phase 1,
    `20260907181000_generated_occurrence_identity`. It adds the nullable column, grants INSERT but
@@ -2136,10 +2136,10 @@ owner authorizes this exact rollout:
    history and aborts for an explicit mapping when that history is ambiguous. Historical `src`
    transitions on rows that are now unlinked do not block: those rows require no occurrence
    identity.
-2. Deploy the identity-aware application and run the new occurrence-identity e2e spec, which safely
-   skips before phase 1 and has not yet run against the hosted column. Verify generated writes,
-   edits and scheduling. The security probe must now receive exact `42501` for `occurrence_due`
-   while confirming `src` remains updateable.
+2. Deploy the identity-aware application and run the new occurrence-identity e2e spec, which skips
+   itself until the hosted column exists. Verify generated writes, edits and scheduling. The
+   security probe must receive exact `42501` for `occurrence_due` while confirming `src` remains
+   updateable.
 3. Rehearse and apply phase 2,
    `20260907182000_enforce_generated_occurrence_identity`. It revokes authenticated UPDATE(`src`),
    asserts no linked row lacks identity,
@@ -2166,6 +2166,51 @@ pre-phase-1 unknown column is `DEFER`, then exact `42501` is required only for `
 `src` must remain allowed. That deferral exists only while phase 1 is unapplied or phase-1
 compatibility is being verified. Set `=2` only after phase 2; the check is removed from `DEFERRED`,
 requires exact `42501` for both, and any `src` or `occurrence_due` failure is fatal/nonzero.
+
+## D80 — The Occurrence Identity Rollout Is Applied
+
+**Decision and record, 2026-09-08. Completes [D79](#d79--a-generated-liability-keeps-its-original-occurrence-identity).**
+Both migrations are applied to production, the identity-aware application is deployed, and the
+rollout order D79 describes was followed exactly.
+
+| Step | Evidence |
+|---|---|
+| Rehearsal, both phases, on `tracker-rehearsal` | Seeded the three cases production lacks — a linked row never moved, one rescheduled with its insert audit, one rescheduled with only an update audit. The backfill chose `t.due`, the insert audit's `after.due` and the update audit's `before.due` respectively: every rescheduled row kept its **original** occurrence. A second insert at an existing `(src, occurrence_due)` was refused and nothing was written. Deleting the recurring parent unlinked three rows keeping `occurrence_due`, with no constraint failure. Seed removed. |
+| Production preflight | `linked_rows=0`, `rescheduled_linked=0`, `relinks=0`, `collisions=0` — so the backfill was a no-op and `audit_log` stayed at 8496. |
+| Phase 1 applied | Registered as version `20260907181000`; stored statement md5 `1d164ba0be70f52f709ec3facef2b48f` matches the file byte-for-byte, which also proves the executed text was the file. |
+| Deployment | CI gate green (`4e5529e` follows `9cc27af`); live bundle moved `index-DQlFRu57.js` to `index-D1mhlrBq.js`, carrying `occurrence_due` and the optional check-number label. |
+| Phase 2 applied | Registered as `20260907182000`; md5 `69cf1c0b932287d1710966c65e375d2e` matches. 21 migrations applied. |
+| Probe | 57 checks, 0 failed, **0 deferred**, at `=1` after phase 1 (`occurrence_due: 42501, src: UPDATE allowed`) and at `=2` after phase 2 (`occurrence_due: 42501, src: 42501`). |
+| e2e | 50/50 against the deployed bundle, run once before phase 2 and again after it. |
+
+The ledger did not move: 49 rows and PHP 2,226,438.00 throughout, with the identity fingerprint
+`id:amount:status` constant at `a76686384422360d47403627c35f4f7f`. The whole-row fingerprint
+changed from `f9f84adad1c9b5c4fa3e3495712ac09f` to `08a747319f890079f3e107ec258bec51` **because a
+column was added, not because data changed** — the second time that has happened for that reason.
+Read the whole-row value as a moving baseline and the `id:amount:status` value as the invariant.
+
+**Two defects surfaced only by running the suite after phase 2, and both are recorded here because
+the plan's own ordering hid them.**
+
+1. A month locator, `/Dec 2026/`, matched both the month-picker entry and the `Generate Dec 2026`
+   button. It is ambiguous only once a row exists, so only a second pass reaches it, and the
+   occurrence-identity spec is the first to make one — that spec had never executed before this
+   rollout, because it skipped itself until the column existed. All four month locators are now
+   anchored with `^`.
+2. `a refused due-date change is undone on screen` drew its refusal from D63's `(src, due)` index,
+   which phase 2 drops **on purpose**. Moving a generated row onto a sibling's due date is now
+   legal: the visible due is payment timing and `occurrence_due` is what keeps the two rows
+   distinct occurrences. The spec asserted the rule this change exists to remove. It now pins the
+   new rule instead — the move is accepted, neither identity moves, and the sheet shows the date
+   the ledger holds. Honest surfacing of writes the database really does refuse stays covered by
+   the two paid-row specs.
+
+**The ordering gap is the durable lesson.** The plan runs e2e once, between the deploy and phase 2,
+so nothing in the prescribed sequence exercises the application against the final grant set. Both
+defects above were invisible until the suite was run a second time, after phase 2. Any future
+staged grant change must re-run its acceptance suite **after the last phase**, not only between
+phases; otherwise the nightly `verify.yml` is the first thing to discover the breakage, unattended.
+This is trap 101 in its sharpest form: phase 2 moved a guard out of the place that tested it.
 
 ## Guideline Basis
 

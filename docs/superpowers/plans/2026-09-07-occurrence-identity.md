@@ -10,6 +10,14 @@
 
 **Spec:** `handoff/2026-09-07 Session Continuation, Rounds One to Twenty-Five.md`, Round 25's four fixes and the Round 26 verifier findings, and `docs/Decisions.md` D63/D78.
 
+**Status, 2026-09-08: ROLLOUT COMPLETE.** Both migrations are applied to production, the
+identity-aware application is deployed, and the acceptance matrix has run — see
+[Decisions](../../Decisions.md) D80. **One correction to this plan's own method:** Task 10 runs the
+Playwright suite once, between the deploy and phase 2, so nothing in the prescribed order exercises
+the application against the final grant set. Running it again after phase 2 found two defects, one
+of them a spec whose refusal came from the index phase 2 drops. A staged grant change must re-run
+its acceptance suite after the LAST phase.
+
 **Status, 2026-09-07:** Local implementation for Tasks 1–9 is complete. `npm test` passes 191
 assertions across 11 files, the 50-test Playwright suite is registered, and Claude Code returned
 `AUDIT: READY`. Both migration files are written but unapplied; the identity-aware application is
@@ -98,7 +106,7 @@ changed.
 - [x] Scrutinize the `src` and `due` history of every row that is currently linked. If later data leaves any such mapping ambiguous, abort and ask the owner. Historical `src` transitions on now-unlinked rows do not block because those rows require no occurrence identity. Never choose a row to delete or leave unprotected.
 - [x] Write one additive transaction that adds the column, permits authenticated INSERT of both identity columns, revokes authenticated UPDATE only on `occurrence_due`, preserves UPDATE(`src`) for the deployed old bundle, disables `txns_audit` only around deterministic backfill, re-enables it, and creates the new partial unique index alongside the old `(src,due)` index.
 - [x] Do not add a CHECK in phase 1: `NOT VALID` still enforces new writes and would break stale clients.
-- [ ] Review rollback SQL and rehearse only after owner authorizes external database work.
+- [x] Rehearsed both phases on `tracker-rehearsal` against seeded cases on 2026-09-08, then applied to production. **Rollback SQL is written up in `supabase/README.md` rather than as a migration**, because reversing phase 2 restores a constraint the design deliberately removed and must be a deliberate act, not a scripted one.
 
 ### Task 4: Make scheduler outcomes truthful and executable
 
@@ -180,7 +188,7 @@ changed.
 - `PGRST204`/`42703` is failure, not proof of immutability.
 
 - [x] Add one 57th probe covering both identity columns and a `DEFERRED` entry citing the new decision while phase 1 is unapplied.
-- [ ] Run with `OCCURRENCE_IDENTITY_PHASE=1` before and after phase 1: pre-migration prints `DEFER`, then exact `42501` is required for `occurrence_due` while `src` stays allowed. Deferral is limited to these pre/compatibility states. Set `OCCURRENCE_IDENTITY_PHASE=2` only after phase 2, remove the check from `DEFERRED`, and require exact `42501` for both with fatal/nonzero failures.
+- [x] Run with `OCCURRENCE_IDENTITY_PHASE=1` before and after phase 1: pre-migration prints `DEFER`, then exact `42501` is required for `occurrence_due` while `src` stays allowed. Deferral is limited to these pre/compatibility states. Set `OCCURRENCE_IDENTITY_PHASE=2` only after phase 2, remove the check from `DEFERRED`, and require exact `42501` for both with fatal/nonzero failures.
 
 ### Task 9: Author phase 2 and document the owner-gated rollout
 
@@ -210,10 +218,10 @@ changed.
 - Verify all paths above; do not add unrelated scope.
 
 - [x] Restore every mutation and run `npm test`, `npm run build`, and `npm audit`.
-- [ ] Run `OCCURRENCE_IDENTITY_PHASE=1 npm run security` before phase 1 (56 pass plus one `DEFER`) and after phase 1 (exact `42501` only for `occurrence_due`, `src` allowed). After phase 2 run `OCCURRENCE_IDENTITY_PHASE=2 npm run security`; the identity check is not deferred, exact `42501` is required for both, and either failure exits nonzero.
-- [ ] Set `E2E_REQUIRE_CREDENTIALS=1`; run the key-by-key decimal Playwright spec, then the full single-worker suite once.
+- [x] Run `OCCURRENCE_IDENTITY_PHASE=1 npm run security` before phase 1 (56 pass plus one `DEFER`) and after phase 1 (exact `42501` only for `occurrence_due`, `src` allowed). After phase 2 run `OCCURRENCE_IDENTITY_PHASE=2 npm run security`; the identity check is not deferred, exact `42501` is required for both, and either failure exits nonzero.
+- [x] Set `E2E_REQUIRE_CREDENTIALS=1`; run the key-by-key decimal Playwright spec, then the full single-worker suite. Run **twice**: once after the deploy and again after phase 2. The second run is what caught two defects — see the ordering note below.
 - [x] Delete `apps/web/test-results` immediately after Playwright.
-- [ ] Run the entry-point handoff section-10 SQL before and after production-writing checks. Assert the session's fingerprint/count/total are unchanged across our writes, `__e2eHeld` is null, E2E residue is zero, and the backup-proof receipt remains.
+- [x] Run the entry-point handoff section-10 SQL before and after production-writing checks. Assert the session's fingerprint/count/total are unchanged across our writes, `__e2eHeld` is null, E2E residue is zero, and the backup-proof receipt remains.
 - [x] Run `cmp AGENTS.md CLAUDE.md` and documentation link/placeholder checks.
 - [x] Dispatch one fresh verifier to audit this explicit matrix. Fix reproducible material correctness, security, or money-loss findings; record unrelated non-material observations without starting another numbered review loop.
 

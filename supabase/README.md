@@ -21,8 +21,8 @@ data. They are versioned here now.
 
 ## Applied migrations
 
-The table lists 17 applied migrations. The two applied R7 migrations are documented in their own
-section below; together they make the hosted count of nineteen.
+The table lists 19 applied migrations. The two applied R7 migrations are documented in their own
+section below; together they make the hosted count of **twenty-one**.
 
 | Version | What it does |
 |---|---|
@@ -43,26 +43,30 @@ section below; together they make the hosted count of nineteen.
 | `20260904204252_transfer_invoice_number` | `transfers.inv`, text NOT NULL defaulting to `''`, modelled on `note`. Its grant is additive only — `transfers` has no table-wide INSERT/UPDATE, so re-listing columns would have risked dropping `rate`/`rate_as_of` ([D51](../docs/Decisions.md)) |
 | `20260905094348_one_generated_row_per_due_date` | A partial unique index on `(src, due) where src is not null`, so Postgres refuses a second generated row for the same payable and due date. Deliberately **not** extended to hand-entered rows, whose duplicate warning is advisory by design ([D63](../docs/Decisions.md)) |
 | `20260905143255_money_constraints` | Seven CHECK constraints across `txns`, `receipts`, `recurring` and `transfers`. Every money rule had lived only in the browser ([D65](../docs/Decisions.md)); `receipts.amount >= 0` rather than `> 0` so the backup-proof row survives |
+| `20260907181000_generated_occurrence_identity` | Adds nullable `txns.occurrence_due`, permits clients to set both identity fields on INSERT, revokes UPDATE only on `occurrence_due`, scrutinizes each linked row's `src`/`due` history and aborts ambiguous mappings, and adds the `(src, occurrence_due)` partial unique index alongside D63's. Deliberately preserves UPDATE(`src`) so the bundle being replaced keeps working ([D79](../docs/Decisions.md)) |
+| `20260907182000_enforce_generated_occurrence_identity` | Revokes UPDATE(`src`), validates `src is null or occurrence_due is not null`, and drops D63's `(src, due)` index. **Applied only after the identity-aware deployment was live and verified** ([D80](../docs/Decisions.md)) |
 
-## Pending migrations — written, not applied
+## The occurrence-identity rollout — applied 2026-09-08
 
-| Version | What it would do |
-|---|---|
-| `20260907181000_generated_occurrence_identity` | **Written, not applied.** Additive phase 1 adds nullable `txns.occurrence_due`, permits clients to set both identity fields on INSERT, revokes UPDATE only on `occurrence_due`, scrutinizes each currently linked row's `src`/`due` history and aborts ambiguous mappings, and adds the `(src, occurrence_due)` partial unique index alongside D63's old index. It deliberately preserves UPDATE(`src`) for the deployed old bundle. Historical transitions on now-unlinked rows do not block because those rows require no occurrence identity ([D79](../docs/Decisions.md)) |
-| `20260907182000_enforce_generated_occurrence_identity` | **Written, not applied.** Phase 2 revokes UPDATE(`src`), refuses missing identity on linked rows and removes D63's `(src, due)` index; run only after phase 1 and the identity-aware deployment are proven ([D79](../docs/Decisions.md)) |
+Both files are applied. The order was phase 1 → deploy and verify the identity-aware application →
+phase 2, and it is load-bearing: deploying first causes PostgREST unknown-column failures, and
+applying phase 2 before the deployment rejects stale clients. Each phase was rehearsed on
+`tracker-rehearsal` first, and each stored statement's MD5 was read back and matched against its
+file — `1d164ba0be70f52f709ec3facef2b48f` and `69cf1c0b932287d1710966c65e375d2e`. Deleting a
+recurring parent was confirmed to leave its generated transactions unlinked through
+`ON DELETE SET NULL` without a constraint failure. Full record in [D80](../docs/Decisions.md).
+
+**Run the acceptance suite again after phase 2, not only between the phases.** The plan ran e2e once,
+before phase 2, and two defects survived it — including a spec whose refusal came from the index
+phase 2 drops. Nothing in the prescribed order exercises the application against the final grant set.
 
 The two R7 migrations, `20260903204135` and `20260903204751`, ran between applied versions shown
 above and are documented in their own section below rather than in that table. Replay in
 **version** order, not table order.
 
-The hosted projects still have nineteen applied migrations. The two 2026-09-07 files are pending
-owner authorization and are deliberately excluded from that applied count. Their required order is
-phase 1 → deploy and verify the identity-aware application → phase 2.
-Deploying the application first causes PostgREST unknown-column failures; applying phase 2 before
-the deployment rejects stale clients. Rehearse each phase on `tracker-rehearsal` before production,
-read back and verify the stored MD5, run the occurrence-identity e2e coverage only after phase 1,
-and confirm that deleting a recurring parent still leaves its generated transactions unlinked
-through `ON DELETE SET NULL` without a constraint failure.
+Production has **twenty-one** applied migrations as of 2026-09-08, latest `20260907182000`.
+`tracker-rehearsal` carries the same schema, though its own version strings were assigned at apply
+time and do not match production's character for character.
 
 ## How these were produced
 
@@ -199,6 +203,50 @@ proves the SQL ran, not that it achieved anything.
 it says nothing about the twelve already here: none of them is reversible, none is being
 retrofitted, and pretending otherwise would be worse than the gap. The convention starts with the
 next migration written.
+
+**The convention has been honoured twice and missed six times.** Only `20260903204135` and
+`20260903204751` carry the block. `masterlist_link_and_ecash_fee`, `transfer_invoice_number`,
+`one_generated_row_per_due_date`, `money_constraints`, `generated_occurrence_identity` and
+`enforce_generated_occurrence_identity` do not. They are applied, and an applied migration is not
+edited, so the gap is recorded here rather than papered over. The reversal for the
+occurrence-identity pair is written out below; the other four are additive and reverse by dropping
+what they added.
+
+### Reversing the occurrence-identity rollout
+
+Undo in the opposite order to the rollout, and stop after phase 2 unless you truly intend to lose
+the identities. **Phase 2's reversal is safe. Phase 1's destroys data.**
+
+Phase 2 — restores D63's `(src, due)` uniqueness and the client's ability to write `src`:
+
+```sql
+begin;
+alter table public.txns drop constraint txns_generated_occurrence_has_identity;
+grant update (src) on public.txns to authenticated;
+create unique index txns_one_generated_row_per_due_date
+  on public.txns (src, due)
+  where src is not null;
+commit;
+```
+
+That `create unique index` fails if any payable already has two generated rows sharing a due date —
+which phase 2 legalised, and which is the whole reason the index was dropped. Reconcile those rows
+by hand first; do not widen the index to make the statement pass.
+
+Phase 1 — **drops the column, and every occurrence identity with it**:
+
+```sql
+begin;
+drop index public.txns_one_generated_row_per_occurrence;
+alter table public.txns drop column occurrence_due;   -- takes its column grants with it
+commit;
+```
+
+There is no way back from this one. `occurrence_due` is not derivable from the ledger afterwards:
+the audit trail can reconstruct a row's original due date only while its history is intact, and a
+rescheduled row's visible `due` is by definition not its occurrence. Take a backup first, and
+redeploy the pre-identity bundle before running it, or every write from the live application will
+fail on an unknown column.
 
 One file, both directions. A rollback kept in a second file drifts from the change it undoes, or
 is written months later by somebody reconstructing what the first one did — which is the moment a
