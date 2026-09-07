@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { classifySchedule, formatScheduleOutcome } from './schedule-plan.js'
+import { classifySchedule, formatScheduleOutcome, formatScheduleReport } from './schedule-plan.js'
 
 test('classifies the finite scheduler outcomes', () => {
   assert.equal(classifySchedule({}).at(0).outcome, 'not-due')
@@ -43,4 +43,30 @@ test('a generated run reports itself once, and says what it skipped', () => {
     /^- Added 1 payable\(s\) for Sep 2026\.$/)
   assert.match(formatScheduleOutcome(classifySchedule({ recurring: [{}], rows: [{ id: 1 }], skipped: 2 }), 'Sep 2026', { dryRun: true })[0],
     /^- Would add 1 payable\(s\) for Sep 2026, skipping 2 already there\.$/)
+})
+
+// ROUND 28, finding 3. Removing the duplicated summary left the two callers
+// printing in different orders: the dry run said summary-then-rows, the live
+// 22:00 job said rows-then-summary. `schedule.mjs` is not in `npm test`, so the
+// order was untestable where it lived. It lives here now.
+test('the report puts its summary before the rows it describes, on both paths', () => {
+  const rows = [
+    { co: 'GTOI', cat: 'Rent', desc: 'Retainer', due: '2026-09-15' },
+    { co: 'ANG', cat: 'Rent', desc: 'Warehouse', due: '2026-09-20' },
+  ]
+  const outcome = classifySchedule({ recurring: [{}], dueCount: 2, rows, skipped: 1 })
+
+  for (const dryRun of [false, true]) {
+    const lines = formatScheduleReport(outcome, 'Sep 2026', rows, { dryRun })
+    assert.equal(lines.length, 3, 'one summary and one line per row')
+    assert.match(lines[0], /^- (Added|Would add) 2 payable\(s\)/, 'summary first')
+    assert.match(lines[1], /^ {2}- GTOI · Rent · Retainer · due 2026-09-15$/)
+    assert.match(lines[2], /^ {2}- ANG · Rent · Warehouse · due 2026-09-20$/)
+    assert.equal(lines.filter((l) => /payable\(s\)/.test(l)).length, 1, 'and says it once')
+  }
+
+  // A run that wrote nothing must not list rows it did not write. `schedule.mjs`
+  // passes `detail: generated`, which is false when the insert threw.
+  assert.deepEqual(formatScheduleReport(outcome, 'Sep 2026', rows, { detail: false }).length, 1)
+  assert.deepEqual(formatScheduleReport(outcome, 'Sep 2026', []).length, 1)
 })

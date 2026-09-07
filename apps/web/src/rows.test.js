@@ -118,6 +118,47 @@ test('configOf picks exactly the slices stored in app_config', () => {
   }
 })
 
+// ROUND 28, finding 2. The write direction was pinned and the read direction
+// was not — and commit 2db8e6c's message claimed otherwise. Deleting the
+// `occurrence_due` spread from `fromTxn` left all 197 tests green while, in
+// production, every linked row would read back with no identity: `coverageFor`
+// classifies them all as unresolved, `uncoveredOccurrences` returns nothing to
+// generate, and generation is refused permanently for every payable that has a
+// linked row — Generate button, Dashboard, sync bar and the 22:00 job alike.
+// The same silent under-generation as round 27, one file over.
+test('a row read back from the database carries its occurrence identity', () => {
+  const back = fromTxn({
+    id: 5, co: 'GTOI', cat: 'Rent', description: 'Retainer', period: 'Sep 2026',
+    due: '2026-09-20', amount: 5000, status: 'pending', done: null,
+    pay_type: null, check_no: null, notes: null, src: 7, occurrence_due: '2026-09-15', fee: null,
+  })
+  assert.equal(back.occurrenceDue, '2026-09-15', 'identity must survive the read')
+  assert.notEqual(back.occurrenceDue, back.due, 'and is not the visible due date')
+  assert.equal(back.src, 7)
+
+  // A hand-entered row has neither, and must not acquire an empty one: the
+  // three-branch classification in `coverageFor` keys on `occurrenceDue` being
+  // absent rather than falsy-but-present.
+  const plain = fromTxn({
+    id: 6, co: 'GTOI', cat: 'Rent', description: 'Typed by hand', period: 'Sep 2026',
+    due: '2026-09-20', amount: 100, status: 'pending', done: null,
+    pay_type: null, check_no: null, notes: null, src: null, occurrence_due: null, fee: null,
+  })
+  assert.ok(!('occurrenceDue' in plain), 'no key at all, rather than a null one')
+  assert.equal(plain.src, null)
+})
+
+// The pair, asserted together so neither direction can be dropped while the
+// other keeps the suite green.
+test('occurrence identity round-trips through the database mapping', () => {
+  const row = { id: 5, co: 'GTOI', cat: 'Rent', desc: 'Retainer', period: 'Sep 2026',
+    due: '2026-09-20', amount: 5000, status: 'pending', done: '', src: 7, occurrenceDue: '2026-09-15' }
+  const back = fromTxn(toTxn(row))
+  assert.equal(back.occurrenceDue, '2026-09-15')
+  assert.equal(back.src, 7)
+  assert.equal(back.due, '2026-09-20')
+})
+
 test('an update payload never carries the primary key or generated identity', () => {
   // The database does not grant UPDATE on these columns, so including any of
   // them makes an otherwise ordinary edit fail with a privilege error.

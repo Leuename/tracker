@@ -21,3 +21,21 @@ export const formatScheduleOutcome = (outcome, label, { dryRun = false } = {}) =
   if (x.outcome === 'failed') return '- Generation failed: ' + (x.error?.message || x.error)
   return '- No recurring payable is due, so nothing to generate.'
 })
+
+/**
+ * The whole report for one run, in order: summary first, then the row detail
+ * that hangs off it.
+ *
+ * Both callers in `schedule.mjs` used to build this by hand, and after round 27
+ * removed a duplicated summary line they disagreed: the dry run printed
+ * summary-then-rows while the live 22:00 job printed rows-then-summary, so in
+ * the GitHub job summary — the only channel this project has — the indented
+ * rows rendered as a nested list hanging off whatever came before, and their
+ * header arrived after them. `schedule.mjs` is not in `npm test`, so nothing
+ * could catch that. The order lives here now, where a test can hold it.
+ */
+export const formatScheduleReport = (outcome, label, rows = [], { dryRun = false, detail = true } = {}) => {
+  const lines = formatScheduleOutcome(outcome, label, { dryRun })
+  if (!detail || !rows.length) return lines
+  return lines.concat(rows.map((r) => `  - ${r.co} · ${r.cat} · ${r.desc} · due ${r.due}`))
+}

@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 import * as D from './db.js'
-import { dstr } from '../src/logic.js'
+import { dstr, monthKeys, monthLabel } from '../src/logic.js'
 
 test.skip(!D.haveCredentials(), 'Set E2E_EMAIL, E2E_PASSWORD and the two VITE_ variables.')
 test.describe.configure({ mode: 'serial' }) // one shared ledger; parallel specs would collide
@@ -496,34 +496,61 @@ test('generated occurrence identity survives visible due and period edits', asyn
 // bundle and the real unique index, because that is the combination that was
 // green while production was wrong.
 test('a monthly payable generates in each month, not only the first', async ({ page }) => {
+  // The months are taken from the app's own Generate menu rather than written
+  // in. `TODAY` is `localToday()`, not a frozen constant, so the menu is a
+  // rolling thirteen months and any hardcoded pair eventually falls out of it —
+  // the spec would then fail on a locator that no longer resolves, months after
+  // anyone remembered why. Mid-window keeps both inside it whenever this runs.
+  const [firstKey, secondKey] = monthKeys().slice(6, 8)
+  const [firstLabel, secondLabel] = [monthLabel(firstKey), monthLabel(secondKey)]
+
   const desc = D.MARK + ' two months'
-  const rule = await D.makeRecurring({ description: desc, due_date: '2027-01-12', amount: 700 })
+  const rule = await D.makeRecurring({ description: desc, due_date: firstKey + '-12', amount: 700 })
   try {
     await signIn(page)
     await go(page, 'Masterlist')
 
-    for (const [pick, gen] of [[/^Jan 2027/, /^Generate Jan 2027/], [/^Feb 2027/, /^Generate Feb 2027/]]) {
+    // Waits for the banner to name THIS month rather than just to be visible.
+    // The previous generate's banner is still on screen, so `toBeVisible()`
+    // resolves instantly against stale text and the read comes back describing
+    // the wrong month. `toContainText` retries until the screen catches up, and
+    // still fails if it never does.
+    const generate = async (label) => {
       await page.getByRole('button', { name: 'Pick a month' }).click()
-      await page.getByRole('button', { name: pick }).click()
-      await page.getByRole('button', { name: gen }).click()
-      await expect(page.locator('.banner')).toBeVisible({ timeout: 15_000 })
+      await page.getByRole('button', { name: new RegExp('^' + label) }).click()
+      await page.getByRole('button', { name: new RegExp('^Generate ' + label) }).click()
+      const banner = page.locator('.banner').first()
+      await expect(banner, label + ' must raise its own banner').toContainText(label, { timeout: 15_000 })
+      return (await banner.textContent()) || ''
     }
+
+    // Both months must actually write. Asserted without swallowing the
+    // rejection: the first version of this was
+    // `.not.toBeVisible().catch(() => {})`, which cannot fail — trap 104,
+    // introduced while fixing trap 104.
+    //
+    // The banner must NAME its month. Matching only /added to the Tracker/ let
+    // a stale banner from the previous generate satisfy the assertion, because
+    // both months produce the same sentence — a second, weaker version of the
+    // same mistake, caught by running it.
+    expect(await generate(firstLabel)).toMatch(/added to the Tracker/)
+    expect(await generate(secondLabel), secondLabel + ' must not be reported as covered by ' + firstLabel)
+      .toMatch(/added to the Tracker/)
 
     await expect.poll(async () => (await D.txnsTagged(desc)).length, { timeout: 10_000 }).toBe(2)
     const rows = (await D.txnsTagged(desc)).sort((a, b) => (a.occurrence_due < b.occurrence_due ? -1 : 1))
-    expect(rows.map((r) => r.occurrence_due)).toEqual(['2027-01-12', '2027-02-12'])
+    expect(rows.map((r) => r.occurrence_due)).toEqual([firstKey + '-12', secondKey + '-12'])
     for (const r of rows) expect(r.src).toBe(rule.id)
 
-    // February must not have been reported as already covered by January.
-    await expect(page.getByText(/already exists|In sync/).first()).not.toBeVisible().catch(() => {})
-
-    // And generating January again still adds nothing — the fix must not have
-    // traded under-generating for double-billing.
+    // And re-running the first month must add nothing — the fix must not have
+    // traded under-generating for double-billing. A no-op generate raises no new
+    // banner, so the ledger is the assertion here, not the screen.
     await page.getByRole('button', { name: 'Pick a month' }).click()
-    await page.getByRole('button', { name: /^Jan 2027/ }).click()
-    await page.getByRole('button', { name: /^Generate Jan 2027/ }).click()
+    await page.getByRole('button', { name: new RegExp('^' + firstLabel) }).click()
+    await page.getByRole('button', { name: new RegExp('^Generate ' + firstLabel) }).click()
     await expect(page.getByText(/already exists|In sync/).first()).toBeVisible()
-    expect(await D.txnsTagged(desc)).toHaveLength(2)
+    await page.waitForTimeout(1000)
+    expect(await D.txnsTagged(desc), 'a repeat generate must not add a second liability').toHaveLength(2)
   } finally {
     await D.cleanup()
   }
@@ -1400,8 +1427,19 @@ test('a negative e-cash charge is refused, not added as a reduction', async ({ p
   expect(after.status, 'nothing may be written').toBe('pending')
   expect(Number(after.amount), 'and the amount must not have been reduced').toBe(base)
 
-  // The same dialog accepts a real charge straight afterwards.
+  // The field itself must say which input is wrong. `payErr` had no reader at
+  // all between the check number becoming optional and round 27 — the state was
+  // still being set, and the input it used to mark was gone from the DOM. The
+  // toast said so, but nothing pointed at the box. Round 28: the rewiring had no
+  // test of any kind, so it could be deleted again in silence.
+  const charge = pay.getByPlaceholder('0.00')
+  await expect(charge, 'the offending field must be marked invalid').toHaveClass(/invalid/)
+  await expect(charge).toHaveAttribute('aria-invalid', 'true')
+
+  // The same dialog accepts a real charge straight afterwards, and typing
+  // clears the mark rather than leaving it stuck on a field now valid.
   await pay.getByPlaceholder('0.00').fill('25')
+  await expect(charge).not.toHaveClass(/invalid/)
   await pay.getByRole('button', { name: 'Mark as paid' }).click()
   await expect(pay).toBeHidden()
   await expect.poll(async () => Number((await D.txnById(row.id)).amount), { timeout: 10_000 })

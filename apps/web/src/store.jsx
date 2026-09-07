@@ -91,8 +91,21 @@ export function StoreProvider({ children }) {
     const patch = configPatch(savedConfig.current, next)
     if (!patch) return undefined
     const t = setTimeout(() => {
+      // Advance the baseline optimistically, then put it back if the write is
+      // refused. `save` only reports the failure; it does not undo it. Leaving
+      // the baseline advanced means the NEXT patch is a diff against a value the
+      // database never received, so the refused change is dropped silently and
+      // for good — the screen keeps showing a setting the ledger does not have.
+      // `ackRequirePhoto` is one of these, and it is the setting that once
+      // stopped the owner liquidating a receipt.
+      //
+      // The equality guard matters: if a later save has already moved the
+      // baseline on, this rollback is stale and must not clobber it.
+      const prev = savedConfig.current
       savedConfig.current = next
-      save(db.saveConfig(patch), 'the settings')
+      const writing = db.saveConfig(patch)
+      writing.catch(() => { if (savedConfig.current === next) savedConfig.current = prev })
+      save(writing, 'the settings')
     }, 600)
     return () => clearTimeout(t)
   }, [ready, state, save])

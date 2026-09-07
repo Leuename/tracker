@@ -31,7 +31,7 @@ import { appendFileSync } from 'node:fs'
 import { supabase } from '../src/supabase.js'
 import { db, load } from '../src/db.js'
 import { buildGeneratedRows, eff, monthLabel, occurrences, unpricedFor } from '../src/logic.js'
-import { classifySchedule, formatScheduleOutcome } from './schedule-plan.js'
+import { classifySchedule, formatScheduleOutcome, formatScheduleReport } from './schedule-plan.js'
 
 const dryRun = process.argv.includes('--dry-run')
 const email = process.env.SCHEDULE_EMAIL
@@ -59,6 +59,7 @@ const state = await load()
 const { rows, skipped, label, unresolved } = buildGeneratedRows(state.recurring, state.txns, monthKey)
 
 let generateFailed = false
+let generated = false
 let generationError = null
 
 // A payable with no amount cannot become a Tracker row — `txns.amount > 0`
@@ -69,8 +70,7 @@ const unpriced = unpricedFor(state.recurring, monthKey)
 const dueCount = state.recurring.filter((p) => occurrences(p, monthKey).length > 0).length
 
 if (dryRun && rows.length) {
-  for (const line of formatScheduleOutcome(classifySchedule({ recurring: state.recurring, rows, skipped, dueCount, unpriced, unresolved }), label, { dryRun: true })) say(line)
-  for (const r of rows) say(`  - ${r.co} · ${r.cat} · ${r.desc} · due ${r.due}`)
+  for (const line of formatScheduleReport(classifySchedule({ recurring: state.recurring, rows, skipped, dueCount, unpriced, unresolved }), label, rows, { dryRun: true })) say(line)
 } else if (rows.length) {
   // Generation is one of two jobs this script does, and it must not take the
   // other one down with it.
@@ -90,10 +90,10 @@ if (dryRun && rows.length) {
   // loudly, because an unexplained write failure is not benign.
   try {
     await db.insertTxns(rows)
-    // The summary line belongs to `classifySchedule` further down, which runs on
-    // this path too — saying it here as well printed "Added N payable(s)" twice
-    // in the job summary. Only the per-row detail is emitted here.
-    for (const r of rows) say(`  - ${r.co} · ${r.cat} · ${r.desc} · due ${r.due}`)
+    // Nothing is said here. The whole report — summary first, then these rows —
+    // is built by `formatScheduleReport` below, so the live path and the dry run
+    // cannot print them in different orders again.
+    generated = true
   } catch (e) {
     if (String(e && e.code) === '23514') {
       for (const line of formatScheduleOutcome(classifySchedule({ error: e }), label)) say(line)
@@ -109,7 +109,7 @@ if (dryRun && rows.length) {
 }
 
 if ((!dryRun || !rows.length) && !generationError) {
-  for (const line of formatScheduleOutcome(classifySchedule({ recurring: state.recurring, rows, skipped, dueCount, unpriced, unresolved }), label, { dryRun })) say(line)
+  for (const line of formatScheduleReport(classifySchedule({ recurring: state.recurring, rows, skipped, dueCount, unpriced, unresolved }), label, rows, { dryRun, detail: generated })) say(line)
 } else if (generationError) {
   for (const line of formatScheduleOutcome(classifySchedule({ recurring: state.recurring, rows, skipped, dueCount, unpriced, unresolved, error: generationError }), label)) say(line)
 }

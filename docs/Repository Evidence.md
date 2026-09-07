@@ -584,7 +584,12 @@ backfill was a no-op and `audit_log` did not move across it. The migration scrut
 history for every row that is linked when it runs; transitions on now-unlinked rows do not block.
 These values must be read again in any future environment rather than treated as invariants.
 
-**Corrected 2026-09-04.** This sentence read "The app still has no server component, no CI, no deployment, no logging or telemetry…" and had been false since 2026-09-01, contradicting this note's own CI and deployment paragraph above. What is actually still absent: a server component, logging or telemetry, conflict detection between concurrent editors, and a realtime subscription. CI and deployment exist — five workflows, a gate on every push to `main`, and a live Vercel deployment. `TODAY` remains frozen at `2026-08-30` in `src/data.js`, so completion dates it writes carry that date rather than the real one.
+**Corrected 2026-09-04.** This sentence read "The app still has no server component, no CI, no deployment, no logging or telemetry…" and had been false since 2026-09-01, contradicting this note's own CI and deployment paragraph above. What is actually still absent: a server component, logging or telemetry, conflict detection between concurrent editors, and a realtime subscription. CI and deployment exist — five workflows, a gate on every push to `main`, and a live Vercel deployment. **Corrected again 2026-09-08:** `TODAY` is **not** frozen. `src/data.js:24` is
+`export const TODAY = localToday()`, which reads the real system clock; the frozen `2026-08-30` is
+`SEED_TODAY` on the next line, and it dates the demo seed rows only. The two were conflated here.
+The practical consequence is the opposite of what this note claimed: the Generate menu is a rolling
+thirteen months (`monthKeys(TODAY)`), so anything that hardcodes a month eventually falls outside
+it — which is why the two-month e2e spec takes its months from `monthKeys()` instead of naming them.
 
 ## Guideline Basis
 
