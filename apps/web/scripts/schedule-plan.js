@@ -3,7 +3,7 @@ export const classifySchedule = ({ recurring = [], rows = [], skipped = 0, dueCo
   if (error && error.code !== '23505') return [{ outcome: 'failed', error }]
   const out = error?.code === '23505' ? [{ outcome: 'concurrent-23505', error }] : []
   if (!recurring.length) out.push({ outcome: 'not-due', count: 0 })
-  if (rows.length && error?.code !== '23505') out.push({ outcome: 'generated', count: rows.length, skipped })
+  if (rows.length && error?.code !== '23505') out.push({ outcome: 'generated', count: rows.length })
   if (!rows.length && recurring.length && dueCount > 0 && !unpriced.length && !unresolved.length) out.push({ outcome: 'covered', count: skipped })
   if (unpriced.length) out.push({ outcome: 'unpriced', count: unpriced.length, rows: unpriced })
   if (unresolved.length) out.push({ outcome: 'unresolved-identity', count: unresolved.length, rows: unresolved })
