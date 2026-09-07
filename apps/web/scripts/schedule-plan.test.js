@@ -25,3 +25,22 @@ test('a concurrent failure never reports attempted rows as generated', () => {
   assert.deepEqual(out.map((x) => x.outcome), ['concurrent-23505', 'unresolved-identity'])
   assert.equal(formatScheduleOutcome(out, 'Sep 2026').some((line) => /Added/.test(line)), false)
 })
+
+// ROUND 27, finding 4. `schedule.mjs` said "Added N payable(s)" itself and then
+// let the classifier say it again, so the job summary carried the line twice.
+// The classifier owns the summary now, which means it also has to carry the
+// skipped count that the hand-written line used to be the only source of.
+test('a generated run reports itself once, and says what it skipped', () => {
+  const out = classifySchedule({ recurring: [{}], dueCount: 3, rows: [{ id: 1 }, { id: 2 }], skipped: 4 })
+  assert.deepEqual(out.map((x) => x.outcome), ['generated'])
+
+  const lines = formatScheduleOutcome(out, 'Sep 2026')
+  assert.equal(lines.filter((l) => /Added/.test(l)).length, 1, 'exactly one summary line')
+  assert.match(lines[0], /Added 2 payable\(s\) for Sep 2026, skipping 4 already there\./)
+
+  // Nothing skipped reads cleanly rather than "skipping 0".
+  assert.match(formatScheduleOutcome(classifySchedule({ recurring: [{}], rows: [{ id: 1 }] }), 'Sep 2026')[0],
+    /^- Added 1 payable\(s\) for Sep 2026\.$/)
+  assert.match(formatScheduleOutcome(classifySchedule({ recurring: [{}], rows: [{ id: 1 }], skipped: 2 }), 'Sep 2026', { dryRun: true })[0],
+    /^- Would add 1 payable\(s\) for Sep 2026, skipping 2 already there\.$/)
+})

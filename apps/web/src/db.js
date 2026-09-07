@@ -236,7 +236,8 @@ const queries = {
    * page-load snapshot — and the scheduler writes the same month unattended at
    * 22:00 UTC. A tab opened that morning would see none of those rows and
    * duplicate the lot. This is the re-read that closes the window; the partial
-   * unique index added by `20260905…_one_generated_row_per_due_date` is the
+   * unique index `txns_one_generated_row_per_occurrence` on
+   * `(src, occurrence_due)` — which replaced D63's editable `(src, due)` key — is the
    * backstop for the case where two writers race anyway.
    */
   freshTxns: () => readAll('txns').then((rows) => rows.map(fromTxn)),

@@ -484,6 +484,51 @@ test('generated occurrence identity survives visible due and period edits', asyn
   }
 })
 
+// ROUND 27, finding 1. `coverageFor` scoped coverage by parsing the month back
+// out of the period label with `MON.indexOf('Oct')` against an uppercase `MON`,
+// so the scope was null for all twelve months and every linked row of a payable
+// counted as coverage for whatever month was being generated. A monthly payable
+// generated once and then reported "already exists" forever — on this button,
+// in the nightly job, and on the Dashboard, all reading the same function.
+//
+// The offline suite missed it because every coverage assertion used a single
+// month, and so did every e2e spec. This one uses two, against the deployed
+// bundle and the real unique index, because that is the combination that was
+// green while production was wrong.
+test('a monthly payable generates in each month, not only the first', async ({ page }) => {
+  const desc = D.MARK + ' two months'
+  const rule = await D.makeRecurring({ description: desc, due_date: '2027-01-12', amount: 700 })
+  try {
+    await signIn(page)
+    await go(page, 'Masterlist')
+
+    for (const [pick, gen] of [[/^Jan 2027/, /^Generate Jan 2027/], [/^Feb 2027/, /^Generate Feb 2027/]]) {
+      await page.getByRole('button', { name: 'Pick a month' }).click()
+      await page.getByRole('button', { name: pick }).click()
+      await page.getByRole('button', { name: gen }).click()
+      await expect(page.locator('.banner')).toBeVisible({ timeout: 15_000 })
+    }
+
+    await expect.poll(async () => (await D.txnsTagged(desc)).length, { timeout: 10_000 }).toBe(2)
+    const rows = (await D.txnsTagged(desc)).sort((a, b) => (a.occurrence_due < b.occurrence_due ? -1 : 1))
+    expect(rows.map((r) => r.occurrence_due)).toEqual(['2027-01-12', '2027-02-12'])
+    for (const r of rows) expect(r.src).toBe(rule.id)
+
+    // February must not have been reported as already covered by January.
+    await expect(page.getByText(/already exists|In sync/).first()).not.toBeVisible().catch(() => {})
+
+    // And generating January again still adds nothing — the fix must not have
+    // traded under-generating for double-billing.
+    await page.getByRole('button', { name: 'Pick a month' }).click()
+    await page.getByRole('button', { name: /^Jan 2027/ }).click()
+    await page.getByRole('button', { name: /^Generate Jan 2027/ }).click()
+    await expect(page.getByText(/already exists|In sync/).first()).toBeVisible()
+    expect(await D.txnsTagged(desc)).toHaveLength(2)
+  } finally {
+    await D.cleanup()
+  }
+})
+
 test('undo removes exactly the rows that generate created', async ({ page }) => {
   await signIn(page)
   const c = await D.db()

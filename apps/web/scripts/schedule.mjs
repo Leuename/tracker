@@ -75,9 +75,12 @@ if (dryRun && rows.length) {
   // Generation is one of two jobs this script does, and it must not take the
   // other one down with it.
   //
-  // `insertTxns` is a single multi-row statement, so the unique index added by
-  // `20260905094348_one_generated_row_per_due_date` aborts the whole batch when
-  // any row collides — which is exactly what a concurrent writer produces. A
+  // `insertTxns` is a single multi-row statement, so the unique index
+  // `txns_one_generated_row_per_occurrence` on `(src, occurrence_due)` aborts
+  // the whole batch when any row collides — which is exactly what a concurrent
+  // writer produces. That index replaced D63's `(src, due)` one, which phase 2
+  // dropped: keying on an editable column meant moving a due date moved the
+  // constraint with it, so the same bill could be generated twice (D79/D80). A
   // bare `await` here meant one such collision exited the process before the
   // overdue report, the job summary and the sign-out ever ran: the 22:00 job
   // lost its entire purpose over a row that was already correct in the ledger.
@@ -87,7 +90,9 @@ if (dryRun && rows.length) {
   // loudly, because an unexplained write failure is not benign.
   try {
     await db.insertTxns(rows)
-    say(`- Added ${rows.length} payable(s) for ${label}${skipped ? `, skipping ${skipped} duplicate(s)` : ''}:`)
+    // The summary line belongs to `classifySchedule` further down, which runs on
+    // this path too — saying it here as well printed "Added N payable(s)" twice
+    // in the job summary. Only the per-row detail is emitted here.
     for (const r of rows) say(`  - ${r.co} · ${r.cat} · ${r.desc} · due ${r.due}`)
   } catch (e) {
     if (String(e && e.code) === '23514') {

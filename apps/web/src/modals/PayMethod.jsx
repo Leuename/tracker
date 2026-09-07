@@ -58,8 +58,15 @@ export default function PayMethod() {
           {/* Folded into the amount, so the row totals what actually left the
               account, and kept separately so the sheet can still name it. */}
           <Field label={<>Additional charge <span className="optional">optional</span></>}>
-            <input className="field sunken num" type="number" min="0" step="0.01" placeholder="0.00"
-                   value={state.payFee} onChange={(ev) => set({ payFee: ev.target.value })} />
+            {/* `payErr` had no reader at all between the check number becoming
+                optional and round 27: the state was still set on a negative
+                charge, and the field it described was no longer on screen. The
+                flash still fired, so the user was told — but nothing pointed at
+                the input that was wrong. */}
+            <input className={'field sunken num' + (state.payErr ? ' invalid' : '')}
+                   type="number" min="0" step="0.01" placeholder="0.00"
+                   aria-invalid={state.payErr || undefined}
+                   value={state.payFee} onChange={(ev) => set({ payFee: ev.target.value, payErr: false })} />
           </Field>
           <div style={{ display: 'flex', gap: 6, fontSize: 11.5, color: 'var(--muted)', marginTop: 6 }}>
             <span>Recorded amount</span>

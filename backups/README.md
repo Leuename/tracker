@@ -103,8 +103,11 @@ allows registration by default, every read policy here is `using (true)`, and wh
 load is the real ledger. Proven on 2026-09-02 by registering against a rehearsal project that was
 holding a copy: it succeeded. Close the door first.
 
-1. Create an empty project and apply [the twelve migrations](../supabase/README.md) in version
-   order.
+1. Create an empty project and apply [all twenty-one migrations](../supabase/README.md) in version
+   order. **Not twelve** — that count was true on 2026-09-02 and this line said so until
+   2026-09-08. Version order matters more than it used to: `one_generated_row_per_due_date`
+   creates an index that `enforce_generated_occurrence_identity` later drops, so replaying them out
+   of order leaves the wrong constraint standing.
 2. **Recreate the accounts, with their original ids.** This step did not exist until 2026-09-02 and
    without it the restore cannot proceed: `profiles.user_id` references `auth.users(id)`, so
    loading `profiles.json` into a project with no accounts fails with
@@ -283,6 +286,36 @@ state still deploys rather than silently skipping a real change.
 The commit also carries `[skip ci]`, but **Vercel ignores that marker** — it was tried first and
 deployed anyway. It is kept only for CI added later. No comment explains this inside `vercel.json`
 itself, because JSON here is strict: no comment keys.
+
+## A snapshot older than 2026-09-08 cannot be restored as-is
+
+Phase 2 of the occurrence-identity rollout ([D80](../docs/Decisions.md)) added
+`check (src is null or occurrence_due is not null)` to `txns`. Snapshots taken before phase 1 have
+no `occurrence_due` column at all, so **every generated row in them violates that check on
+insert**: `23514`, and the load aborts.
+
+The snapshot in this folder happens to restore cleanly, because production holds no linked rows —
+`src` is null on all 49. That is circumstance, not safety. It stops being true the moment the owner
+adds a recurring payable and generates a month, and the snapshot taken after that will still be
+fine while any snapshot taken before phase 1 will not.
+
+If you must restore a pre-phase-1 snapshot into a phase-2 schema, you have three honest options and
+one that looks tempting and is wrong.
+
+- **Best:** apply migrations only up to `20260905143255_money_constraints`, load the snapshot, then
+  apply the two identity migrations. Phase 1's backfill derives each row's occurrence from the
+  audit trail — which is exactly what it is for — so the identities come out right rather than
+  guessed.
+- Restore into the full schema and supply an explicit, owner-approved `occurrence_due` per linked
+  row, from the audit history.
+- Restore with `src` nulled, accepting that the rows are no longer linked to their payable and that
+  the scheduler will regenerate the month.
+
+**Do not** set `occurrence_due = due` to make the insert pass. A rescheduled row's visible `due` is
+by definition not its occurrence — that is the whole reason the column exists — and doing this
+re-creates the duplicate-liability defect the rollout closed, silently, in restored data.
+
+`npm run rewind` already refuses this shape rather than emitting SQL that would produce it.
 
 ## The trap
 

@@ -61,6 +61,30 @@ export const positiveAmountOf = (v) => {
   return n > 0 ? n : NaN
 }
 
+/**
+ * The 'YYYY-MM' key a period label names — the inverse of `monthLabel`.
+ *
+ * This lived inline in `coverageFor` as `MON.indexOf(m[1])` until round 27.
+ * `monthLabel` caps its output to 'Oct' while `MON` holds 'OCT', so `indexOf`
+ * returned -1 for all twelve months, the key came out null, and the caller's
+ * month filter was written to treat null as "no scope" — silently counting
+ * every linked row of a payable, from every month, as coverage for the month
+ * being generated. A monthly payable was generated once, ever.
+ *
+ * It throws instead of returning null, deliberately. The old failure was a
+ * coverage filter that quietly matched everything, and under-generating a
+ * payable is invisible: no screen contradicts it, because the Dashboard, the
+ * sync bar and the nightly job all read this same function. Over-generating at
+ * least hits a unique index. A label that cannot be parsed is a bug, and a bug
+ * about money should stop rather than guess.
+ */
+export const monthKeyOf = (label) => {
+  const m = String(label).match(/^([A-Za-z]{3}) (\d{4})$/)
+  const i = m ? MON.indexOf(m[1].toUpperCase()) + 1 : 0
+  if (!i) throw new Error('monthKeyOf: not a period label: ' + label)
+  return m[2] + '-' + String(i).padStart(2, '0')
+}
+
 export const monthLabel = (key) => {
   const p = String(key).split('-')
   return cap(MON[+p[1] - 1]) + ' ' + p[0]
@@ -205,13 +229,8 @@ export const occurrences = (p, monthKey) => {
 export const coverageFor = (existing, p, label) => {
   const linked = (existing || []).filter((t) => t.src != null && t.src === p.id)
   const unresolved = linked.filter((t) => !t.occurrenceDue)
-  const month = (() => {
-    const m = String(label).match(/^([A-Za-z]{3}) (\d{4})$/)
-    if (!m) return null
-    const i = MON.indexOf(m[1]) + 1
-    return i ? m[2] + '-' + String(i).padStart(2, '0') : null
-  })()
-  const inMonth = linked.filter((t) => t.occurrenceDue && (!month || t.occurrenceDue.slice(0, 7) === month))
+  const month = monthKeyOf(label)
+  const inMonth = linked.filter((t) => t.occurrenceDue && t.occurrenceDue.slice(0, 7) === month)
   const dues = new Set(inMonth.map((t) => t.occurrenceDue))
   return { dues, count: inMonth.length, unresolved, unresolvedIdentity: unresolved.length > 0 }
 }

@@ -3,7 +3,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { CSYM, initialState, MAX_OCC, TODAY } from './data.js'
 import {
-  addDays, alphabetical, alreadyOnSheet, amountOf, buildGeneratedRows, curFmt, dstr, eff, forecast, inPesos, monthKeys, occurrences, openingView, parsePeriod, periodLabel, positiveAmountOf, unpricedFor, rateFor, ruleLabel, SORTS, sortRows, summaryHTML, transferTotals, visibleRows, windowDays, viewerActions, VIEWER_MAY, pushable, pushPlan, groupKey, editRecurring, recValue, draftText, coverageFor } from './logic.js'
+  addDays, alphabetical, alreadyOnSheet, amountOf, buildGeneratedRows, curFmt, dstr, eff, forecast, inPesos, monthKeys, monthKeyOf, monthLabel, occurrences, openingView, parsePeriod, periodLabel, positiveAmountOf, unpricedFor, unresolvedFor, rateFor, ruleLabel, SORTS, sortRows, summaryHTML, transferTotals, visibleRows, windowDays, viewerActions, VIEWER_MAY, pushable, pushPlan, groupKey, editRecurring, recValue, draftText, coverageFor } from './logic.js'
 
 const rent = { co: 'GTOI', cat: 'Rental Expense', freq: 'Monthly', desc: 'Warehouse B monthly rent', dueDate: '2026-08-24', amount: 45000 }
 
@@ -539,6 +539,103 @@ test('the sync line agrees with Generate after the same edit', () => {
 test('a row with no parent still deduplicates on the original key', () => {
   const legacy = [{ co: 'GTOI', cat: 'General Expense', period: 'Sep 2026', desc: 'Meralco — Sep 05', due: '2026-09-05' }]
   assert.equal(buildGeneratedRows([meralco], legacy, '2026-09').skipped, 1)
+})
+
+// ROUND 27, finding 1. `coverageFor` scoped coverage to the month being
+// generated with `MON.indexOf(m[1])`, where `m[1]` came from `monthLabel` as
+// 'Oct' and `MON` holds 'OCT'. indexOf returned -1 for all twelve months, so
+// the scope was silently null and EVERY linked row of that payable — from any
+// month — counted as coverage for the month being generated. A monthly payable
+// was therefore generated once, ever: month two onward reported "already
+// exists" and wrote nothing, on the Generate button and in the unattended
+// 22:00 job alike, with the Dashboard and the sync bar agreeing because they
+// read the same function. The inverse of finding 78 and worse — that one
+// double-billed loudly, this one silently stopped billing.
+//
+// Deleting the month filter outright left all 191 tests green, because every
+// coverage assertion used a single month. These use two.
+// The pin that stops finding 1 coming back: `monthKeyOf` is the inverse of
+// `monthLabel`, and any drift between them silently unscopes coverage.
+test('monthKeyOf round-trips every month label monthLabel can produce', () => {
+  for (let m = 1; m <= 12; m++) {
+    const key = '2026-' + String(m).padStart(2, '0')
+    assert.equal(monthKeyOf(monthLabel(key)), key, key + ' must survive the round trip')
+  }
+  assert.equal(monthKeyOf('Oct 2026'), '2026-10')
+  assert.equal(monthKeyOf('OCT 2026'), '2026-10', 'case is not the caller\'s problem')
+
+  // It throws rather than returning null. Null was the old behaviour and it
+  // disabled the caller's month filter instead of stopping.
+  assert.throws(() => monthKeyOf('Xyz 2026'), /not a period label/)
+  assert.throws(() => monthKeyOf('2026-10'), /not a period label/)
+  assert.throws(() => monthKeyOf(''), /not a period label/)
+  assert.throws(() => monthKeyOf(undefined), /not a period label/)
+})
+
+test('coverage counts only the month being generated, not every month of the payable', () => {
+  const p = { id: 7, co: 'GTOI', cat: 'Rent', desc: 'Retainer', amount: 5000, freq: 'Monthly', dueDate: '2026-09-15' }
+  const sep = { id: 1, src: 7, occurrenceDue: '2026-09-15', co: 'GTOI', cat: 'Rent', desc: 'Retainer', period: 'Sep 2026', due: '2026-09-15' }
+
+  assert.equal(coverageFor([sep], p, 'Sep 2026').count, 1, 'its own month is covered')
+  assert.equal(coverageFor([sep], p, 'Oct 2026').count, 0,
+    "September's row must not cover October")
+  assert.ok(!coverageFor([sep], p, 'Oct 2026').dues.has('2026-09-15'))
+
+  // Every month, because the bug was in a lookup that failed for all twelve.
+  for (const [key, label] of [['2026-01', 'Jan 2026'], ['2026-02', 'Feb 2026'], ['2026-03', 'Mar 2026'],
+    ['2026-04', 'Apr 2026'], ['2026-05', 'May 2026'], ['2026-06', 'Jun 2026'], ['2026-07', 'Jul 2026'],
+    ['2026-08', 'Aug 2026'], ['2026-09', 'Sep 2026'], ['2026-10', 'Oct 2026'], ['2026-11', 'Nov 2026'],
+    ['2026-12', 'Dec 2026']]) {
+    const own = { ...sep, occurrenceDue: key + '-15' }
+    assert.equal(coverageFor([own], p, label).count, 1, label + ' must cover its own occurrence')
+    assert.equal(coverageFor([own], p, 'Sep 2027').count, 0, label + " must not cover another year's month")
+  }
+})
+
+test('a monthly payable is generated every month, not once ever', () => {
+  const p = { id: 7, co: 'GTOI', cat: 'Rent', desc: 'Retainer', amount: 5000, freq: 'Monthly', dueDate: '2026-09-15' }
+  let ledger = []
+  const written = []
+  for (const key of ['2026-09', '2026-10', '2026-11', '2026-12', '2027-01']) {
+    const { rows } = buildGeneratedRows([p], ledger, key)
+    written.push(rows.length)
+    ledger = ledger.concat(rows)
+  }
+  assert.deepEqual(written, [1, 1, 1, 1, 1], 'each month writes exactly its own occurrence')
+  assert.deepEqual(ledger.map((r) => r.occurrenceDue),
+    ['2026-09-15', '2026-10-15', '2026-11-15', '2026-12-15', '2027-01-15'])
+
+  // ...and re-running a month it already has still writes nothing.
+  assert.equal(buildGeneratedRows([p], ledger, '2026-10').rows.length, 0)
+  assert.equal(buildGeneratedRows([p], ledger, '2026-10').skipped, 1)
+})
+
+// ROUND 27, mutation M4. Deleting `occurrenceDue: due` from the generated row
+// left the whole offline suite green, while in production every generated row
+// would violate `txns_generated_occurrence_has_identity` with 23514 and abort
+// the batch — including the unattended job.
+test('every generated row carries the occurrence it was generated for', () => {
+  const semi = { id: 9, co: 'GTOI', cat: 'Rent', desc: 'Twice monthly', amount: 100, freq: 'Bi-monthly', dueDate: '2026-09-05' }
+  const { rows } = buildGeneratedRows([semi], [], '2026-09')
+  assert.ok(rows.length > 1, 'this rule fires more than once, so identity must be per row')
+  for (const r of rows) {
+    assert.equal(r.occurrenceDue, r.due, 'identity is the scheduled occurrence at generation time')
+    assert.ok(r.occurrenceDue, 'never null: the database CHECK refuses a linked row without one')
+  }
+  assert.equal(new Set(rows.map((r) => r.occurrenceDue)).size, rows.length, 'and is distinct per row')
+})
+
+// ROUND 27, mutation M6. `unresolvedFor` returning [] left the suite green,
+// removing the owner's only signal that generation has paused for a payable.
+test('unresolvedFor names linked rows that carry no occurrence identity', () => {
+  const st = { txns: [
+    { id: 1, src: 7, occurrenceDue: '2026-09-15' },
+    { id: 2, src: 7 },
+    { id: 3, src: null },
+  ] }
+  assert.deepEqual(unresolvedFor(st).map((t) => t.id), [2])
+  assert.deepEqual(unresolvedFor({ txns: [] }), [])
+  assert.deepEqual(unresolvedFor(undefined), [])
 })
 
 test('coverage keys on the link when there is one, and on shape when there is not', () => {
