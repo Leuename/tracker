@@ -16,7 +16,16 @@ const KEY = process.env.VITE_SUPABASE_PUBLISHABLE_KEY
 const ORIGIN = process.env.SEC_ORIGIN || 'https://tracker-six-flax.vercel.app'
 const EMAIL = process.env.E2E_EMAIL
 const PASSWORD = process.env.E2E_PASSWORD
-const OCCURRENCE_IDENTITY_PHASE = process.env.OCCURRENCE_IDENTITY_PHASE || '1'
+// Which rollout phase the database under test is in. Deliberately NOT detected
+// from the database: a check that reads the grants and then asserts what it read
+// cannot fail. The caller declares what it expects and the probe holds it to it.
+//
+// The default is '2' because that is production since 2026-09-08 (D80). It read
+// '1' until then, which meant `npm run security` with no variable set — how
+// `verify.yml` invokes it — failed against a correctly secured database, because
+// phase 1 requires `src` to still be updateable and phase 2 revokes it. Set '1'
+// explicitly for a database that has had phase 1 but not phase 2.
+const OCCURRENCE_IDENTITY_PHASE = process.env.OCCURRENCE_IDENTITY_PHASE || '2'
 
 if (!['1', '2'].includes(OCCURRENCE_IDENTITY_PHASE)) {
   console.error('OCCURRENCE_IDENTITY_PHASE must be 1 or 2')
@@ -41,7 +50,7 @@ const OCCURRENCE_IDENTITY_PERMISSIONS = 'generated occurrence identity rollout p
  * stops meaning anything.
  */
 const DEFERRED = OCCURRENCE_IDENTITY_PHASE === '1'
-  ? { [OCCURRENCE_IDENTITY_UNAVAILABLE]: 'D79: phase 1 is owner-gated and not applied yet; remove this entry as soon as it lands.' }
+  ? { [OCCURRENCE_IDENTITY_UNAVAILABLE]: 'D79/D80: phase 1 is applied in production; this entry only excuses a database that has not had it yet.' }
   : {}
 
 const results = []

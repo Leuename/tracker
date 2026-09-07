@@ -137,19 +137,26 @@ actually stores a thousand receipts.
 
 ### B2 — The blank-target schema replay
 
-**What it is.** Proof that all fifteen migrations rebuild the database from nothing.
+**What it is.** Proof that all **twenty-one** migrations rebuild the database from nothing.
 
 **What is true today.** Twelve migrations were replayed into an empty project on 2026-09-02
-(291 catalogue facts, identical fingerprints). The three newest — `fx_rates`, `private_is_viewer`,
-`drop_public_is_viewer` — have been replayed onto the rehearsal project, which already had the
-twelve. So they are proven to apply *onto an existing baseline*, not to *rebuild from zero*.
+(291 catalogue facts, identical fingerprints). The **nine** since — `fx_rates`, `private_is_viewer`,
+`drop_public_is_viewer`, `masterlist_link_and_ecash_fee`, `transfer_invoice_number`,
+`one_generated_row_per_due_date`, `money_constraints`, `generated_occurrence_identity` and
+`enforce_generated_occurrence_identity` — have only ever been applied *onto an existing baseline*,
+never used to *rebuild from zero*. The gap has widened from three migrations to nine, and two of
+them now interact: `one_generated_row_per_due_date` creates an index that
+`enforce_generated_occurrence_identity` drops, so a from-zero replay must survive that pair in
+sequence.
 
 **Why it is blocked.** It needs a disposable empty Supabase project. Creating one may cost money,
 and that is your call, not mine. `zone-offices` is off limits and `tracker-rehearsal` is no longer
 empty.
 
-**What I would do.** Leave it until the next time a rehearsal is needed for another reason, then
-fold this in. The gap is narrow: three migrations, none of which is structurally novel.
+**What I would do.** Fold it into the next rehearsal that happens for another reason. A Supabase
+branch would also serve as the disposable target, but branches are billable, so that is your call
+rather than mine. The gap is no longer narrow — nine migrations, one of which drops another's
+index — so this is worth closing the next time a rehearsal is on the table anyway.
 
 ---
 

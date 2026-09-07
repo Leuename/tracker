@@ -41,6 +41,13 @@ jobs:
       E2E_REQUIRE_CREDENTIALS: '1'
       # Drive the deployment rather than starting a dev server for it.
       E2E_BASE_URL: https://tracker-six-flax.vercel.app
+      # Say which rollout phase this database is in rather than inheriting the
+      # probe's default. Production has had both phases since 2026-09-08 (D80),
+      # so `src` and `occurrence_due` must BOTH be refused with exact 42501.
+      # Left unset, this job once asserted phase-1 rules — which require `src`
+      # to still be writable — and would have failed nightly against a database
+      # that was correctly locked down.
+      OCCURRENCE_IDENTITY_PHASE: '2'
     steps:
       - uses: actions/checkout@v5
 
