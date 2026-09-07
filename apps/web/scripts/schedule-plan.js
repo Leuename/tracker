@@ -34,8 +34,15 @@ export const formatScheduleOutcome = (outcome, label, { dryRun = false } = {}) =
  * header arrived after them. `schedule.mjs` is not in `npm test`, so nothing
  * could catch that. The order lives here now, where a test can hold it.
  */
-export const formatScheduleReport = (outcome, label, rows = [], { dryRun = false, detail = true } = {}) => {
-  const lines = formatScheduleOutcome(outcome, label, { dryRun })
-  if (!detail || !rows.length) return lines
-  return lines.concat(rows.map((r) => `  - ${r.co} · ${r.cat} · ${r.desc} · due ${r.due}`))
-}
+export const formatScheduleReport = (outcome, label, rows = [], { dryRun = false, detail = true } = {}) =>
+  outcome.flatMap((x) => {
+    const [line] = formatScheduleOutcome([x], label, { dryRun })
+    // The rows belong to the `generated` line specifically, not to the end of
+    // the report. `classifySchedule` routinely returns more than one outcome —
+    // `generated` alongside `unpriced` or `unresolved-identity` — and appending
+    // to the whole list put the generated rows underneath "have no amount and
+    // were skipped", which is the same misreading in the job summary that
+    // splitting this out was supposed to fix. Round 29.
+    if (!detail || x.outcome !== 'generated' || !rows.length) return [line]
+    return [line, ...rows.map((r) => `  - ${r.co} · ${r.cat} · ${r.desc} · due ${r.due}`)]
+  })

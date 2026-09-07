@@ -70,3 +70,30 @@ test('the report puts its summary before the rows it describes, on both paths', 
   assert.deepEqual(formatScheduleReport(outcome, 'Sep 2026', rows, { detail: false }).length, 1)
   assert.deepEqual(formatScheduleReport(outcome, 'Sep 2026', []).length, 1)
 })
+
+// ROUND 29, finding 3. A run is routinely more than one outcome — `generated`
+// plus `unpriced`, say — and appending the rows to the end of the whole report
+// hung them under "have no amount and were skipped". The rows belong to the
+// line that describes them.
+test('the rows hang off the generated line, not the last line of the report', () => {
+  const rows = [{ co: 'GTOI', cat: 'Rent', desc: 'Retainer', due: '2026-09-15' }]
+  const outcome = classifySchedule({
+    recurring: [{}, {}], dueCount: 2, rows, skipped: 0, unpriced: [{ id: 1 }],
+  })
+  assert.deepEqual(outcome.map((x) => x.outcome), ['generated', 'unpriced'])
+
+  const lines = formatScheduleReport(outcome, 'Sep 2026', rows)
+  assert.equal(lines.length, 3)
+  assert.match(lines[0], /^- Added 1 payable\(s\)/)
+  assert.match(lines[1], /^ {2}- GTOI · Rent · Retainer · due 2026-09-15$/)
+  assert.match(lines[2], /have no amount and were skipped/)
+  assert.ok(lines.indexOf(lines.find((l) => /^ {2}- /.test(l))) < lines.findIndex((l) => /no amount/.test(l)),
+    'the detail must precede the unrelated outcome, not hang under it')
+
+  // Unresolved identity is the other multi-outcome shape.
+  const both = classifySchedule({ recurring: [{}, {}], dueCount: 2, rows, unresolved: [{ id: 9 }] })
+  const bothLines = formatScheduleReport(both, 'Sep 2026', rows)
+  assert.match(bothLines[0], /^- Added 1 payable\(s\)/)
+  assert.match(bothLines[1], /^ {2}- GTOI/)
+  assert.match(bothLines[2], /no occurrence identity/)
+})
