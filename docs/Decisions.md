@@ -2273,6 +2273,93 @@ Round 27 independently found what [D80](#d80--the-occurrence-identity-rollout-is
 `verify.yml` states it explicitly. Deliberately **not** auto-detected from the grants: a check that
 reads the database and then asserts what it read cannot fail.
 
+## D82 — Two Directions, Two Pins; and the Bundle Is a Publication
+
+**Decision and record, 2026-09-08. Round 28**, which refuted round 27. Four findings, two of them
+introduced by round 27's own fixes.
+
+### A mapping has two directions and needs two pins
+
+`toTxn` writing `occurrence_due` was pinned. `fromTxn` reading it back was not — and
+[D81](#d81--a-filter-that-fails-open-is-worse-than-one-that-throws)'s commit message **claimed it
+was**. Deleting the read spread left all 197 tests green while, in production, every linked row
+would come back with no identity: `coverageFor` classifies them all unresolved, `uncoveredOccurrences`
+returns nothing to generate, and generation is refused permanently for every payable that has a
+linked row. The same silent under-generation as round 27, one file over, behind a false claim of
+coverage.
+
+**The rule: pin both directions and the round trip, in one test file, so neither can be dropped
+while the other keeps the suite green.** And never state coverage in a commit message without
+running the mutation that proves it — that claim has now been wrong twice.
+
+### A test that cannot fail is worse than no test, and I wrote one while fixing that exact trap
+
+The new two-month e2e spec contained `.not.toBeVisible().catch(() => {})`. The `catch` swallows the
+rejection, so the assertion guarding the actual regression could never fail. Trap 104, introduced
+by the fix for trap 104.
+
+Replacing it was not enough, and this is the part worth keeping: **the replacement failed twice, for
+two different real reasons, before it went green.** The banner from the previous generate is still on
+screen, so `toBeVisible()` returns instantly against stale text; and matching only
+`/added to the Tracker/` passes on that stale banner too, because both months produce the same
+sentence. The assertion now waits for the banner to name **its own month**, and the repeat-generate
+check reads the ledger rather than the screen, because a no-op generate raises no banner at all.
+
+A spec that has never failed has never been tested. Make a new assertion fail on purpose before
+trusting it.
+
+### `TODAY` is not frozen
+
+The notes said `TODAY` was frozen at `2026-08-30`, conflating it with `SEED_TODAY`.
+`src/data.js:24` is `export const TODAY = localToday()`. The Generate menu is therefore a rolling
+thirteen months and any hardcoded month eventually falls out of it — the spec would have failed on
+an unresolvable locator months later, for a reason nobody would remember. Months now come from
+`monthKeys()`.
+
+### Ordering that lives where no test can reach it
+
+Removing round 27's duplicated summary line left the two callers disagreeing: the dry run printed
+summary-then-rows, the live 22:00 job printed rows-then-summary, so in the GitHub job summary — the
+only channel this project has — the indented rows hung off whatever preceded them and their header
+arrived after them. `schedule.mjs` is not in `npm test`, so the order was untestable where it lived.
+`formatScheduleReport` owns it now and both callers share it. Trap 98: the round-27 pin asserted
+"exactly one summary line" against the classifier in isolation, while the call site could re-add the
+duplicate with the suite green.
+
+### The browser bundle is a publication
+
+`src/supabase.js` read `import.meta.env` as a **whole object**. Vite statically replaces named member
+accesses, but a reference to the object itself inlines **every** `VITE_`-prefixed variable — and
+Vercel injects its system variables with that prefix. The production bundle was therefore publishing
+the private repository's owner, slug, repo and project ids, branch, commit SHAs, committer name and
+GitHub login, and the **full text of the latest commit message**, to anyone who fetched the sign-in
+page before authenticating. The commit messages in this repository describe defect mechanisms in
+detail.
+
+No credential was exposed — the two Supabase values are public by design and the probe's four
+key-shape checks pass. This is metadata disclosure, and it is recorded at that severity.
+
+Fixed by reading each variable by name. **Proved by canary, not by argument:** a `VITE_`-prefixed
+variable exported into the build appears in the bundle before the change and is absent after, and
+the live bundle now contains no `VITE_` names at all.
+
+**Two things this leaves open.** Vercel keeps older immutable deployments, and those still serve the
+old bundle with the old commit text; retiring them is a separate act nobody has taken. And the
+underlying cause is a Vercel project setting that exposes system variables to the framework prefix —
+the code no longer reads them, which is the durable fix, but the setting is still on.
+
+### A refused write must not advance the baseline
+
+`store.jsx` set `savedConfig.current = next` before the write resolved. `save()` only reports a
+failure; it does not undo one. So a refused config write left the baseline claiming success, the
+next patch was a diff against a value the database never received, and the refused change was
+dropped **permanently** while the screen kept showing it. `ackRequirePhoto` is one of these settings,
+and it is the one that once stopped the owner liquidating a receipt.
+
+It now rolls back on rejection, guarded by `savedConfig.current === next` so a later save's baseline
+is not clobbered. **This has no automated coverage** — `store.jsx` is React and nothing offline
+imports it. Recorded as a gap rather than described as covered.
+
 ## Guideline Basis
 
 - **AGENT-03** ensures adapter workflows stop rather than invent authorization.
