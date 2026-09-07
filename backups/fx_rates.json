@@ -56,31 +56,31 @@
     "source": "ECB via frankfurter.dev"
   },
   {
-    "as_of": "2026-09-04",
-    "cur": "USD",
-    "fetched_at": "2026-09-05T06:43:59.416833+00:00",
-    "rate": 62.650146,
-    "source": "ECB via frankfurter.dev"
-  },
-  {
-    "as_of": "2026-09-04",
-    "cur": "GBP",
-    "fetched_at": "2026-09-05T06:43:59.416833+00:00",
-    "rate": 84.765652,
-    "source": "ECB via frankfurter.dev"
-  },
-  {
-    "as_of": "2026-09-04",
-    "cur": "EUR",
-    "fetched_at": "2026-09-05T06:43:59.416833+00:00",
-    "rate": 72.812,
-    "source": "ECB via frankfurter.dev"
-  },
-  {
-    "as_of": "2026-09-04",
+    "as_of": "2026-09-07",
     "cur": "AUD",
-    "fetched_at": "2026-09-05T06:43:59.416833+00:00",
-    "rate": 45.12954,
+    "fetched_at": "2026-09-07T14:08:08.711839+00:00",
+    "rate": 45.192749,
+    "source": "ECB via frankfurter.dev"
+  },
+  {
+    "as_of": "2026-09-07",
+    "cur": "EUR",
+    "fetched_at": "2026-09-07T14:08:08.711839+00:00",
+    "rate": 72.801,
+    "source": "ECB via frankfurter.dev"
+  },
+  {
+    "as_of": "2026-09-07",
+    "cur": "GBP",
+    "fetched_at": "2026-09-07T14:08:08.711839+00:00",
+    "rate": 84.756793,
+    "source": "ECB via frankfurter.dev"
+  },
+  {
+    "as_of": "2026-09-07",
+    "cur": "USD",
+    "fetched_at": "2026-09-07T14:08:08.711839+00:00",
+    "rate": 62.640681,
     "source": "ECB via frankfurter.dev"
   }
 ]
