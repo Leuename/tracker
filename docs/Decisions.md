@@ -2368,6 +2368,74 @@ It now rolls back on rejection, guarded by `savedConfig.current === next` so a l
 is not clobbered. **This has no automated coverage** — `store.jsx` is React and nothing offline
 imports it. Recorded as a gap rather than described as covered.
 
+## D83 — The Fix That Retried Forever
+
+**Decision and record, 2026-09-08. Round 29**, which refuted round 28. Three findings; the first is
+the clearest example of defect family (c) this loop has produced, and it was introduced by
+[D82](#d82--two-directions-two-pins-and-the-bundle-is-a-publication)'s own fix.
+
+### A rollback closed a feedback loop
+
+D82 made a refused config write roll its baseline back, so the dropped change would be recomputed.
+That was right in isolation and wrong in context:
+
+1. `save` reports a failure by calling `flash`.
+2. `flash` does `set({ toast })`, and `reduce` returns a **new** state object.
+3. The config effect depended on `state`, so it re-ran.
+4. The baseline had just been rolled back, so `configPatch` was non-null again — and the same
+   refused write went out once more.
+
+The loop was invisible before D82 only because a failure used to leave the baseline advanced: the
+next run computed a null patch and stopped. **A harness driving the real `configOf`/`configPatch`
+with the effect body copied verbatim measures 79 writes and 79 toasts from a single toggle in 500ms**,
+against 1 and 1 after the fix. It would not stop until the network returned or the tab was closed.
+A session demoted to `viewer` mid-flight reaches it too, because the client still holds
+`readOnly: false` from page load while `merge_app_config` refuses every patch — the toast storm the
+`readOnly` guard exists to prevent, arriving through the other door.
+
+**The decision: the effect keys on the config's VALUE, not on `state`.** A toast does not change the
+config, so it cannot trigger a write. Depending on a whole reducer state object means depending on
+everything that has ever touched it.
+
+### A guard that skipped the case it was written for
+
+The rollback was guarded on `savedConfig.current === next` — "do not clobber a later save's
+baseline". Sound as written, and it meant the rollback never fired in the one situation it existed
+for: a refusal that overlaps a following edit, where the later patch carries only its own delta and
+the refused change is lost for good.
+
+It is unconditional now. `merge_app_config` merges, so re-sending a value the row already holds is a
+no-op, which makes recomputing a superset patch free. Measured: the refused change reappears in the
+next patch, where under the guard it did not.
+
+**The general shape: a guard added to prevent a rare harm must be checked against the common case it
+now also blocks.**
+
+### Detail attached to the wrong line
+
+`formatScheduleReport` appended the row detail after **all** summary lines, and a run is routinely
+more than one outcome — `generated` alongside `unpriced` or `unresolved-identity`. So the generated
+rows rendered underneath "have no amount and were skipped": the same misreading in the GitHub job
+summary that splitting this function out was meant to fix. The rows hang off the `generated` line
+now. The round-28 test could not see it because it only ever built a single-outcome report.
+
+### What round 29 cleared
+
+The migrations, read adversarially for the first time: column grants are exhaustive lists after
+`20260831155259` revokes the table-level `insert, update`, so phase 2's `revoke update (src)` is
+effective rather than the no-op a surviving table grant would have made it. `log_change` is
+`security definer` with `search_path = ''`, every reference schema-qualified, `EXECUTE` revoked from
+client roles; `audit_log` has a SELECT-only policy. The phase-2 CHECK and the partial unique index
+are consistent, and `ON DELETE SET NULL` cannot violate the CHECK.
+
+Also cleared: `monthKeys().slice(6, 8)` is always two consecutive months inside the rolling menu,
+including across a year boundary; the `supabase.js` canary holds in both directions; and every path
+through `schedule.mjs` prints exactly the rows it wrote.
+
+**Still uncovered, and stated rather than glossed:** the retry loop and the rollback have no
+automated test. `store.jsx` is React and nothing offline imports it. Both behaviours were proved by
+harness, which is evidence, not coverage — a future edit can reintroduce either with the suite green.
+
 ## Guideline Basis
 
 - **AGENT-03** ensures adapter workflows stop rather than invent authorization.
