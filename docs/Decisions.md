@@ -2436,6 +2436,74 @@ through `schedule.mjs` prints exactly the rows it wrote.
 automated test. `store.jsx` is React and nothing offline imports it. Both behaviours were proved by
 harness, which is evidence, not coverage — a future edit can reintroduce either with the suite green.
 
+## D84 — The Untestable Caller, and Ten Minutes of Blank Screen
+
+**Decision and record, 2026-09-08. Round 30**, which refuted round 29, plus the outage that followed
+the fix.
+
+### The rollback still lost the change it was written to recover
+
+[D83](#d83--the-fix-that-retried-forever) made the rollback unconditional so that a refusal
+overlapping a later edit would be recovered. It was not. `configPatch` was evaluated **when the
+effect ran** and the result frozen in the 600ms debounce closure, so rolling the baseline back
+afterwards changed nothing about what had already been decided to send.
+
+Toggle `ackRequirePhoto`; toggle `warnDuplicate` a moment later; let the first write be refused
+inside the second's debounce. The second sends only its own delta. The baseline and the screen both
+say the setting is on, the database says off, and **no later edit ever recovers it**, because the
+diff is computed against a baseline that already contains the value. That is verbatim the sentence
+the code comment warns about, on the setting that once stopped the owner liquidating a receipt.
+
+### The whole of D83's fix could be deleted with the suite green
+
+Round 30 reverted both halves — the dependency change and the rollback — and 201 tests passed. Trap
+98. And the excuse in D83 (*"store.jsx is React and nothing offline imports it"*) was wrong: the
+verifier drove the effect body in a sixty-line harness with no React and no DOM.
+
+**The decision: `src/config-save.js` owns the baseline, the diff and the rollback.** `store.jsx`
+keeps the debounce and the wiring. `send` takes the config, never a patch, so the frozen-patch defect
+is **unrepresentable** rather than merely fixed. Eight tests drive it; the mutations go red — no
+rollback → 4 failures, D83's guarded rollback → 1, a patch frozen across time → 1.
+
+### And then the fix blanked the application
+
+The commit that did all that (`c480f3e`) replaced a span beginning above the `configKey` and
+`readOnly` declarations and never re-declared them. `ReferenceError: readOnly is not defined`, thrown
+from `StoreProvider`'s render, so React unmounted the tree and every signed-in user got a blank page.
+
+**`npm run build` passed. All 209 offline tests passed. The gate went green and deployed.** Nothing
+in `npm test` imports `store.jsx`, `App.jsx` or any screen — the exact gap the commit was written to
+close, biting on the commit that closes it.
+
+Production was blank from **03:49:29Z to 04:00:04Z, about ten and a half minutes**, ended by
+`git revert` and a push. The last human write was 02:15Z and none fell inside the window, so most
+likely nobody was affected — but a blank page leaves no audit row, so that cannot be proved.
+
+**The rule, now in `AGENTS.md` and `CLAUDE.md`: run the Playwright suite against a local dev server
+before pushing anything under `apps/web/src/`.** It drives the real UI and is the only check here
+that does. Two and a half minutes against a production outage. The reland was verified that way
+first — console clean, Dashboard rendering, 51/51 against localhost — and only then pushed.
+
+### Two smaller findings from the same round
+
+- `scripts/schedule-plan.test.js` asserted ordering with `indexOf(find(...))`, which returns `-1`
+  when there is no detail row, and `-1 < anything` passes. A pin that cannot fail, inside the test
+  written to close a finding about pins that cannot fail. Positional now, with an explicit assertion
+  that the detail row exists at all.
+- `scripts/backup.mjs` read `count || 0` twice. `countError` is thrown first, so it should be
+  unreachable — but a null count with no error would page zero times, compare `0 !== 0`, pass, and
+  write an **empty snapshot while calling it a backup**. The round-27 shape again. Fails closed now.
+
+### What round 30 cleared
+
+The serialisation is faithful — every config value is a boolean, string, string array or plain note
+object, with no `undefined`, `NaN`, `Date` or function anywhere, so nothing collapses or is lost
+through `JSON.parse`. Every config writer in `actions.js` and `Settings.jsx` replaces rather than
+mutates, so no edit can fail to change the key. The loop is genuinely gone: `toast` is not in
+`CONFIG_KEYS`. And the "re-sending a held value is a no-op merge" claim is true of the content, with
+one caveat worth knowing — the `UPDATE` still runs, so `updated_at` moves and an audit row is written
+for every superset re-send.
+
 ## Guideline Basis
 
 - **AGENT-03** ensures adapter workflows stop rather than invent authorization.
