@@ -6,13 +6,13 @@ status: current
 kind: complete continuation package — THE entry point. A fresh chat resumes from this file.
 supersedes: "[[2026-09-07 Session Continuation, Rounds One to Twenty-Five]] as the entry point. It is not obsolete: it remains the record of rounds 1-25 and the shape of the loop."
 covers: "the owner-authorised occurrence-identity rollout — rehearsal, two production migrations, deployment — and adversarial rounds 26 to 30, which produced decisions D80 to D83"
-decisions-made: "[[Decisions]] D80 to D87"
-verification-status: "The rollout is COMPLETE and verified. Rounds 27 to 33 each REFUTED the one before; every finding is fixed, deployed and mutation-checked. Round 30's own fix BLANKED PRODUCTION for ten and a half minutes and was reverted and relanded. Round 34 was dispatched and its result is NOT in this document."
+decisions-made: "[[Decisions]] D80 to D88"
+verification-status: "The rollout is COMPLETE and verified. Rounds 27 to 34 each REFUTED the one before; every finding is fixed, deployed and mutation-checked. Round 30's own fix BLANKED PRODUCTION for ten and a half minutes and was reverted and relanded. Round 35 was dispatched and its result is NOT in this document."
 related:
   - "[[2026-09-07 Session Continuation, Rounds One to Twenty-Five]] — rounds 1-25 and the loop's shape"
   - "[[2026-09-06 The Review Loop, Rounds One to Twenty]] — the round-by-round ledger and the rate-limit history"
   - "[[2026-09-05 The Design Port, and Three Requirements the File Did Not Show]] — the design port, the twelve client requirements, the eighty-one-row findings table, traps 77-107"
-  - "[[Decisions]] — D1 to D87, the authority on what is authorised"
+  - "[[Decisions]] — D1 to D88, the authority on what is authorised"
   - "[[Repository Evidence]] — the factual baseline"
   - "[[Remaining Work and Owner Decisions]] — A1-A2, B1-B2, C5-C8"
   - "[[Handoff Index]] — every handoff, newest first"
@@ -65,7 +65,8 @@ after the LAST phase.**
 | **31** | **REFUTED, 2** | **A `receipts.status` outside the four the dropdown offers blanked the whole app**, unrecoverable by reload — one pattern in three places, guarded in one. And **Escape was dead for every dialog opened from a row control** |
 | **32** | **REFUTED, 4** | **A tenth `onKeyDown` site** — the button opening the *payment* dialog, missed because round 31 defined its helper locally in the two files it was handed. And **D85's justification was factually false**: `AckRec` renders a `<select>`, never a chip, so an unknown status still displayed "Pending" |
 | **33** | **REFUTED, 4** | **The same `<select>` defect again**, in every edit modal and in Masterlist — round 32's fix had gone onto two sheet-row selects and nothing else. Fixed in the shared `Select` component this time, covering sixteen call sites and the seventeenth nobody has written |
-| 34 | **dispatched; result not in this document** | |
+| **34** | **REFUTED, 1** | **`curFmt` printed a function's source beside the amount** on the transfer sheet for a rogue currency — a hole it had carried since it was written, through thirty-three rounds. Plus three fresh unguarded `CSYM[c]` lookups written by round 33's own fix |
+| 35 | **dispatched; result not in this document** | |
 
 Decisions [[Decisions]] D81 to D84 carry the reasoning. Four findings across these rounds were
 introduced by the previous round's fix, which is the loop's oldest pattern.
@@ -99,12 +100,12 @@ your own writes, never against a number in a document.
 
 | | |
 |---|---|
-| `npm test` | **215/215** across 12 files, offline |
+| `npm test` | **218/218** across 12 files, offline |
 | `npx playwright test --workers=1` | **52/52**, run against a local dev server before each push and against the deployment after |
 | `npm run security` | **57 checks, 0 failed, 0 deferred**; `OCCURRENCE_IDENTITY_PHASE` now defaults to `2` |
 | `npm audit` | **0** |
 | `npm run build` | green, `vite v8.2.2` |
-| `verify.yml` | dispatched manually and **passed all three suites end to end** |
+| `verify.yml` | dispatched on the current commit and **passed e2e, security and smoke** |
 | Migrations | **21, all applied**, latest `20260907182000` |
 | `txns` | 49 · PHP 2,226,438.00 · identity fingerprint `a76686384422360d47403627c35f4f7f` unchanged throughout |
 | `transfers` | **12** — was 9; three wires entered by `aepinza@gmail.com` at 02:13–02:15 UTC today |
@@ -127,12 +128,12 @@ now in `AGENTS.md` and `CLAUDE.md`.
 
 Also unverified:
 
-- **Round 34's result is not in this document.** Check it before treating the loop as clean.
+- **Round 35's result is not in this document.** Check it before treating the loop as clean.
 - Never audited by any round: `src/icons.jsx`, `src/screens/Masterlist.jsx`, and every file in
   `src/modals/` except `PayMethod.jsx`; `scripts/rewind.mjs`, `scripts/fx.mjs`. Round 29 cleared the
   migrations; rounds 31 and 32 covered `AckRec.jsx`, `Telegraphic.jsx`, `ui.jsx`, `Tracker.jsx`,
   `Dashboard.jsx`, `App.jsx` and `Settings.jsx` — **and found six defects between them.**
-- **The loop has never returned clean in thirty-three rounds.** Do not report this work as defect-free.
+- **The loop has never returned clean in thirty-four rounds.** Do not report this work as defect-free.
 
 ## 7. Still open — none of it is mine to close
 
@@ -225,12 +226,11 @@ NON-NULL __e2eHeld a run was killed mid-spec — do not clear it by hand, run th
 beforeAll give the value back. Afterwards run `rm -rf apps/web/test-results`: traces hold
 E2E_PASSWORD and live refresh tokens in plaintext.
 
-CONTINUE THE REVIEW LOOP. Round 34 was dispatched against round 33's fixes and ITS RESULT IS NOT IN
-THE HANDOFF — find out whether it finished before assuming anything. Round 33's fixes are in commit
-75d4751: optionsWith in apps/web/src/logic.js is the plain-string counterpart of statusOptions, and
-ui.jsx's shared Select calls it internally so every <Select> in the tree can display the value it is
-given; nine raw <select> elements across the edit modals, Masterlist and Telegraphic are converted
-individually. ROUNDS 1-33 ALL FOUND SOMETHING. THE LOOP HAS NEVER RETURNED CLEAN, NO ROUND HAS EVER SURVIVED THE
+CONTINUE THE REVIEW LOOP. Round 35 was dispatched against round 34's fixes and ITS RESULT IS NOT IN
+THE HANDOFF — find out whether it finished before assuming anything. Round 34's fixes are in commit
+51829ae: own(obj, key) in apps/web/src/logic.js is a hasOwnProperty-checked lookup, and tagOf,
+symbolOf, curFmt, rateFor's TRANSFER_RATES and App.jsx's SCREENS all route through it, so no raw
+bracket lookup on row-shaped data remains in src/. ROUNDS 1-34 ALL FOUND SOMETHING. THE LOOP HAS NEVER RETURNED CLEAN, NO ROUND HAS EVER SURVIVED THE
 NEXT ONE, and roughly half of all findings were introduced by the fix for the previous defect.
 
 RUN THE E2E SUITE AGAINST A LOCAL DEV SERVER BEFORE PUSHING ANYTHING UNDER apps/web/src/.
@@ -274,7 +274,10 @@ THE TRAPS THAT KEEP BITING, AND HOW THE LAST FOUR ROUNDS FOUND THEIR DEFECTS:
   sheet-row selects and left the same defect in every edit modal. After any fix, GREP FOR THE
   PATTERN across src/, scripts/, e2e/ and security/, not for the helper's name: an inline anonymous
   copy never matches the name. And prefer GUARDING THE SHARED COMPONENT over guarding its callers —
-  only the first ends the class, and it covers the call site nobody has written yet.
+  only the first ends the class, and it covers the call site nobody has written yet. Round 34 pushed
+  that one step further: guard the shared LOOKUP too. `own(obj, key)` in logic.js is the only place
+  a plain object is indexed by row data now, because obj[key] finds Object.prototype members, which
+  are TRUTHY and defeat every `|| fallback` written after them.
 - A DECISION RECORD THAT DESCRIBES INTENT RATHER THAN BEHAVIOUR. Round 32 found D85 asserting that a
   screen showed the raw status "in a neutral chip" when that screen renders a <select> and has no
   chip at all — so it silently displayed "Pending" instead. Check a record's claims against what the
