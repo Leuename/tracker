@@ -3373,6 +3373,73 @@ up under a different attack. `applyMasterlistEdit`, `draftText`, `generate`, `un
 
 233 assertions across 13 files.
 
+## D99 — A Think-Pause Between Two Digits Wrote Money
+
+**Decision and record, 2026-09-08. Round 45**, dispatched with a hard requirement to attack the two
+targets rounds 41, 42 and 44 had each named and each left untouched. They held a high-severity money
+defect, which is the argument for the rule: **when a round defers a target, the next brief must make
+it mandatory.**
+
+### The defect
+
+The masterlist push-down — which rewrites the amount on **every linked open Tracker row** — was armed
+on the same 500 ms keystroke debounce as the payable's own row save. `cancelPush` can only stop a
+timer that has not fired, so a retract past 500 ms was a no-op against an `UPDATE` already on its way.
+
+`pushPlan`'s own doc states the guarantee it was supposed to keep: *"Typing `500` arms a push;
+clearing the field 200 ms later must CANCEL that armed write, or it fires anyway with the value the
+user took back."* It held under 500 ms and silently inverted above it.
+
+Reproduced with the real modules and a fake clock — same two keystrokes, only the pause differs:
+
+| pause before clearing | payable | every linked row |
+|---|---|---|
+| 400 ms | 0 | untouched |
+| **600 ms** | **0** | **1250** |
+
+`UPDATE txns SET amount = 1250 WHERE src = 5 AND status <> 'completed'` goes out from a hesitation
+between digits. And **nothing can put it back**: a blank is unpushable, so the corrected value never
+travels, and each row's previous amount is gone. The payable ends at "not decided", the ledger at
+1250, and the last thing the person saw was a toast saying the rows had been *"updated to match"*.
+`audit_log` records it as a deliberate edit.
+
+### Two changes, because one of them cannot be complete
+
+**A push-down is not a keystroke debounce.** `PUSH_DELAY` is 2500 ms against the row save's 500 ms.
+A row save firing twice is harmless; a push-down is real money in a shared ledger, and 500 ms of
+quiet is a think-pause, not a decision. The reported sequence, and hesitations up to 2.4 s, now
+retract cleanly.
+
+**And past that window it still fires — so say so.** Only an explicit commit could remove the race
+entirely, and that would mean no push at all when someone navigates away without blurring. So
+`pending.js` now records which pushes actually *fired*, `applyMasterlistEdit` reports `lateRetract`,
+and the person is told: *"The linked Tracker rows were already updated with the previous amount.
+Clearing it here does not undo that."* **A wrong write that announces itself is recoverable; the same
+write under a toast claiming success is not.**
+
+Pinned at 600/1200/2400 ms and at 3000 ms; putting the push back on the 500 ms debounce turns two
+assertions red, and dropping the late-retract report turns one.
+
+### What round 45 cleared, function by function
+
+`pending.js`: `arm` clears the prior id and deletes the key before running, so a throwing write
+leaves nothing stale; `cancelForRecurring`'s `push:5:` prefix does not eat `push:50:`; `pageAll`
+survives a short page, an exactly-full last page, size 1, an empty source, an insert between pages, a
+non-`id` cursor and the non-advancing-cursor throw. `queries.js`: `pushDownTxns` selects
+**server-side**, so a row the nightly scheduler inserted a millisecond earlier is correctly included
+and one another user just paid is correctly excluded — no snapshot involved. `deleteGeneratedTxns`'
+ids come only from a committed insert, are `Date.now()`-derived so there is no ABA reuse, and paid
+rows are refused twice. `store.jsx`'s load path: `retryOnce` retries once and surfaces the second
+failure as a Retry splash; the button only renders after the in-flight load settles, so no
+overlapping loads and no out-of-order overwrite.
+
+**Two weaknesses it recorded honestly rather than claiming:** the `sessionExpired` branch sets neither
+`ready` nor `loadError`, so its only exit is an event from an unawaited `signOut()` — traced through
+`auth-js` and not reachable today; and `load().then(onOk, onErr)` would not route a throw inside
+`onOk`, which nothing can currently do. Latent, unproven, written down.
+
+235 assertions across 13 files.
+
 ## Guideline Basis
 
 - **AGENT-03** ensures adapter workflows stop rather than invent authorization.

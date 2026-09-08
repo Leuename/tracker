@@ -16,16 +16,46 @@ export const DELAY = 500
 export const keyOf = (table, id) => table + ':' + id
 export const pushKey = (id, field) => 'push:' + id + ':' + field
 
+/**
+ * How long a push-down waits, as against an ordinary row save.
+ *
+ * The masterlist's own row write is a keystroke debounce: 500ms of quiet means
+ * "they have stopped typing", and the worst case if that is wrong is the row
+ * saves twice. A push-down is not that. It rewrites the amount on EVERY linked
+ * open Tracker row — real money, in a ledger four people share — and 500ms of
+ * quiet is a think-pause, not a decision.
+ *
+ * Round 45: type `1`, pause 600ms, finish `1250`, then clear the field because
+ * the payable has no amount yet. The push for `1` had already gone out, the
+ * retract could not recall it, and no compensating write is possible because a
+ * blank is unpushable and the rows' previous amounts are gone. The payable ended
+ * at "not decided" while the ledger said `1`, and the toast said the rows had
+ * been "updated to match".
+ *
+ * Longer, so an ordinary hesitation stays inside the window and the retract
+ * still works. Not a cure — only an explicit commit would be — which is why
+ * `applyMasterlistEdit` also reports when a retract arrived too late.
+ */
+export const PUSH_DELAY = 2500
+
 /** Create a registry. One per module in the app; one per test in the suite. */
 export function createPending(setTimeoutFn = setTimeout, clearTimeoutFn = clearTimeout) {
   const timers = new Map()
+  // Keys whose callback has actually run. `cancel` can only stop a timer that
+  // has not fired, so this is what separates "cancelled in time" from "too late,
+  // and the write is already on its way" — a distinction the masterlist
+  // push-down needs, because the second case leaves real money rows holding a
+  // value the person took back. Round 45.
+  const fired = new Set()
 
-  const arm = (key, run) => {
+  const arm = (key, run, delay = DELAY) => {
     clearTimeoutFn(timers.get(key))
+    fired.delete(key)
     timers.set(key, setTimeoutFn(() => {
       timers.delete(key)
+      fired.add(key)
       run()
-    }, DELAY))
+    }, delay))
   }
 
   const cancel = (key) => {
@@ -39,7 +69,23 @@ export function createPending(setTimeoutFn = setTimeout, clearTimeoutFn = clearT
       arm(keyOf(table, row.id), () => save(write(row), what)),
 
     /** The same coalescing for a write that is not one row. */
-    queueCall: (key, run) => arm(key, run),
+    queueCall: (key, run, delay) => arm(key, run, delay),
+
+    /**
+     * Is a write still armed under this key?
+     *
+     * `cancel` can only stop a timer that has not fired. Once `arm`'s callback
+     * has run, a retract is a no-op against an `UPDATE` already on its way — and
+     * for the masterlist push-down that meant a think-pause between two digits
+     * wrote a transient amount to every linked open Tracker row and left it
+     * there. The caller needs to know the difference, because "cancelled" and
+     * "too late, and the ledger now disagrees with the screen" are not the same
+     * outcome. Round 45.
+     */
+    isArmed: (key) => timers.has(key),
+
+    /** Did the push for this row and field already go out? */
+    pushFired: (id, field) => fired.has(pushKey(id, field)),
 
     cancelRow: (table, id) => cancel(keyOf(table, id)),
 

@@ -1,19 +1,23 @@
 import { editRecurring, pushPlan } from './logic.js'
-import { pushKey } from './pending.js'
+import { PUSH_DELAY, pushKey } from './pending.js'
 
-export function recEffects({ set, save, db, queueRow, queueCall, cancelPush, flash, id, key }) {
+export function recEffects({ set, save, db, queueRow, queueCall, cancelPush, pushFired, flash, id, key }) {
   return {
     draft: (v) => set({ recDraft: { id, k: key, text: v } }),
     paint: (next) => set((s) => ({ recurring: s.recurring.map((p) => (p.id === id ? next : p)) })),
     saveRow: (next) => queueRow('recurring', next, save, db.updateRecurring, 'the masterlist row'),
     cancelPush: (rowId, field) => cancelPush(rowId, field),
+    pushFired: (rowId, field) => pushFired(rowId, field),
+    warnLateRetract: (field) => flash(
+      'The linked Tracker rows were already updated with the previous ' + field +
+      '. Clearing it here does not undo that — set it on those rows if it is wrong.'),
     queuePush: (pendingKey, patch, src, field, val) => queueCall(pendingKey, () => {
       save(db.patchTxns(patch, src).then((written) => {
         if (!written.length) return
         set((s) => ({ txns: s.txns.map((t) => (written.indexOf(t.id) >= 0 ? { ...t, [field]: val } : t)) }))
         flash(written.length + ' open Tracker ' + (written.length === 1 ? 'row' : 'rows') + ' updated to match')
       }), 'the linked Tracker rows')
-    }),
+    }, PUSH_DELAY),
   }
 }
 
@@ -48,7 +52,19 @@ export function applyMasterlistEdit(row, k, v, fx) {
 
   // Retract first: this must run whether or not anything is pushed, and it must
   // run before the early return below, which tests the same predicate.
-  if (plan.retract) fx.cancelPush(row.id, k)
+  //
+  // `cancelPush` can only stop a push that has not fired yet. If it already
+  // went out, the linked rows now hold a value the person has just taken back,
+  // and NOTHING can put them right automatically: a blank is unpushable, and
+  // each row's previous amount is gone. So the one honest thing left is to say
+  // so, rather than leave the earlier "rows updated to match" standing as the
+  // last word. Round 45.
+  let lateRetract = false
+  if (plan.retract) {
+    lateRetract = !!(fx.pushFired && fx.pushFired(row.id, k))
+    fx.cancelPush(row.id, k)
+    if (lateRetract && fx.warnLateRetract) fx.warnLateRetract(k)
+  }
 
   // The payable itself moves now; the push-down onto linked rows happens inside
   // the debounced callback, alongside its database write, so one cancel stops
@@ -56,7 +72,7 @@ export function applyMasterlistEdit(row, k, v, fx) {
   fx.paint(next)
   fx.saveRow(next)
 
-  if (!plan.patch) return { next, val, plan, pushed: false }
+  if (!plan.patch) return { next, val, plan, pushed: false, lateRetract }
   fx.queuePush(pushKey(row.id, k), plan.patch, row.id, k, val)
   return { next, val, plan, pushed: true }
 }

@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { applyMasterlistEdit, recEffects } from './masterlist.js'
-import { pushKey } from './pending.js'
+import { createPending, DELAY, PUSH_DELAY, pushKey } from './pending.js'
 
 const spies = () => {
   const calls = []
@@ -129,4 +129,63 @@ test('the real recEffects factory wires draft, paint, save, push and cancellatio
   assert.ok(calls.some(([name]) => name === 'queueCall'))
   assert.ok(calls.some(([name]) => name === 'save'))
   assert.equal(calls.some(([name]) => name === 'cancelPush'), false)
+})
+
+// ROUND 45. `cancelPush` can only stop a timer that has not fired. The push-down
+// used the same 500ms keystroke debounce as the row save — but a row save firing
+// twice is harmless, while a push-down rewrites the amount on EVERY linked open
+// Tracker row, in a ledger four people share.
+//
+// The reported sequence: type `1250`, pause, then clear the field because the
+// payable has no amount yet. Past 500ms the push had already gone, the retract
+// could not recall it, and no compensating write exists — a blank is unpushable
+// and each row's previous amount is gone. The payable ended at "not decided",
+// the ledger at 1250, and the last toast said the rows were "updated to match".
+test('an ordinary hesitation no longer pushes a value the user takes back', () => {
+  const at = (pauseMs) => {
+    let now = 0, seq = 0
+    const q = []
+    const p = createPending(
+      (fn, ms) => { const id = ++seq; q.push({ id, at: now + ms, fn }); return id },
+      (id) => { const i = q.findIndex((t) => t.id === id); if (i >= 0) q.splice(i, 1) },
+    )
+    const tick = (ms) => { now += ms; for (const t of [...q]) if (t.at <= now) { q.splice(q.indexOf(t), 1); t.fn() } }
+    const pushes = []; const warned = []
+    let row = { id: 5, amount: 800 }
+    const fx = {
+      draft: () => {}, paint: (n) => { row = { ...row, ...n } }, saveRow: () => {},
+      queuePush: (k, patch) => p.queueCall(k, () => pushes.push(patch), PUSH_DELAY),
+      cancelPush: (id, k) => p.cancelPush(id, k),
+      pushFired: (id, k) => p.pushFired(id, k),
+      warnLateRetract: (f) => warned.push(f),
+    }
+    applyMasterlistEdit(row, 'amount', '1250', fx)
+    tick(pauseMs)
+    const r = applyMasterlistEdit(row, 'amount', '', fx)
+    tick(9000)
+    return { pushes, warned, lateRetract: r.lateRetract }
+  }
+
+  // The case that used to write money: a think-pause between keystrokes.
+  for (const pause of [600, 1200, 2400]) {
+    const r = at(pause)
+    assert.deepEqual(r.pushes, [], pause + 'ms must not reach the ledger')
+    assert.equal(r.lateRetract, false)
+    assert.deepEqual(r.warned, [])
+  }
+
+  // Past the commit window the push does go out — only an explicit commit could
+  // prevent that — but the person is TOLD, rather than left with a toast saying
+  // the rows were updated to match a value that is no longer on screen.
+  const late = at(3000)
+  assert.deepEqual(late.pushes, [{ amount: 1250 }])
+  assert.equal(late.lateRetract, true, 'the retract arrived too late and must say so')
+  assert.deepEqual(late.warned, ['amount'])
+})
+
+test('a push-down waits materially longer than a row save', () => {
+  // If these ever converge, the defect above returns: the row save is a
+  // keystroke debounce and the push-down is a money write.
+  assert.ok(PUSH_DELAY > 2000, 'a think-pause must fit inside the window')
+  assert.ok(PUSH_DELAY >= DELAY * 4, 'and it must not be the same debounce as the row save')
 })
