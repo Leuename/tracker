@@ -356,6 +356,37 @@ the three existing wires with the ECB rate for their release date (the same reas
 release should stamp a rate automatically from then on. The first is a one-off write to a live money
 ledger; the second is a behaviour change to the transfer form. Neither is mine to take.
 
+### C8 — `status` is free text in the database, enforced only by a dropdown
+
+**What it is.** `txns.status`, `receipts.status` and `transfers.status` are all `text` with **no
+CHECK constraint**. Verified 2026-09-08 against `pg_constraint`: the eight CHECKs on those tables are
+all about money and identity, none about status. The four values each screen offers are enforced by
+a `<select>` in the browser and by nothing else.
+
+**Why it matters.** Round 31 found that any out-of-range value used to blank the whole application —
+`TAG[r.status]` threw out of render and React unmounted the tree, unrecoverable by reload. That is
+fixed in the client ([D85](Decisions.md)): every screen routes through `tagOf`, which cannot throw
+and shows the raw value rather than mislabelling it. So the crash is gone.
+
+What remains is quieter. A `txns` row with an unrecognised status is dropped by `visibleRows`, so it
+vanishes from the Tracker sheet **and from the grand total** — a payable that exists in the ledger
+and appears nowhere on screen. Nothing in the application can produce one; a PostgREST `PATCH` from
+any signed-in account, a restore from `backups/`, or a status added to the database ahead of the UI
+can.
+
+**What is true today.** Every stored value is in range — `txns` 42 pending, 7 completed; `receipts`
+3 released; `transfers` 9 released, 3 pending. So a constraint would validate cleanly right now.
+
+**Cost of fixing.** One additive migration, three `CHECK ... NOT VALID` then `VALIDATE`, rehearsed on
+`tracker-rehearsal` first. The risk is the mirror image of the current one: a status the application
+starts writing before the constraint knows it would be refused at the write, loudly. That is the
+correct failure, but it does mean the constraint and the `<select>` lists have to move together.
+
+**What I would do.** Add it, at the next migration that happens for another reason. It is the
+database half of a guard that currently exists only on the client, which is defect family (d) and
+the shape this loop keeps finding. But it is a production schema change and therefore yours, not
+mine.
+
 ### One more thing, and it is not an item
 
 **The pending-commit item is closed.** Everything through 2026-09-08 is committed and pushed to
@@ -363,7 +394,7 @@ ledger; the second is a behaviour change to the transfer form. Neither is mine t
 occurrence-identity rollout ([D80](Decisions.md)) and the round-27 fixes ([D81](Decisions.md)).
 `git status --short` is the only trustworthy reading of what is outstanding; this line is not.
 
-What remains is C5, C6 and C7 for you, and the A and B items blocked on access nobody has. Every
+What remains is C5, C6, C7 and C8 for you, and the A and B items blocked on access nobody has. Every
 one of those is a decision or a credential, not work waiting to be done.
 
 ## Summary
@@ -381,6 +412,7 @@ one of those is a decision or a credential, not work waiting to be done.
 | **C5** | `FX_PASSWORD` | your decision | **Still open.** Raised again 2026-09-04 and deferred again. Highest-risk item here and the cheapest to close |
 | **C6** | Scheduled runs land 2.5-5 h late | your decision | **New 2026-09-04.** The FX cron does fire; the delay eats the margin before ECB publication |
 | **C7** | Three wires released unpriced | your decision | **New 2026-09-04.** Nothing stamps a rate on release, so D45's intent is not enforced |
+| **C8** | `status` has no CHECK constraint | your decision | **New 2026-09-08.** The crash it caused is fixed in the client; a rogue status can still hide a payable from the sheet and the grand total |
 
 ---
 

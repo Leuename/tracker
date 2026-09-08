@@ -2504,6 +2504,66 @@ mutates, so no edit can fail to change the key. The loop is genuinely gone: `toa
 one caveat worth knowing — the `UPDATE` still runs, so `updated_at` moves and an audit row is written
 for every superset re-send.
 
+## D85 — A Status the Dropdown Does Not Offer
+
+**Decision and record, 2026-09-08. Round 31**, the first round to audit the `.jsx` layer — which
+[D84](#d84--the-untestable-caller-and-ten-minutes-of-blank-screen) had just proved has no offline
+coverage at all. It found two defects there immediately.
+
+### The crash
+
+`AckRec.jsx` rendered a receipt's status chip with `TAG[r.status]`, unguarded. Any value outside the
+four the dropdown offers threw `Cannot read properties of undefined (reading 'bg')` out of render,
+React unmounted the whole tree, and the user got a **blank page that a reload does not fix** — the
+same row loads again. `Telegraphic.jsx` wrote the identical expression **with** the guard, and the
+shared `Tag` in `ui.jsx` without it. One pattern, three copies, one guarded: trap 98.
+
+`Tag`'s only caller does not crash today, but only because `visibleRows` drops such a row before it
+reaches the chip. That is not safety, it is a different bug wearing safety's coat — the row vanishes
+from the Tracker sheet and from the grand total.
+
+**Decision: one `tagOf(status, tags)` in `logic.js`, and all three sites route through it.** It
+deliberately does **not** fall back to `pending`. This is a money screen; labelling an `archived`
+receipt "Pending" states something false about it. The raw value is shown in a neutral chip, so the
+row stays readable and the operator can see that something is wrong. Three offline tests; the
+raw-lookup mutation turns three of them red.
+
+### Why it was reachable at all
+
+`public.receipts.status` is `text` with **no CHECK constraint**, and so are `txns.status` and
+`transfers.status`. The four values are enforced by a `<select>` in the browser and by nothing else.
+Defect family (d) in its plainest form: the guard lives on the client instead of in the write, so any
+PostgREST `PATCH`, any restore from `backups/`, or any status added to the database before the UI
+knows it produces one. The database half is [C8](Remaining%20Work%20and%20Owner%20Decisions.md) — a
+production schema change, and therefore the owner's. Every stored value is in range today, so the
+constraint would validate cleanly whenever it is added.
+
+### Escape was dead for half the dialogs
+
+Controls inside a sheet row carried `onKeyDown={stop}`, where `stop` was
+`(ev) => ev.stopPropagation()`. The intent was to keep a Space press from reaching the row, which
+opens on Enter or Space. It stopped **every** key. React listens at the root container, so that also
+stopped the native event before the `window` listener in `useEscapeToClose` — and focus stays on the
+control after it opens the dialog. Escape was therefore dead for the entire lifetime of any modal
+opened from a row control; ten presses left the Liquidate dialog open. The `openModals` stack carries
+a twenty-line comment explaining how it guarantees Escape works, and for these dialogs it did not.
+
+Split into `stop` for `onClick`, where there is no key to inspect, and `stopRowKeys` for `onKeyDown`,
+which stops Enter and Space and nothing else. Pinned by an e2e spec that asserts the toolbar path as
+well, so a regression says which half broke, and that also asserts Escape **cancels** rather than
+confirms — a dialog that closes and acts would be worse than one that will not close.
+
+### The method note
+
+Both defects are invisible to `npm test` and `npm run build`. Round 31 found them by driving a real
+browser against a local dev server and listening for `pageerror`, then proving each with a real key
+press and a rewritten read response — no database write. That sweep, across every screen and a dozen
+modals, had never been done. It should be part of any round that touches a component.
+
+And the new rule earned its keep immediately: running the suite locally before pushing caught my own
+wrong locator, because the Remove button's accessible name is its `aria-label` rather than the word
+printed on it.
+
 ## Guideline Basis
 
 - **AGENT-03** ensures adapter workflows stop rather than invent authorization.
