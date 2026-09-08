@@ -575,7 +575,21 @@ throughout; the whole-row fingerprint moved to `08a747319f890079f3e107ec258bec51
 was added. `app_config` settings at rest, `__e2eHeld` null, 19 categories — `Refund` was added to
 production on 2026-09-07, closing the one open masterlist gap — 21 companies, zero `E2E-` residue,
 receipt `1788471059637` intact with its stored object, `recurring` empty, `audit_log` 8508 and
-append-only. `apps/web/test-results` deleted after every Playwright run; the password appeared in
+append-only.
+
+**`transfers` is a moving baseline too, and it moved while this work was running.** It went 9 → 12
+at 02:13–02:15 UTC on 2026-09-08, three wires entered through the UI by `aepinza@gmail.com` —
+Thesis LTD (GZZ, EUR 98,500), Julius Mars (GZZ, EUR 75,000) and Cordelia Commercial (MCR, USD
+80,850.50). Ordinary owner work during Manila morning hours, attributed in `audit_log`, none of it
+`E2E-` tagged. `txns` has been treated as a moving baseline since the fingerprint first shifted;
+this note had left `transfers` reading like a constant, and it is not one. Read both live before
+asserting anything about them, and never sweep an untagged row.
+
+The practical consequence for any agent: a person may be in the application while a suite runs.
+`npm run e2e` sweeps only its own tag so it cannot touch their rows, but four of its specs mutate
+the **shared** config — the settings and the company and category lists — so a run overlapping the
+owner's working hours is visible to them and a killed run leaves `__e2eHeld` non-null. Prefer to run
+it outside 01:00–10:00 UTC, and check `audit_log` for recent human activity first. `apps/web/test-results` deleted after every Playwright run; the password appeared in
 zero files, which is the tracing-off setup project working as designed.
 
 The phase-1 preflight recorded **43 historical `src` transitions and zero currently linked
