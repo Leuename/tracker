@@ -3030,8 +3030,14 @@ misreading in a different costume, found while testing the first fix. This app p
 through `toLocaleString('en-US')`, so that is the shape a paste-back has; anything else is refused
 rather than guessed at.
 
-All 226 existing assertions passed unchanged against the stricter parser, which says no behaviour
-depended on the mangling.
+All 226 existing assertions passed unchanged against the stricter parser.
+
+> **Corrected 2026-09-08 by round 40 ([D94](#d94--a-minus-sign-that-was-not-a-minus-sign)).** The
+> sentence that followed here read "which says no behaviour depended on the mangling." That is not
+> what a green suite says. The suite contained no assertion about a sign before a currency symbol, so
+> `-$5` — the standard accounting form, and read as `-5` by the old parser — began returning `NaN`
+> and nothing went red. **A passing suite is evidence about what it covers, and silence about the
+> rest.** Seventh record in this loop to claim more than its check established.
 
 ### The rewind footnote, fixed because of what that file is
 
@@ -3057,6 +3063,60 @@ concurrency, and the Manila/UTC date boundary. Round 39 stopped once it had a co
 flagged the rest back, which is the same discipline round 38 used.
 
 229 assertions across 13 files.
+
+## D94 — A Minus Sign That Was Not A Minus Sign
+
+**Decision and record, 2026-09-08. Round 40**, which refuted round 39 by attacking its fix from both
+sides: something it wrongly accepted, and something it wrongly refused.
+
+### The pre-existing one, and the worse of the two
+
+`−` is the real MINUS SIGN. macOS Calculator emits it, and so do many renderers and
+spreadsheets. It is **not** the ASCII hyphen, so both the old parser and round 39's rewrite stripped
+it as leading decoration and read the digits behind it as **positive**:
+
+```
+amountOf('−5')      ->  5      (both before and after round 39)
+positiveAmountOf('−500') -> 500
+```
+
+`positiveAmountOf` exists for exactly one purpose — to stop a negative reaching a charge or a
+liquidation field — and this walked straight past it, leaving a positive value on screen and in the
+database that nobody typed. Pre-existing, missed by thirty-nine rounds, and worse than a refusal
+because it is silent.
+
+Fixed by normalising the minus lookalikes — `−`, en dash, em dash, fullwidth hyphen — before
+anything else happens.
+
+### The one round 39 introduced
+
+`-$5` is the standard accounting form for a negative amount; `$-5` is what this app's own `fmt`
+prints. The old parser read both as `-5`. Round 39's stricter shape check accepted only the second,
+so `-$5` and `-₱1,234.56` started returning `NaN` — a legitimate paste refused on a money field.
+
+The sign is now taken from **either side** of the currency symbol before the symbol is dropped.
+
+### The correction that matters more than either fix
+
+[D93](#d93--a-pasted-number-that-was-seven-orders-of-magnitude-wrong) said the unchanged suite
+"says no behaviour depended on the mangling." It does not say that. The suite had **no assertion
+about a sign before a currency symbol**, so the regression passed it in silence.
+
+**A passing suite is evidence about what it covers, and silence about everything else.** That is the
+seventh record in this loop to claim more than its check established, and the shape is always the
+same: the check is real, the sentence written about it is wider than the check. The remedy that
+keeps working is to make the claim executable — and where it cannot be, to state the claim no wider
+than the evidence.
+
+Both fixes are mutation-checked: dropping the lookalike normalisation, and accepting a sign only
+before the symbol, each turn an assertion red. 231 assertions across 13 files.
+
+### Still unaudited, and stated rather than implied
+
+Round 40 spent its whole budget attacking round 39's fix, which is what it was asked to do first and
+which produced two findings. It did not reach the six modals, `pending.js`/`queries.js` concurrency,
+the Manila/UTC date boundary, or `store.jsx`'s load path. Three consecutive rounds have now flagged
+those back untouched.
 
 ## Guideline Basis
 

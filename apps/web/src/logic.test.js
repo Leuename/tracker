@@ -793,6 +793,37 @@ test('amountOf refuses what it cannot read, instead of mangling it', () => {
   assert.notEqual(amountOf('1.20E+07'), 1.2007)
 })
 
+// ROUND 40, and the more serious of the two. `\u2212` is the real MINUS SIGN —
+// what macOS Calculator and many renderers emit for a negative result — and it
+// is not the ASCII hyphen, so it was stripped as decoration and the digits read
+// as POSITIVE. `\u22125` became `5`. Pre-existing, not introduced by round 39,
+// and worse than a refusal: `positiveAmountOf` exists to stop a negative
+// reaching a charge or liquidation field, and this walked straight past it with
+// a value on screen that nobody typed.
+test('a minus sign is a minus sign, whichever glyph it is', () => {
+  for (const minus of ['-', '\u2212', '\u2013', '\u2014', '\uFF0D']) {
+    assert.equal(amountOf(minus + '5'), -5, 'U+' + minus.charCodeAt(0).toString(16) + ' must negate')
+    assert.equal(amountOf(minus + '12.50'), -12.5)
+    assert.ok(Number.isNaN(positiveAmountOf(minus + '500')),
+      'and positiveAmountOf must refuse it, which is the whole point of that guard')
+  }
+  // The failure it replaces: never a positive number from a negative input.
+  assert.notEqual(amountOf('\u22125'), 5)
+})
+
+// ROUND 40, finding 2 — a regression the stricter parser introduced. `-$5` is
+// the standard accounting form and the old parser read it as -5; `$-5` is what
+// this app's own `fmt` produces. Both must work: the sign can sit on either side
+// of the symbol.
+test('the sign may sit on either side of a currency symbol', () => {
+  assert.equal(amountOf('-$5'), -5)
+  assert.equal(amountOf('$-5'), -5)
+  assert.equal(amountOf('-\u20B11,234.56'), -1234.56)
+  assert.equal(amountOf('\u20B1-1,234.56'), -1234.56)
+  assert.equal(amountOf('+$5'), 5)
+  assert.equal(amountOf('\u20B11,234.56'), 1234.56, 'and no sign still means positive')
+})
+
 test('amountOf still reads every shape a person or this app produces', () => {
   assert.equal(amountOf('1234.56'), 1234.56)
   assert.equal(amountOf('1,234.56'), 1234.56, 'the shape toLocaleString prints')

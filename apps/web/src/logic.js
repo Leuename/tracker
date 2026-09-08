@@ -146,7 +146,20 @@ export const amountOf = (v) => {
   // cell is an ordinary action, and the wrong number cleared every guard: it is
   // positive, so `positiveAmountOf` passed it and the database CHECK took it.
   // `12.34.56` was silently truncated to `12.34` the same way. Round 39.
-  const cleaned = raw.replace(/[\s\u00A0\u202F]/g, '').replace(/^[^\d.+-]+/, '')
+  // Minus LOOKALIKES first. `\u2212` is the real MINUS SIGN, which macOS
+  // Calculator and many renderers emit for a negative result; the en and em
+  // dashes and the fullwidth hyphen turn up in pastes too. None of them is the
+  // ASCII hyphen, so all of them used to be stripped as decoration and the digits
+  // behind them read as POSITIVE — `\u22125` became `5`. That defeated
+  // `positiveAmountOf`, whose entire job is to refuse a negative on a charge or
+  // liquidation field, and it did so silently. Pre-existing; round 40 found it.
+  const cleaned = raw.replace(/[\s\u00A0\u202F]/g, '').replace(/[\u2212\u2013\u2014\uFF0D]/g, '-')
+  // The sign may sit on either side of a currency symbol: `-$5` is the standard
+  // accounting form and `$-5` is what this app's own `fmt` produces. Take the
+  // sign off first, from whichever side it is on, then drop the symbol.
+  const parts = /^[^\d.+-]*([-+])?[^\d.+-]*(.*)$/.exec(cleaned)
+  const negative = parts && parts[1] === '-'
+  const body = parts ? parts[2] : cleaned
   // One optional sign, then digits with at most one decimal point. `1.` and `.5`
   // are deliberately accepted: both are states a field passes through while
   // somebody is typing a decimal, and refusing them mid-keystroke is trap 105.
@@ -157,10 +170,11 @@ export const amountOf = (v) => {
   // costume. This app prints `1,234.56` via `toLocaleString('en-US')`, so that
   // is the shape a paste-back has, and anything else is refused rather than
   // guessed at.
-  const grouped = /^[-+]?\d{1,3}(?:,\d{3})+(?:\.\d*)?$/.test(cleaned)
-  const plain = /^[-+]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(cleaned)
+  const grouped = /^\d{1,3}(?:,\d{3})+(?:\.\d*)?$/.test(body)
+  const plain = /^(?:\d+(?:\.\d*)?|\.\d+)$/.test(body)
   if (!grouped && !plain) return NaN
-  return Number(grouped ? cleaned.replace(/,/g, '') : cleaned)
+  const n = Number(grouped ? body.replace(/,/g, '') : body)
+  return negative ? -n : n
 }
 
 /**
