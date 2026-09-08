@@ -387,6 +387,44 @@ database half of a guard that currently exists only on the client, which is defe
 the shape this loop keeps finding. But it is a production schema change and therefore yours, not
 mine.
 
+### C9 — GitHub Actions stopped running jobs, and only you can see why
+
+**What is true today.** Since roughly 12:00 UTC on 2026-09-08, every workflow run fails **2-3 seconds
+after starting, with zero steps recorded**. Not a check failing — the job never begins. Confirmed on
+two different workflows:
+
+| Run | Time (UTC) | Result |
+|---|---|---|
+| `Backup` | 11:04 | success |
+| `FX rates` | 12:45 | **failure, 2s, 0 steps** |
+| `CI` (`d31e8f0`) | 14:30 | **failure, 3s, 0 steps**, and a re-run failed identically |
+
+`gh run view --log` answers `log not found`, which is what happens when no step ever produced output.
+
+**What it is not.** Not the code: the same gate — `npm ci`, `npm test` (232/232), `npm run build`,
+`npm audit --audit-level=high` — passes locally on the exact commit. Not a permissions change:
+`actions/permissions` reports `enabled: true`, `allowed_actions: all`.
+
+**What it most likely is.** Exhausted GitHub Actions minutes. This is a **private** repository, so
+minutes are metered, and this session has been unusually heavy on them. An instant zero-step failure
+is the documented shape of hitting that ceiling. Confirming it needs the billing page, or a token
+with the `user` scope — neither of which an agent should grant itself.
+
+**What is at risk while it lasts.** The nightly `verify.yml`, `backup.yml` (the only recovery path),
+`schedule.yml` (generates the month's payables) and `fx.yml` all silently do nothing. **A backup that
+does not run looks exactly like a backup that ran and found nothing to change.** That is the
+dangerous part, not the blocked deploy.
+
+**What is NOT at risk.** Production is untouched and healthy — HTTP 200, still serving the bundle
+from `c7daee1`, because the deploy job was skipped rather than half-run. Everything committed since
+then touches `security/probe.mjs`, documentation and a rule file; **no application code is waiting to
+deploy**, so nothing is stranded.
+
+**What I would do.** Check Settings → Billing for the Actions minute balance. If that is the cause,
+either top it up or accept that the scheduled jobs pause until the monthly reset — and if they are
+going to pause, take one manual backup first, because that is the only copy of the ledger outside
+Supabase's own free-plan storage.
+
 ### One more thing, and it is not an item
 
 **The pending-commit item is closed.** Everything through 2026-09-08 is committed and pushed to
@@ -394,7 +432,7 @@ mine.
 occurrence-identity rollout ([D80](Decisions.md)) and the round-27 fixes ([D81](Decisions.md)).
 `git status --short` is the only trustworthy reading of what is outstanding; this line is not.
 
-What remains is C5, C6, C7 and C8 for you, and the A and B items blocked on access nobody has. Every
+What remains is C5, C6, C7, C8 and C9 for you, and the A and B items blocked on access nobody has. Every
 one of those is a decision or a credential, not work waiting to be done.
 
 ## Summary
@@ -412,6 +450,7 @@ one of those is a decision or a credential, not work waiting to be done.
 | **C5** | `FX_PASSWORD` | your decision | **Still open.** Raised again 2026-09-04 and deferred again. Highest-risk item here and the cheapest to close |
 | **C6** | Scheduled runs land 2.5-5 h late | your decision | **New 2026-09-04.** The FX cron does fire; the delay eats the margin before ECB publication |
 | **C7** | Three wires released unpriced | your decision | **New 2026-09-04.** Nothing stamps a rate on release, so D45's intent is not enforced |
+| **C9** | Actions jobs fail instantly, 0 steps | your billing page | **New 2026-09-08.** Almost certainly exhausted Actions minutes. Backup, schedule, fx and verify are all silently not running |
 | **C8** | `status` has no CHECK constraint | your decision | **New 2026-09-08.** The crash it caused is fixed in the client; a rogue status can still hide a payable from the sheet and the grand total |
 
 ---
