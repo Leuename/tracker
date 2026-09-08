@@ -2926,6 +2926,71 @@ claimed — `lookups.test.js` for the class, and now the lifecycle test for the 
 
 225 assertions across 13 files.
 
+## D92 — The Write Half, And Why A Grep Could Not Have Found It
+
+**Decision and record, 2026-09-08. Round 38**, which refuted round 37. Seventh consecutive round on
+one defect class, and the first to find a genuinely different half of it.
+
+### The site the sweep could not see
+
+[D91](#d91--a-guarantee-that-did-not-survive-its-own-lifecycle) re-bared every construction site of
+`collapsed`, found by grepping `collapsed: {}` and `statuses: {`. Round 38 found one three lines
+below the branch that fix edited:
+
+```js
+if (!allOpen) return { collapsed: bare({}) }   // fixed by D91
+const c = {}                                   // not — a different literal shape
+order.forEach((k) => { c[k] = true })
+```
+
+`const c = {}` does not match either grep pattern. **A grep finds the shapes you thought of**, which
+is the same lesson as [D87](#d87--the-same-defect-three-rounds-running-in-whichever-files-were-named)
+arriving by a new route: there, the sites were in files nobody named; here, the site was in the file
+that had just been edited, in a spelling nobody had listed.
+
+### The write half, which no round had looked for
+
+Rounds 32 to 37 all chased `obj[key]` **reading** an inherited member. Round 38's site is an
+assignment, and that is a different failure with a different mechanism:
+
+```
+o = {};  o['__proto__'] = v   →  Object.keys(o) is []      the value is LOST
+b = bare({}); b['__proto__'] = v  →  Object.keys(b) is ['__proto__']   kept
+```
+
+Assigning `__proto__` on an ordinary object hits the `Object.prototype` **accessor** and creates no
+own property. Sweeping for it found two more in `configPatch`: `const patch = {}` and
+`const settings = {}`, the accumulators that build the config diff. `JSON.parse` **does** produce an
+own `__proto__` key, so a settings blob that has been through the database can carry one — and that
+setting would then be silently absent from the patch, never reach `merge_app_config`, and be lost
+with no error anywhere.
+
+Worse, [D89](#d89--a-ratchet-instead-of-a-promise)'s ratchet had `settings[key] = next.settings[key]`
+in its `ALLOWED` list. **The allowance was on the buggy line.**
+
+### What the fix changed beyond its intent, and how the tests were corrected
+
+`configPatch` now returns a prototype-less object, and six assertions began failing on
+`deepStrictEqual` — which compares prototypes. That is a real consequence, not a test nit. The
+assertions were changed to compare **what the database actually receives**:
+`JSON.parse(JSON.stringify(patch))`. A patch is only ever consumed by being serialised and sent to
+`merge_app_config`, so the serialised form is the contract, and asserting it is stronger than
+asserting the object.
+
+**And the test for this class is itself booby-trapped.** The obvious expected value,
+`{ settings: { __proto__: '…' } }`, is an object literal — so `__proto__` there *sets the prototype*
+and the expectation is an empty object. The assertion would have passed for the wrong reason. It
+compares the serialised string and the own-key list instead.
+
+226 assertions across 13 files. The mutation — plain accumulators — turns it red.
+
+### An honest note on this round's scope
+
+Round 38 stopped after this finding and explicitly declined to audit `rewind.mjs`, `fx.mjs`,
+`errors.js`, `icons.jsx` and the remaining modals, flagging them back as still-unaudited rather than
+claiming coverage it had not done. That is the right behaviour and it is recorded here so the next
+round does not read this decision as evidence those files are clean.
+
 ## Guideline Basis
 
 - **AGENT-03** ensures adapter workflows stop rather than invent authorization.

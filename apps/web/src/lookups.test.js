@@ -72,8 +72,11 @@ const ALLOWED = [
   ['rows.js', 'patch[key]'],
   ['rows.js', 's[k]'],
   ['rows.js', 'next.settings[key]'],
-  // `prev.settings` is read through `own` now; only the own-key write remains.
+  // `settings` and `patch` are `bare()` accumulators now, so a `__proto__` key
+  // creates an own property instead of hitting the prototype's accessor and
+  // vanishing. Round 38 — the WRITE half of the class.
   ['rows.js', 'settings[key] = next.settings[key]'],
+  ['rows.js', 'patch[key] = next[key]'],
   ['db.js', 'patch[k]'],
   // Keys that are literals in this codebase, not data: field names a caller
   // passes, and the fixed lists behind the settings and filter chrome.

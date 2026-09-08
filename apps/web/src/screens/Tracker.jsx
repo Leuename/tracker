@@ -34,7 +34,14 @@ export default function Tracker() {
 
   const toggleAll = () => set(() => {
     if (!allOpen) return { collapsed: bare({}) }
-    const c = {}
+    // `bare({})`, not `{}`. A group name is a company or category value, both
+    // free text, and `c['__proto__'] = true` on an ordinary object hits the
+    // Object.prototype ACCESSOR instead of creating an own property — so a group
+    // named `__proto__` silently refused to collapse. Round 38 found this three
+    // lines below the branch round 37 fixed: the sweep that produced that fix
+    // grepped for `collapsed: {}` and `statuses: {`, and `const c = {}` is a
+    // different literal shape, so no grep of that kind could ever have seen it.
+    const c = bare({})
     order.forEach((k) => { c[k] = true })
     return { collapsed: c }
   })

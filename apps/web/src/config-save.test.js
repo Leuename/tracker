@@ -10,6 +10,14 @@ const cfg = (settings = {}, extra = {}) => ({
   ...extra,
 })
 
+/**
+ * `configPatch` builds its accumulators with `bare()` (see `rows.js`), so a
+ * patch has no prototype and `deepStrictEqual` against a plain literal fails on
+ * that alone. A patch is only ever consumed by being serialised and sent to
+ * `merge_app_config`, so compare what the database actually receives.
+ */
+const asSent = (patch) => (patch == null ? patch : JSON.parse(JSON.stringify(patch)))
+
 /** A `write` that hands back a promise the test resolves or rejects by hand. */
 const deferred = () => {
   const calls = []
@@ -42,10 +50,10 @@ test('a change sends only its delta and advances the baseline', () => {
   const s = createConfigSync({ write })
   s.seed(cfg())
   const next = cfg({ ackRequirePhoto: true })
-  assert.deepEqual(s.pending(next), { settings: { ackRequirePhoto: true } })
+  assert.deepEqual(asSent(s.pending(next)), { settings: { ackRequirePhoto: true } })
   s.send(next)
   assert.equal(calls.length, 1)
-  assert.deepEqual(calls[0].patch, { settings: { ackRequirePhoto: true } },
+  assert.deepEqual(asSent(calls[0].patch), { settings: { ackRequirePhoto: true } },
     'only the key that moved, so merge_app_config can fold two people together')
   assert.deepEqual(s.current(), next)
 })
@@ -80,11 +88,11 @@ test('a refusal landing inside a later edit is recovered by the next send', asyn
   // The owner toggles ackRequirePhoto on. It goes out and is still in flight.
   const first = cfg({ ackRequirePhoto: true })
   const w1 = s.send(first)
-  assert.deepEqual(calls[0].patch, { settings: { ackRequirePhoto: true } })
+  assert.deepEqual(asSent(calls[0].patch), { settings: { ackRequirePhoto: true } })
 
   // They toggle warnDuplicate on. The effect arms a timer; nothing is sent yet.
   const second = cfg({ ackRequirePhoto: true, warnDuplicate: true })
-  assert.deepEqual(s.pending(second), { settings: { warnDuplicate: true } },
+  assert.deepEqual(asSent(s.pending(second)), { settings: { warnDuplicate: true } },
     'at this instant the delta is only the second toggle')
 
   // The first write is refused while that timer is still pending.
@@ -95,7 +103,7 @@ test('a refusal landing inside a later edit is recovered by the next send', asyn
   // Now the timer fires. The diff must be recomputed HERE, not reused.
   s.send(second)
   assert.equal(calls.length, 2)
-  assert.deepEqual(calls[1].patch, { settings: { ackRequirePhoto: true, warnDuplicate: true } },
+  assert.deepEqual(asSent(calls[1].patch), { settings: { ackRequirePhoto: true, warnDuplicate: true } },
     'the second write must carry the refused change too, or it is lost for good')
   assert.deepEqual(s.current(), second)
 
@@ -116,12 +124,12 @@ test('two failures in a row still leave the baseline on what the database holds'
 
   const b = cfg({ ackRequirePhoto: true, warnDuplicate: true })
   const w2 = s.send(b)
-  assert.deepEqual(calls[1].patch, { settings: { ackRequirePhoto: true, warnDuplicate: true } })
+  assert.deepEqual(asSent(calls[1].patch), { settings: { ackRequirePhoto: true, warnDuplicate: true } })
   calls[1].rej(new Error('two'))
   await assert.rejects(w2, /two/)
 
   assert.deepEqual(s.current(), base)
-  assert.deepEqual(s.pending(b), { settings: { ackRequirePhoto: true, warnDuplicate: true } },
+  assert.deepEqual(asSent(s.pending(b)), { settings: { ackRequirePhoto: true, warnDuplicate: true } },
     'both changes are still owed')
 })
 
@@ -166,7 +174,7 @@ test('a refusal is rolled back even when a later write has moved the baseline', 
   const w1 = s.send(a)                       // baseline: base -> a
   const b = cfg({ ackRequirePhoto: true, dashWindow: 'Today' })
   const w2 = s.send(b)                       // baseline: a -> b, patch is only dashWindow
-  assert.deepEqual(calls[1].patch, { settings: { dashWindow: 'Today' } })
+  assert.deepEqual(asSent(calls[1].patch), { settings: { dashWindow: 'Today' } })
 
   calls[1].res()                             // the SECOND write lands
   await w2
@@ -175,6 +183,6 @@ test('a refusal is rolled back even when a later write has moved the baseline', 
 
   assert.deepEqual(s.current(), base,
     'the baseline must fall back to what the database actually holds')
-  assert.deepEqual(s.pending(b), { settings: { ackRequirePhoto: true, dashWindow: 'Today' } },
+  assert.deepEqual(asSent(s.pending(b)), { settings: { ackRequirePhoto: true, dashWindow: 'Today' } },
     'so the next send carries the refused change; re-sending dashWindow is a no-op merge')
 })

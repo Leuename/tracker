@@ -1,4 +1,5 @@
 import { own } from './logic.js'
+import { bare } from './data.js'
 /**
  * Row mapping between the app's in-memory shapes and Postgres.
  *
@@ -137,14 +138,19 @@ export const configOf = (s) => Object.fromEntries(CONFIG_KEYS.map((k) => [k, s[k
  */
 export function configPatch(prev, next) {
   const same = (a, b) => JSON.stringify(a) === JSON.stringify(b)
-  const patch = {}
+  // `bare`: these accumulate keys that come from data. Round 38 found the WRITE
+  // half of the class every round since 32 has been chasing on the read half —
+  // `o['__proto__'] = v` on an ordinary object hits the Object.prototype
+  // ACCESSOR and creates nothing, so the value is silently dropped. `JSON.parse`
+  // does produce an own `__proto__` key, so a settings blob can carry one.
+  const patch = bare({})
 
   for (const key of CONFIG_KEYS) {
     if (key === 'settings') continue
     if (!same(prev[key], next[key])) patch[key] = next[key]
   }
 
-  const settings = {}
+  const settings = bare({})
   for (const key of Object.keys(next.settings || {})) {
     // `own`: a settings blob is JSON, so it CAN carry an own key named
     // `constructor` — and `(prev.settings || {})['constructor']` would then

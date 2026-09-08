@@ -177,6 +177,43 @@ test('an update payload never carries the primary key or generated identity', ()
   }
 })
 
+// `wire` because `configPatch` builds its accumulators with `bare()` — see
+// rows.js. A patch is only ever consumed by being serialised and sent to
+// `merge_app_config`, so the serialised form IS the contract, and comparing it
+// is a stronger assertion than comparing the object: it is what the database
+// receives. `deepStrictEqual` would otherwise fail purely on the prototype.
+const asSent = (patch) => (patch === null ? null : JSON.parse(JSON.stringify(patch)))
+
+// ROUND 38. Every round from 32 chased the READ half of this class —
+// `obj[key]` finding an inherited member. This is the WRITE half, and nobody had
+// looked for it: `o['__proto__'] = v` on an ordinary object hits the
+// Object.prototype ACCESSOR and creates no own property, so the value is
+// silently dropped. `JSON.parse` DOES produce an own `__proto__` key, so a
+// settings blob that has been through the database can carry one.
+//
+// Consequence without the fix: that setting is missing from the patch, so
+// `merge_app_config` never receives it and the owner's change is lost with no
+// error anywhere.
+test('a settings key named __proto__ survives into the patch', () => {
+  const settings = JSON.parse('{"dashWindow":"Next 30 days","__proto__":"surprising but legal"}')
+  const prev = { notes: [], companies: [], categories: [], settings: { dashWindow: 'Next 30 days' } }
+  const next = { notes: [], companies: [], categories: [], settings }
+
+  const patch = configPatch(prev, next)
+  assert.ok(patch, 'a changed settings blob must produce a patch')
+
+  // NOT `{ settings: { __proto__: '...' } }` as the expected value: writing
+  // `__proto__` in an object LITERAL sets the prototype rather than creating a
+  // key, so that expectation would be an empty object and the test would pass
+  // for the wrong reason. Even asserting on this class is booby-trapped.
+  assert.equal(JSON.stringify(asSent(patch)), '{"settings":{"__proto__":"surprising but legal"}}',
+    'the key must reach merge_app_config, not vanish into the prototype')
+  assert.deepEqual(Object.keys(asSent(patch).settings), ['__proto__'])
+
+  // And it must not be mistaken for a change when it has not changed.
+  assert.equal(configPatch(next, next), null)
+})
+
 test('configPatch reports only what changed', () => {
   const prev = {
     notes: [{ t: 'file returns', done: false }],
@@ -187,20 +224,20 @@ test('configPatch reports only what changed', () => {
   assert.equal(configPatch(prev, prev), null, 'an unchanged config saves nothing')
 
   const renamed = { ...prev, companies: ['ANG', 'BAR', 'ZON'] }
-  assert.deepEqual(configPatch(prev, renamed), { companies: ['ANG', 'BAR', 'ZON'] })
+  assert.deepEqual(asSent(configPatch(prev, renamed)), { companies: ['ANG', 'BAR', 'ZON'] })
 
   // The collision this exists for: one person flips a toggle, another edits a
   // different toggle. Each patch must carry only its own key, or the second
   // save puts the first one back.
   const toggled = { ...prev, settings: { ...prev.settings, trkOverdueRed: false } }
-  assert.deepEqual(configPatch(prev, toggled), { settings: { trkOverdueRed: false } })
+  assert.deepEqual(asSent(configPatch(prev, toggled)), { settings: { trkOverdueRed: false } })
 
   const windowed = { ...prev, settings: { ...prev.settings, dashWindow: 'Next 7 days' } }
-  assert.deepEqual(configPatch(prev, windowed), { settings: { dashWindow: 'Next 7 days' } })
+  assert.deepEqual(asSent(configPatch(prev, windowed)), { settings: { dashWindow: 'Next 7 days' } })
 
   // Two unrelated changes in one save still travel together.
   const both = { ...prev, categories: ['Other', 'Rent'], settings: { ...prev.settings, dashWindow: 'Today' } }
-  assert.deepEqual(configPatch(prev, both), {
+  assert.deepEqual(asSent(configPatch(prev, both)), {
     categories: ['Other', 'Rent'],
     settings: { dashWindow: 'Today' },
   })
@@ -215,7 +252,7 @@ test('configPatch compares by value, not by reference', () => {
   assert.equal(configPatch(prev, rebuilt), null)
 
   const edited = { ...prev, notes: [{ t: 'a', done: true }] }
-  assert.deepEqual(configPatch(prev, edited), { notes: [{ t: 'a', done: true }] })
+  assert.deepEqual(asSent(configPatch(prev, edited)), { notes: [{ t: 'a', done: true }] })
 })
 
 // ---- a wire's stored rate --------------------------------------------
