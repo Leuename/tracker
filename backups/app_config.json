@@ -57,11 +57,6 @@
           "t": "Remind Ms sa mga unpaid govt payments"
         },
         {
-          "done": true,
-          "linked": false,
-          "t": "write tele for tomorrow"
-        },
-        {
           "done": false,
           "linked": false,
           "t": "ZONE Liquidations - Jan to May put account codes"
@@ -75,16 +70,6 @@
           "done": false,
           "linked": false,
           "t": "FEPA - CDV"
-        },
-        {
-          "done": true,
-          "linked": false,
-          "t": "GTOI - Liquidation August"
-        },
-        {
-          "done": true,
-          "linked": false,
-          "t": "Lee Pemberton - CC URGENT"
         }
       ],
       "settings": {
@@ -102,6 +87,6 @@
       }
     },
     "id": true,
-    "updated_at": "2026-09-07T20:42:45.613263+00:00"
+    "updated_at": "2026-09-08T05:27:50.182096+00:00"
   }
 ]
