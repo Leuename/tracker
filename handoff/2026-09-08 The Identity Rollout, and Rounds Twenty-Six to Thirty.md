@@ -6,13 +6,13 @@ status: current
 kind: complete continuation package — THE entry point. A fresh chat resumes from this file.
 supersedes: "[[2026-09-07 Session Continuation, Rounds One to Twenty-Five]] as the entry point. It is not obsolete: it remains the record of rounds 1-25 and the shape of the loop."
 covers: "the owner-authorised occurrence-identity rollout — rehearsal, two production migrations, deployment — and adversarial rounds 26 to 30, which produced decisions D80 to D83"
-decisions-made: "[[Decisions]] D80 to D93"
-verification-status: "The rollout is COMPLETE and verified. Rounds 27 to 39 each REFUTED the one before; every finding is fixed, deployed and mutation-checked. Round 30's own fix BLANKED PRODUCTION for ten and a half minutes and was reverted and relanded. Round 40 was dispatched and its result is NOT in this document."
+decisions-made: "[[Decisions]] D80 to D98"
+verification-status: "The rollout is COMPLETE and verified. Rounds 27 to 44 each REFUTED the one before; every finding is fixed, deployed and mutation-checked. Round 30's own fix BLANKED PRODUCTION for ten and a half minutes and was reverted and relanded. Round 45 was dispatched and its result is NOT in this document."
 related:
   - "[[2026-09-07 Session Continuation, Rounds One to Twenty-Five]] — rounds 1-25 and the loop's shape"
   - "[[2026-09-06 The Review Loop, Rounds One to Twenty]] — the round-by-round ledger and the rate-limit history"
   - "[[2026-09-05 The Design Port, and Three Requirements the File Did Not Show]] — the design port, the twelve client requirements, the eighty-one-row findings table, traps 77-107"
-  - "[[Decisions]] — D1 to D93, the authority on what is authorised"
+  - "[[Decisions]] — D1 to D98, the authority on what is authorised"
   - "[[Repository Evidence]] — the factual baseline"
   - "[[Remaining Work and Owner Decisions]] — A1-A2, B1-B2, C5-C8"
   - "[[Handoff Index]] — every handoff, newest first"
@@ -71,7 +71,12 @@ after the LAST phase.**
 | **37** | **REFUTED, 1** | **A spread of a bare object produces an ordinary one**, so the guarantee lasted until the first status toggle. True of eight maps, false of the two that are mutable |
 | **38** | **REFUTED, 1** | **The write half**, which seven rounds had never looked for: `o['__proto__'] = v` creates nothing and the value is lost. Found in `configPatch`'s accumulators — a setting from the database could vanish from its own patch |
 | **39** | **REFUTED, 2** | **A pasted `1.20E+07` became `1.2007`** — seven orders of magnitude, and legal to both the client and the database. Plus `rewind.mjs` interpolating a value raw into a `--` comment in SQL a human runs as `postgres` |
-| 40 | **dispatched; result not in this document** | |
+| **40** | **REFUTED, 2** | `\u2212` — the real MINUS SIGN, which macOS Calculator emits — was stripped as decoration, so **`\u22125` became `5`** and `positiveAmountOf` passed it. Pre-existing, missed by thirty-nine rounds |
+| **41** | **REFUTED, 1** | **The nightly job was living in a different day.** It used the UTC date while firing at 06:00 Manila, so its overdue digest disagreed with the owner's screen every night and **every month end generated for the wrong month** |
+| **42** | **REFUTED, 1** | The "leap day" test case crossed no month. The code was right; the claim was not |
+| **43** | **REFUTED, 7** | **The security probe went GREENER when the application broke**: seven `.update()` calls, all asserting refusals, no positive control — a blanket `revoke update` scored 57/57. Plus a STALE detector that could never fire and a bundle scan that passed over zero bytes |
+| **44** | **REFUTED, 3** | **The restore procedure omitted `fx_rates`**, whose audit trigger stays live, so a restore aborts with `23505` and **loses all 13,746 audit rows** — and the verifier agreed with the broken restore |
+| 45 | **dispatched; result not in this document** | |
 
 Decisions [[Decisions]] D81 to D84 carry the reasoning. Four findings across these rounds were
 introduced by the previous round's fix, which is the loop's oldest pattern.
@@ -105,7 +110,7 @@ your own writes, never against a number in a document.
 
 | | |
 |---|---|
-| `npm test` | **229/229** across 13 files, offline |
+| `npm test` | **233/233** across 13 files, offline |
 | `npx playwright test --workers=1` | **52/52**, run against a local dev server before each push and against the deployment after |
 | `npm run security` | **57 checks, 0 failed, 0 deferred**; `OCCURRENCE_IDENTITY_PHASE` now defaults to `2` |
 | `npm audit` | **0** |
@@ -133,14 +138,22 @@ now in `AGENTS.md` and `CLAUDE.md`.
 
 Also unverified:
 
-- **Round 40's result is not in this document.** Check it before treating the loop as clean.
+- **Round 45's result is not in this document.** Check it before treating the loop as clean.
 - Never audited by any round: `src/icons.jsx`, `src/screens/Masterlist.jsx`, and every file in
   `src/modals/` except `PayMethod.jsx`; `scripts/rewind.mjs`, `scripts/fx.mjs`. Round 29 cleared the
   migrations; rounds 31 and 32 covered `AckRec.jsx`, `Telegraphic.jsx`, `ui.jsx`, `Tracker.jsx`,
   `Dashboard.jsx`, `App.jsx` and `Settings.jsx` — **and found six defects between them.**
-- **The loop has never returned clean in thirty-nine rounds.** Do not report this work as defect-free.
+- **The loop has never returned clean in forty-four rounds.** Do not report this work as defect-free.
 
 ## 7. Still open — none of it is mine to close
+
+**C9 is the new one and the only urgent one: GitHub Actions fails every job in 2-3 seconds with zero
+steps**, on scheduled runs and fresh dispatches alike, since about 12:00 UTC on 2026-09-08. Almost
+certainly exhausted Actions minutes on a private repo; confirming needs the billing page. While it
+lasts, `backup.yml`, `schedule.yml`, `fx.yml` and `verify.yml` all silently do nothing — **and a
+backup that never ran looks exactly like one that ran and found nothing to change.** A snapshot was
+taken by hand on 2026-09-08 to close the gap that had already opened (the last scheduled one predated
+the owner marking nine payables paid). See [[Remaining Work and Owner Decisions]] C9.
 
 1. **C5, the rates-account password.** `admin@admin.com` / `admin`, still live, `viewer` role, last
    sign-in 2026-09-07 14:08 UTC (the FX cron). It can read the entire ledger, and it is the
@@ -156,7 +169,7 @@ Also unverified:
 
 ## 8. How to verify state in a fresh session
 
-From `apps/web/`: `npm test` (201 across 11 files), `npm run build`, `npm audit` (0), and
+From `apps/web/`: `npm test` (233 across 13 files), `npm run build`, `npm audit` (0), and
 `npm run security` (57, 0 failed, 0 deferred — the phase variable defaults to `2` now).
 
 **Check for human activity before running anything that writes**, because the app is in daily use
@@ -231,10 +244,18 @@ NON-NULL __e2eHeld a run was killed mid-spec — do not clear it by hand, run th
 beforeAll give the value back. Afterwards run `rm -rf apps/web/test-results`: traces hold
 E2E_PASSWORD and live refresh tokens in plaintext.
 
-CONTINUE THE REVIEW LOOP. Round 40 was dispatched against round 39's fixes and ITS RESULT IS NOT IN
-THE HANDOFF — find out whether it finished before assuming anything. Round 39's fixes are in commit
-6a098ef: amountOf refuses input it cannot read instead of mangling it, and rewind-plan flattens every
-value it interpolates into a comment line. ROUNDS 1-39 ALL FOUND SOMETHING.
+CONTINUE THE REVIEW LOOP. Round 45 was dispatched against the two targets rounds 41, 42 and 44 each
+named and each left untouched — apps/web/src/pending.js and src/queries.js concurrency, and
+src/store.jsx's LOAD path — and ITS RESULT IS NOT IN THIS HANDOFF. Find out whether it finished
+before assuming anything. ROUNDS 1-44 ALL FOUND SOMETHING.
+
+SET A SCOPE RULE ON EVERY ROUND, and make it explicit. Six classes are mined out and should be
+CLOSED in the next brief: obj[key] vs Object.prototype (32-38), amountOf parsing (39-40), the
+scheduler timezone (41-42), security/probe.mjs (43), the backup/restore procedure (44). Rounds 32-38
+were seven consecutive findings in ONE class because each round looked where the last had just been;
+round 39 was forbidden that class and immediately found a money-parsing defect instead. And when a
+round defers a target, NAME IT AS MANDATORY in the next brief — rounds 41, 42 and 44 each deferred
+the same two targets, which is how round 45 came to exist.
 
 SET A SCOPE RULE ON EACH ROUND. Rounds 32 to 38 — SEVEN in a row — all found instances of one class,
 `obj[key]` meeting Object.prototype. The loop was over-fitting: each round looked where the last one
