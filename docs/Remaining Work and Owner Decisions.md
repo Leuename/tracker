@@ -435,9 +435,16 @@ same shape on attempt 2. This is not a passing incident.
   Running it manually now would fetch *today's* rate and put the ledger **ahead** of the documented
   behaviour, so it was left alone. It becomes a real problem only if Actions stays down for several
   days, at which point the rate drifts genuinely stale rather than deliberately so.
-- **Nothing is waiting to deploy.** Everything committed since the last successful CI run touches
-  `security/probe.mjs`, documentation, a rule file and `backups/`. No application code is stranded,
-  and production is healthy on the bundle from `c7daee1`.
+- **Application code IS now waiting to deploy, as of `6bb176c`** — this was not true earlier and the
+  line here said so. Round 44's fixes touch `src/logic.js`, `src/actions.js` and
+  `src/screens/Masterlist.jsx`. **None of them fixes a live breakage**, verified against production:
+  zero duplicate categories, zero duplicate companies, zero null `due_date` rows. They prevent
+  states that do not currently exist, so waiting for CI costs nothing today.
+
+  They are deliberately **not** deployed by hand. `git.deploymentEnabled` is off and the CI gate is
+  the only deploy path by decision ([D27](Decisions.md)); pushing a bundle around it to work past a
+  billing problem would remove the gate exactly when nothing else is checking. Production is healthy
+  on `c7daee1`'s bundle.
 
 **What I would do.** Check Settings → Billing for the Actions minute balance. If that is the cause,
 either top it up or accept that the scheduled jobs pause until the monthly reset — and if they are
