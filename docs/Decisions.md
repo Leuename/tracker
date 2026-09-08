@@ -3494,9 +3494,15 @@ D99's own thesis was that a wrong write which announces itself is recoverable. T
 true here: a write that never happened announced itself as having happened, and the announcement
 outranked the error.
 
-Now the caller reports it — after the write returns, and only when `written.length > 0`. And `cancel`
-clears the record, because leaving it set re-warned on every later keystroke, long after the person
-had dealt with it.
+Now the caller reports it — after the write returns, and only when `written.length > 0`.
+
+> **Corrected 2026-09-09 by round 47 ([D101](#d101--one-more-keystroke-turned-the-warning-off)).**
+> The sentence that stood here credited the clearing to `cancel`. **`cancel` never touches the
+> record.** It clears the timer and nothing else, and adding the clear to it is a provable no-op,
+> because `applyMasterlistEdit` reads `pushWrote` *before* it calls `cancelPush`. The re-warn
+> suppression belongs to `forgetPushWrote`, inside `warnLateRetract`. The real clear was in `arm` —
+> which this record never mentioned, and which round 47 found was wrong to be there at all.
+> Eleventh record in this loop to state more than its check established.
 
 ### The mutations that run now
 
@@ -3506,6 +3512,61 @@ one. The rewritten test drives the real `recEffects` with the real `createPendin
 and lets the write settle before the retract — which is what happens in life.
 
 237 assertions across 13 files.
+
+## D101 — One More Keystroke Turned The Warning Off
+
+**Decision and record, 2026-09-09. Round 47**, which attacked round 46's own machinery.
+
+### The defect
+
+`arm` began with `wrote.delete(key)`. The intent was housekeeping: a new push is being armed, so
+forget the old one. But **arming the next push does not un-write the rows the last one already
+wrote.** What the linked Tracker rows hold is a fact about the database; the timer knows nothing
+about it.
+
+One ordinary sequence turned the whole D99/D100 warning off:
+
+```
+type 1250, pause past the window   → the push fires and really writes rows 101 and 102
+correct it to 1300                 → arm() → wrote.delete(...)  ← the record is gone
+clear the field                    → nothing to warn about, so nothing is said
+```
+
+The masterlist row now says the amount is not decided. The ledger says 1250. The last thing the
+person was told is *"2 open Tracker rows updated to match"*. That is precisely the divergence the
+warning exists to surface, and a single correcting keystroke — the most ordinary thing anyone does
+while typing a number — suppressed it.
+
+**Deleting the line left all 237 tests green.** Every other guard in the two files is pinned, and
+round 47 checked each one: dropping `}, PUSH_DELAY)` turns two red, `if (!written.length) return`
+one, hoisting `notePushWrote` above the write one, `forgetPushWrote` one, stubbing `warnLateRetract`
+one, a no-op `notePushWrote` one, `pushKey` dropping the field one, `pushWrote` always true three,
+`PUSH_DELAY = 500` two. The existing test never typed a second pushable value between the write and
+the clear, so it could not see this one.
+
+### The fix, and where the clear actually lives
+
+`arm` no longer touches the record. **Only `forget` clears it, and only once the warning has been
+delivered** — which is what `warnLateRetract` has always called. Neither `arm` nor `cancel` may touch
+it.
+
+The new test drives the real `recEffects` and the real `createPending` through the exact sequence
+above; putting the clear back into `arm` turns it red.
+
+### What round 47 confirmed, which matters as much as what it found
+
+Round 46's central claim held up under attack. `src/actions.js:670-671` really does call
+`applyMasterlistEdit` with `recEffects` over the same `createPending` singleton, and no production
+line in either file survives mutation except the one above — so **trap 98 is genuinely closed here**,
+unlike in D99. A non-array from `patchTxns` cannot occur, because `src/db.js:294-296` normalises with
+`(rows || []).map(Number)`. Two fields on one row do not collide, and the record does not leak across
+rows: `pushKey` includes both. The zero-row and refused-write suppressions are both pinned.
+
+One limit worth stating rather than discovering later: `flash` remains a single slot, so a warning
+can still overwrite an *older* async error from a different edit. That is inherent to the slot, was
+not introduced by rounds 45-47, and is not fixed here.
+
+238 assertions across 13 files.
 
 ## Guideline Basis
 

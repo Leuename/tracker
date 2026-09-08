@@ -152,7 +152,7 @@ test('the real recEffects factory wires draft, paint, save, push and cancellatio
 //
 // This drives the real `recEffects` and the real `createPending`, so the delay
 // the app actually arms a push-down with is what is under test.
-const drive = ({ pauseMs, written = [1, 2], patchFails = false }) => {
+const drive = ({ pauseMs, written = [1, 2], patchFails = false, correctionTo = null }) => {
   let now = 0, seq = 0
   const q = []
   const p = createPending(
@@ -184,6 +184,10 @@ const drive = ({ pauseMs, written = [1, 2], patchFails = false }) => {
       edit('1250')
       tick(pauseMs)
       await settle()
+      // One more pushable keystroke before the field is cleared — a correction,
+      // which is ordinary. Round 47: this used to erase the record of the write
+      // that had already landed.
+      if (correctionTo !== null) edit(correctionTo)
       const r = edit('')
       tick(9000)
       await settle()
@@ -225,6 +229,23 @@ test('the warning is delivered once, not on every later keystroke', async () => 
   const r = await drive({ pauseMs: 3000 }).run()
   assert.equal(r.lateRetract, true, 'the first retract after a real write warns')
   assert.equal(r.again(), false, 'and a later keystroke does not warn again')
+})
+
+// ROUND 47. `arm` cleared the record of a completed write, so arming the NEXT
+// push pretended the last one had never landed. Deleting that line left all 237
+// tests green: nothing typed a second value between the write and the clear.
+//
+// What it cost on the money screen: type 1250, pause, correct it to 1300, then
+// empty the field because the payable has no amount yet. The linked Tracker rows
+// silently keep 1250, the masterlist says nothing is decided, and the last thing
+// the person was told is "2 open Tracker rows updated to match".
+test('a correction between the write and the retract does not silence the warning', async () => {
+  const r = await drive({ pauseMs: 3000, correctionTo: '1300' }).run()
+  assert.deepEqual(r.patches, [{ amount: 1250 }], 'the first push landed')
+  assert.equal(r.lateRetract, true,
+    'arming a second push does not un-write the rows the first one already wrote')
+  assert.equal(r.flashes.filter((f) => /already updated/.test(f)).length, 1,
+    'and the person is told exactly once')
 })
 
 test('a push-down waits materially longer than a row save', () => {

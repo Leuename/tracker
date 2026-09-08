@@ -52,14 +52,20 @@ export function createPending(setTimeoutFn = setTimeout, clearTimeoutFn = clearT
   // money write.
   //
   // So the caller reports it, after the write comes back and only when it
-  // changed something. Cleared by `arm` and by `cancel` alike — leaving it set
-  // made the warning repeat on every later keystroke, long after the person had
-  // already dealt with it.
+  // changed something.
+  //
+  // **Only `forget` clears it, and only once the warning has been delivered.**
+  // Round 46 wrote that `arm` cleared it too, and round 47 showed what that
+  // cost: arming the NEXT push does not un-write the rows the last one already
+  // wrote. One more keystroke between the write and the clear — type 1250,
+  // pause, correct it to 1300, then empty the field — and the warning that the
+  // ledger holds 1250 was silently dropped. Neither `arm` nor `cancel` may
+  // touch this: what the rows hold is a fact about the database, not about the
+  // timer.
   const wrote = new Set()
 
   const arm = (key, run, delay = DELAY) => {
     clearTimeoutFn(timers.get(key))
-    wrote.delete(key)
     timers.set(key, setTimeoutFn(() => {
       timers.delete(key)
       run()
