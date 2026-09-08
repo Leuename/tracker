@@ -3,7 +3,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { bare, CSYM, initialState, MAX_OCC, TAG, TODAY } from './data.js'
 import {
-  addDays, alphabetical, alreadyOnSheet, amountOf, buildGeneratedRows, curFmt, dstr, eff, forecast, inPesos, monthKeys, monthKeyOf, monthLabel, occurrences, openingView, parsePeriod, periodLabel, positiveAmountOf, unpricedFor, unresolvedFor, unaccountedRows, optionsWith, own, symbolOf, TILE_KEYS, rateFor, ruleLabel, statusOptions, tagOf, SORTS, sortRows, summaryHTML, transferTotals, visibleRows, windowDays, viewerActions, VIEWER_MAY, pushable, pushPlan, groupKey, editRecurring, recValue, draftText, coverageFor } from './logic.js'
+  addDays, addToList, alphabetical, alreadyOnSheet, amountOf, buildGeneratedRows, curFmt, dstr, eff, forecast, inPesos, monthKeys, monthKeyOf, monthLabel, occurrences, openingView, parsePeriod, periodLabel, positiveAmountOf, unpricedFor, unresolvedFor, unaccountedRows, optionsWith, own, symbolOf, TILE_KEYS, rateFor, ruleLabel, statusOptions, tagOf, SORTS, sortRows, summaryHTML, transferTotals, visibleRows, windowDays, viewerActions, VIEWER_MAY, pushable, pushPlan, groupKey, editRecurring, recValue, draftText, coverageFor } from './logic.js'
 
 const rent = { co: 'GTOI', cat: 'Rental Expense', freq: 'Monthly', desc: 'Warehouse B monthly rent', dueDate: '2026-08-24', amount: 45000 }
 
@@ -840,6 +840,39 @@ test('amountOf still reads every shape a person or this app produces', () => {
   assert.equal(amountOf('1.'), 1)
   assert.equal(amountOf('.5'), 0.5)
   assert.equal(amountOf('12.'), 12)
+})
+
+// ROUND 44. Neither add path checked for a duplicate, and only companies were
+// upper-cased — so `rent` alongside `Rent` gave two entries in the ONE config
+// row four people share. `visibleRows` filters with `t.cat !== st.catFilter` and
+// `groupKey` groups on the raw string, so a transaction filed under `rent` is
+// invisible when the filter says `Rent`, and the Tracker shows two groups with
+// two subtotals for what the owner believes is one category.
+test('a list refuses a name it already holds, whatever the case', () => {
+  const cats = ['Other', 'Rental Expense']
+  assert.deepEqual(addToList(cats, 'Rent').list, ['Other', 'Rent', 'Rental Expense'])
+
+  for (const dup of ['Other', 'other', 'OTHER', '  Other  ', 'oThEr']) {
+    const r = addToList(cats, dup)
+    assert.equal(r.added, null, JSON.stringify(dup) + ' must be refused')
+    assert.equal(r.reason, 'duplicate')
+    assert.equal(r.clash, 'Other', 'and must name the entry rows already reference')
+    assert.equal(r.list, cats, 'the list is returned untouched')
+  }
+
+  // Companies are codes, so they upper-case; categories are Title Case and must
+  // not be mangled.
+  assert.deepEqual(addToList(['ANG'], 'zon', { upper: true }).list, ['ANG', 'ZON'])
+  assert.equal(addToList(['ANG'], 'ang', { upper: true }).added, null, 'and still collides')
+  assert.equal(addToList(['Other'], 'Rental Expense').added, 'Rental Expense', 'case preserved')
+
+  // Empty and whitespace-only are refused without a complaint, as before.
+  for (const blank of ['', '   ', null, undefined]) {
+    const r = addToList(cats, blank)
+    assert.equal(r.added, null)
+    assert.equal(r.reason, 'empty')
+  }
+  assert.deepEqual(cats, ['Other', 'Rental Expense'], 'the caller\'s array is never mutated')
 })
 
 test('own never returns something the object merely inherited', () => {

@@ -3,7 +3,7 @@ import { createPending } from './pending.js'
 import { CUR, TODAY, blankForm, bare } from './data.js'
 import { db } from './db.js'
 import { applyMasterlistEdit, recEffects } from './masterlist.js'
-import { alphabetical, amountOf, buildGeneratedRows, fmt, isMonthKey, longDate, monthLabel, parsePeriod, periodLabel, positiveAmountOf, summaryHTML, unpricedFor, viewerActions, own } from './logic.js'
+import { addToList, alphabetical, amountOf, buildGeneratedRows, fmt, isMonthKey, longDate, monthLabel, parsePeriod, periodLabel, positiveAmountOf, summaryHTML, unpricedFor, viewerActions, own } from './logic.js'
 
 // The masterlist and the transfer sheet both edit in place, so their text
 // fields fire on every keystroke. One pending write per row, coalesced,
@@ -947,14 +947,18 @@ export function useActions() {
 
   // ---- masterlist settings lists --------------------------------------
   const addCompany = () => {
-    const v = state.coDraft.trim()
-    if (!v) return
-    set((s) => ({ companies: alphabetical([...s.companies, v.toUpperCase()]), coDraft: '' }))
+    const r = addToList(state.companies, state.coDraft, { upper: true })
+    if (r.reason === 'empty') return
+    if (r.reason === 'duplicate') { flash(r.clash + ' is already in the list'); return }
+    set({ companies: r.list, coDraft: '' })
   }
   const addCategory = () => {
-    const v = state.catDraft.trim()
-    if (!v) return
-    set((s) => ({ categories: alphabetical([...s.categories, v]), catDraft: '' }))
+    const r = addToList(state.categories, state.catDraft)
+    if (r.reason === 'empty') return
+    // Named rather than silent: the duplicate that matters is a case variant,
+    // which is exactly the one the person typing it cannot see.
+    if (r.reason === 'duplicate') { flash(r.clash + ' is already in the list'); return }
+    set({ categories: r.list, catDraft: '' })
   }
   const removeCompany = (c) => () => set((s) => ({ companies: s.companies.filter((x) => x !== c) }))
   const removeCategory = (c) => () => set((s) => ({ categories: s.categories.filter((x) => x !== c) }))

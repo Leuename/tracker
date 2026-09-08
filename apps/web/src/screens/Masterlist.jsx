@@ -82,9 +82,9 @@ export default function Masterlist() {
               <select className="inline-field" value={p.freq ?? ''} onChange={(e) => updRec(p.id, 'freq', e.target.value)} aria-label="How often">
                 {optionsWith(p.freq, FREQ).map((f) => <option key={f} value={f}>{f}</option>)}
               </select>
-              <input className="inline-field" value={p.desc} onChange={(e) => updRec(p.id, 'desc', e.target.value)} aria-label="Description" />
+              <input className="inline-field" value={p.desc ?? ''} onChange={(e) => updRec(p.id, 'desc', e.target.value)} aria-label="Description" />
               <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                <input type="date" className="inline-field" value={p.dueDate}
+                <input type="date" className="inline-field" value={p.dueDate ?? ''}
                        onChange={(e) => updRec(p.id, 'dueDate', e.target.value)} aria-label="Due date" />
                 <span className="rule">{ruleLabel(p.freq, p.dueDate)}</span>
               </div>

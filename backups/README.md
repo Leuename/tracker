@@ -20,7 +20,7 @@ folder is the restore path.
 
 | Path | Holds |
 |---|---|
-| `txns.json`, `receipts.json`, `recurring.json`, `transfers.json`, `app_config.json`, `audit_log.json`, `profiles.json` | Every row, in database column shape |
+| `txns.json`, `receipts.json`, `recurring.json`, `transfers.json`, `app_config.json`, `audit_log.json`, `profiles.json`, `fx_rates.json` | Every row, in database column shape |
 | `accounts.json` | The roster as `user_id`, `role`, `email` — what a restore needs to recreate the accounts themselves |
 | `files/` | Every liquidation document, one file per stored object |
 | `MANIFEST.md` | Row counts, totals and the time the snapshot was taken |
@@ -145,11 +145,12 @@ holding a copy: it succeeded. Close the door first.
    alter table public.transfers  disable trigger transfers_audit;
    alter table public.app_config disable trigger app_config_audit;
    alter table public.profiles   disable trigger profiles_audit;
+   alter table public.fx_rates   disable trigger fx_rates_audit;
    alter table public.app_config disable trigger app_config_touch;  -- else updated_at becomes now()
    ```
 
-4. Load each file, `profiles.json` included. `json_populate_recordset` maps the saved column shape
-   straight onto the table:
+4. Load each file — `profiles.json` **and `fx_rates.json`** included. `json_populate_recordset` maps
+   the saved column shape straight onto the table:
 
    ```sql
    insert into public.txns select * from json_populate_recordset(null::public.txns, '<txns.json>'::json);
@@ -316,6 +317,35 @@ by definition not its occurrence — that is the whole reason the column exists 
 re-creates the duplicate-liability defect the rollout closed, silently, in restored data.
 
 `npm run rewind` already refuses this shape rather than emitting SQL that would produce it.
+
+## A table added after the last rehearsal is invisible to this procedure
+
+`fx_rates` was snapshotted by `backup.mjs` from the day it existed, carried an audit trigger from
+the day it existed, and appeared in **neither this file nor `verify-restore.sql`** until round 44
+found it on 2026-09-08. The restore would have failed, and failed destructively:
+
+1. Step 3 disabled the six audit triggers it names. `fx_rates_audit` was not among them.
+2. Step 4 loaded `fx_rates.json` — twelve rows — and the live trigger wrote twelve `audit_log` rows,
+   taking ids **1 to 12** on a fresh sequence.
+3. `audit_log.json` then loaded with explicit ids `1…13746` and hit
+   `23505 duplicate key value violates unique constraint "audit_log_pkey"`.
+4. That insert is one statement, so **the entire audit history aborts** — the per-row undo this file
+   documents, the only source of `actor_email` for step 2, and everything `npm run rewind` reads.
+
+Loading in the other order fails too: the trigger's first write then claims id 1, which the restored
+block already holds.
+
+And the verifier agreed with the broken restore. It counted seven tables, so a missing `fx_rates`
+passed; it asserted seven triggers were back on, so a permanently disabled fx audit trail passed.
+
+**Why it was invisible.** The only restore rehearsal was 2026-09-02, against twelve migrations.
+`fx_rates` is migration thirteen, `20260903144056` — added the next day. The table has never been
+inside a rehearsal, and a procedure is only ever as current as its last one.
+
+**So the rule, which matters more than the fix:** when a migration adds a table, this file and
+`verify-restore.sql` are part of that change, not follow-up work. Both are updated now, and the check
+that would have caught it is mechanical — every table in `backup.mjs`'s `TABLES` must appear in the
+inventory above, in the trigger list if it has an audit trigger, and in the verifier's counts.
 
 ## The trap
 

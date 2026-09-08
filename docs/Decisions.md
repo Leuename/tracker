@@ -3307,6 +3307,72 @@ with nothing held is idempotent, and the restore and the marker-clear happen in 
 cannot name a row Generate did not write — the client-side filter is not the guard; the server-side
 `deleteGeneratedTxns` is.
 
+## D98 — The Restore Left Out A Table, And The Verifier Agreed With It
+
+**Decision and record, 2026-09-08. Round 44**, dispatched specifically because rounds 39, 40 and 42
+had each deferred the same areas back untouched. It reached them and found a data-loss defect in the
+one path that exists to prevent data loss.
+
+### `fx_rates` was backed up, audited, and invisible to the restore
+
+`backup.mjs` has snapshotted `fx_rates` since the table existed. It carries an audit trigger. And it
+appeared in **neither `backups/README.md` nor `verify-restore.sql`** — zero mentions of `fx` in
+either file.
+
+A restore that followed the README would have failed **destructively**:
+
+1. Step 3 disables six audit triggers. `fx_rates_audit` is not among them, so it stays live.
+2. Step 4 loads `fx_rates.json` — twelve rows — and the live trigger writes twelve `audit_log` rows,
+   taking ids **1 to 12** on a fresh `bigserial`.
+3. `audit_log.json` then loads with explicit ids `1…13746` and hits
+   `23505 duplicate key value violates unique constraint "audit_log_pkey"`.
+4. That is one statement, so **the entire 13,746-row audit history aborts** — taking the per-row undo
+   the README documents, the only source of `actor_email` for recreating accounts, and everything
+   `npm run rewind` reads.
+
+Loading in the other order fails too: the trigger's first write claims id 1, which the restored block
+already holds.
+
+**And the verifier agreed with the broken restore.** It counted seven tables, so a missing `fx_rates`
+passed; it asserted seven triggers were back on, so an fx audit trail left permanently disabled
+passed. The check written to catch a bad restore was blind to the same table.
+
+### Why it was invisible, which is the transferable part
+
+The only restore rehearsal was 2026-09-02, against twelve migrations. `fx_rates` is migration
+**thirteen**, added the next day. **A procedure is only ever as current as its last rehearsal**, and
+this one has been describing a twelve-table database for six days while the backup wrote eight files.
+
+Fixed in the inventory, the trigger list, the load step and the verifier's counts and trigger
+assertion — and the rule recorded in `backups/README.md`: when a migration adds a table, that file
+and `verify-restore.sql` are **part of that change**, not follow-up work. The check is mechanical and
+now runs: every table in `backup.mjs`'s `TABLES` must appear in the inventory, in the trigger list if
+it is audited, and in the verifier. All eight do.
+
+### Two smaller findings
+
+- **A category could be added twice in different cases.** Companies are upper-cased on entry;
+  categories are not; and **neither path checked for a duplicate at all**. So `rent` and `Rent` could
+  both live in the one `app_config` row four people share — and that is not cosmetic, because
+  `visibleRows` filters on `t.cat !== st.catFilter` and `groupKey` groups on the raw string. A
+  transaction filed under `rent` is **invisible** when the filter says `Rent`, and the Tracker shows
+  two groups with two subtotals for one category. `addToList` now refuses a case-insensitive
+  collision and names the existing entry, because the duplicate that matters is the one the person
+  typing it cannot see.
+- Two Masterlist inputs lacked the `?? ''` guard their five siblings have; `recurring.due_date` is
+  nullable, so a row written by anything other than the app's own modal would render an uncontrolled
+  input. Guarded.
+
+### What round 44 cleared
+
+Every one of the ten Settings keys traced end to end: **no key is written under a name it is not read
+by**. `removeCompany` not checking for referencing rows is safe *because* `optionsWith` and the
+shared `Select` display the row's own value rather than falling to index 0 — the round-33 fix holding
+up under a different attack. `applyMasterlistEdit`, `draftText`, `generate`, `undoGenerate` and
+`monthKeys` all correct. `store.jsx`'s load path guards both branches with `cancelled`.
+
+233 assertions across 13 files.
+
 ## Guideline Basis
 
 - **AGENT-03** ensures adapter workflows stop rather than invent authorization.

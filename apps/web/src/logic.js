@@ -649,6 +649,30 @@ export const longDate = (d) => {
 }
 
 /**
+ * Add a name to a shared list, or say why it was not added.
+ *
+ * `companies` and `categories` live in the one `app_config` row that four people
+ * share, and neither add path checked for a duplicate. `GTOI` twice gave
+ * `['GTOI','GTOI']`, and — because companies are upper-cased on entry and
+ * categories are not — `rent` alongside `Rent` gave two entries that look like
+ * one. That is not cosmetic: `visibleRows` filters with `t.cat !== st.catFilter`
+ * and `groupKey` groups on the raw string, so a transaction filed under `rent`
+ * is INVISIBLE when the filter says `Rent`, and the Tracker shows two groups
+ * with two subtotals for what the owner believes is one category. Round 44.
+ *
+ * Case-insensitive, because the collision that matters is the one the eye cannot
+ * see. The existing value is kept: it is the one rows already reference.
+ */
+export const addToList = (list, value, { upper = false } = {}) => {
+  const v = String(value ?? '').trim()
+  if (!v) return { list, added: null, reason: 'empty' }
+  const wanted = upper ? v.toUpperCase() : v
+  const clash = (list || []).find((x) => String(x).toLowerCase() === wanted.toLowerCase())
+  if (clash) return { list, added: null, reason: 'duplicate', clash }
+  return { list: alphabetical([...(list || []), wanted]), added: wanted, reason: null }
+}
+
+/**
  * Companies and categories are shown a–z, so sort them at the two points they
  * enter state: the config row on load, and the Masterlist's add buttons.
  *

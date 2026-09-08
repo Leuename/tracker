@@ -35,6 +35,9 @@
 \if :{?expect_app_config}  \else \set expect_app_config  1           \endif
 \if :{?expect_profiles}    \else \set expect_profiles    4           \endif
 \if :{?expect_audit_log}   \else \set expect_audit_log   1129        \endif
+-- `fx_rates` was added by migration 13, the day after the only restore rehearsal,
+-- and was absent from this file and from the README until round 44. See D98.
+\if :{?expect_fx_rates}    \else \set expect_fx_rates    0           \endif
 \if :{?expect_txns_total}  \else \set expect_txns_total  226000.00   \endif
 \if :{?expect_fingerprint} \else \set expect_fingerprint '05a080127ca18b46dc693edbd22b5168' \endif
 
@@ -44,7 +47,8 @@ declare
   expected constant jsonb := jsonb_build_object(
     'txns', :expect_txns, 'transfers', :expect_transfers, 'receipts', :expect_receipts,
     'recurring', :expect_recurring, 'app_config', :expect_app_config,
-    'profiles', :expect_profiles, 'audit_log', :expect_audit_log);
+    'profiles', :expect_profiles, 'audit_log', :expect_audit_log,
+    'fx_rates', :expect_fx_rates);
   t text; want bigint; got bigint;
 begin
   for t, want in select key, value::bigint from jsonb_each_text(expected) loop
@@ -108,13 +112,13 @@ declare missing text;
 begin
   select string_agg(want.name, ', ') into missing
   from (values ('txns_audit'), ('receipts_audit'), ('recurring_audit'), ('transfers_audit'),
-               ('app_config_audit'), ('profiles_audit'), ('app_config_touch')) as want(name)
+               ('app_config_audit'), ('profiles_audit'), ('fx_rates_audit'), ('app_config_touch')) as want(name)
   left join pg_trigger t on t.tgname = want.name and t.tgenabled <> 'D'
   where t.tgname is null;
   if missing is not null then
     raise exception 'these triggers are missing or still disabled: %. The restore disables them on purpose; leaving them off means the next change is never recorded.', missing;
   end if;
-  raise notice '  all seven enabled';
+  raise notice '  all eight enabled';
 end $$;
 
 \echo '== 6. an audited write actually works, and is recorded (rolled back)'
