@@ -2712,6 +2712,53 @@ the database row for row, with `audit_log` at 11,164 exercising the keyset pager
 
 `schedule.yml`, `fx.yml` and `ci.yml` were confirmed to have run on the current code already.
 
+## D88 — One Guard For The Class, Because The Sites Keep Moving
+
+**Decision and record, 2026-09-08. Round 34**, which refuted round 33.
+
+[D86](#d86--the-tenth-site-and-a-decision-record-that-was-not-true) guarded `tagOf` against inherited
+keys: `obj[key]` finds `Object.prototype` members, which are **truthy**, so they defeat every
+`|| fallback` written after them. Round 33's fix for a different defect then wrote **three fresh
+unguarded `CSYM[c]` lookups**, and round 34 found them.
+
+It also found that `curFmt` had carried the same hole since it was written, unnoticed by
+thirty-three rounds:
+
+```js
+((symbols || {})[cur] || '') + Math.round(...)   // guarded against a missing MAP, not an inherited KEY
+```
+
+That is the figure printed on the transfer sheet. A wire whose currency is `constructor` rendered a
+function's source text in front of its amount, **beside the money**. `transfers.cur` is free text
+with no CHECK constraint, so it is reachable by any PATCH, a restore, or a client told otherwise.
+
+### The decision
+
+One `own(obj, key)` in `logic.js`, and everything routes through it — `tagOf`, the new
+`symbolOf(cur, syms)`, `curFmt`, `rateFor`'s `TRANSFER_RATES` lookup, and `App.jsx`'s
+`SCREENS[state.screen]` (where an inherited key would have handed React the `Object` constructor and
+defeated its `|| Dashboard` fallback). There is now **no raw bracket lookup on row-shaped data
+anywhere in `src/`**, verified by `grep -rn "CSYM\[" src/` returning only comments.
+
+**This is the third round in a row where the previous fix was correct and incomplete**, so the shape
+of the fix has changed: not a guard at each site, but a named helper the sites call. Round 33 learned
+to guard the shared *component* rather than its callers; round 34 extends it to the shared *lookup*.
+Sites move. A class ends when there is one place to change.
+
+### Coverage
+
+`own`, `symbolOf` and `curFmt` are pinned against all six `Object.prototype` keys plus unknown,
+empty, null and undefined. Three mutations — unguarding `own`, restoring the raw `symbolOf`,
+restoring the raw `curFmt` — turn 4, 2 and 1 assertions red respectively. 215 to 218 assertions.
+
+### What round 34 cleared
+
+`optionsWith` against non-string values, duplicate `<option>` keys, and the `value ?? ''` /
+`placeholder` interaction in `AddRecurring` (an empty value short-circuits before the append, so the
+placeholder still matches). All sixteen `<Select>` call sites read: none relied on the old index-0
+fallback, and `Filters`' `All companies` sentinel is a member of its own list, so the guard correctly
+extends to filters. `Masterlist` read in full.
+
 ## Guideline Basis
 
 - **AGENT-03** ensures adapter workflows stop rather than invent authorization.

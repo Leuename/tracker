@@ -20,6 +20,33 @@ export const dstr = (d) => {
 }
 
 /**
+ * A lookup on a plain object, keyed by data the database does not constrain.
+ *
+ * `obj[key]` finds inherited members: `CSYM['constructor']` is the `Object`
+ * constructor, not `undefined`, so it is truthy and defeats every `|| fallback`
+ * written after it. The result is a function's source text rendered where a
+ * currency symbol belongs.
+ *
+ * Round 32 fixed this in `tagOf`. Round 33's fix for a different defect then
+ * wrote three fresh unguarded `CSYM[c]` lookups, and round 34 found them — along
+ * with `curFmt`, which had carried the same hole since it was written and which
+ * formats the amount on the transfer sheet. Hence one named helper rather than a
+ * guard repeated at each site: the sites move, the class should not.
+ *
+ * `transfers.cur` is free text with no CHECK constraint, so a rogue value is
+ * reachable by any PATCH, a restore, or a client that has been told otherwise.
+ */
+export const own = (obj, key) =>
+  (obj != null && Object.prototype.hasOwnProperty.call(obj, key)) ? obj[key] : undefined
+
+/**
+ * The symbol for a currency, or nothing at all for one we do not know.
+ *
+ * Never the raw `CSYM[cur]`. See `own` above.
+ */
+export const symbolOf = (cur, syms) => own(syms, cur) ?? ''
+
+/**
  * The colours and label for a row's status, for any status at all.
  *
  * `TAG[status]` is a lookup on a plain object and every screen used to do it
@@ -47,7 +74,7 @@ export const tagOf = (status, tags = TAG) =>
   // fallback and yields an object with no `bg`, `fg` or `label` — an empty,
   // unstyled, unlabelled chip. "Cannot throw" was true; "always returns a
   // renderable chip" was not, until this guard. Round 32.
-  (Object.prototype.hasOwnProperty.call(tags, status) ? tags[status] : null)
+  own(tags, status)
   || { bg: '#EDEAEB', fg: '#9A8A90', label: String(status ?? 'Unknown') }
 
 /**
@@ -627,7 +654,7 @@ export const rateFor = (w, rates) => {
   if (w && w.rate != null && w.rate !== '') return { rate: Number(w.rate), src: 'wire', asOf: w.rate_as_of || null }
   const live = (rates || {})[w && w.cur]
   if (live && live.rate != null) return { rate: Number(live.rate), src: 'feed', asOf: live.as_of || null }
-  return { rate: TRANSFER_RATES[w && w.cur] || 1, src: 'constant', asOf: null }
+  return { rate: own(TRANSFER_RATES, w && w.cur) || 1, src: 'constant', asOf: null }
 }
 
 /**
@@ -641,7 +668,10 @@ export const inPesos = (w, rates) => Number(w.amount || 0) * rateFor(w, rates).r
 
 /** '$38,200' — a wire always prints in the currency it is actually sent in. */
 export const curFmt = (cur, n, symbols) =>
-  ((symbols || {})[cur] || '') + Math.round(Number(n) || 0).toLocaleString('en-US')
+  // `(symbols || {})[cur]` guarded only against a missing map, not against an
+  // inherited key — so a wire in currency `constructor` printed a function's
+  // source in front of its amount. This is the figure the transfer sheet shows.
+  symbolOf(cur, symbols) + Math.round(Number(n) || 0).toLocaleString('en-US')
 
 /**
  * The two figures above the transfer sheet.

@@ -3,7 +3,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { CSYM, initialState, MAX_OCC, TODAY } from './data.js'
 import {
-  addDays, alphabetical, alreadyOnSheet, amountOf, buildGeneratedRows, curFmt, dstr, eff, forecast, inPesos, monthKeys, monthKeyOf, monthLabel, occurrences, openingView, parsePeriod, periodLabel, positiveAmountOf, unpricedFor, unresolvedFor, unaccountedRows, optionsWith, TILE_KEYS, rateFor, ruleLabel, statusOptions, tagOf, SORTS, sortRows, summaryHTML, transferTotals, visibleRows, windowDays, viewerActions, VIEWER_MAY, pushable, pushPlan, groupKey, editRecurring, recValue, draftText, coverageFor } from './logic.js'
+  addDays, alphabetical, alreadyOnSheet, amountOf, buildGeneratedRows, curFmt, dstr, eff, forecast, inPesos, monthKeys, monthKeyOf, monthLabel, occurrences, openingView, parsePeriod, periodLabel, positiveAmountOf, unpricedFor, unresolvedFor, unaccountedRows, optionsWith, own, symbolOf, TILE_KEYS, rateFor, ruleLabel, statusOptions, tagOf, SORTS, sortRows, summaryHTML, transferTotals, visibleRows, windowDays, viewerActions, VIEWER_MAY, pushable, pushPlan, groupKey, editRecurring, recValue, draftText, coverageFor } from './logic.js'
 
 const rent = { co: 'GTOI', cat: 'Rental Expense', freq: 'Monthly', desc: 'Warehouse B monthly rent', dueDate: '2026-08-24', amount: 45000 }
 
@@ -642,6 +642,53 @@ test('unaccountedRows names every row the four tiles cannot hold', () => {
 // free text with no CHECK constraint, and `removeCompany`/`removeCategory` do
 // not check whether a row still uses the value — so deleting a company makes
 // every row that referenced it display the FIRST company instead.
+// ROUND 34. `tagOf` was guarded against inherited keys in round 32; round 33's
+// fix for a different defect then wrote three fresh unguarded `CSYM[c]` lookups,
+// and `curFmt` had carried the same hole since it was written. `obj[key]` finds
+// `Object.prototype` members, which are truthy and defeat every `|| fallback`
+// after them, so a wire in currency `constructor` printed a function's SOURCE
+// in front of its amount — on the transfer sheet, next to the money.
+const PROTO_KEYS = ['constructor', '__proto__', 'toString', 'valueOf', 'hasOwnProperty', 'isPrototypeOf']
+
+test('own never returns something the object merely inherited', () => {
+  const m = { USD: '$', PHP: '\u20B1' }
+  assert.equal(own(m, 'USD'), '$')
+  assert.equal(own(m, 'PHP'), '\u20B1')
+  for (const k of PROTO_KEYS) {
+    assert.equal(own(m, k), undefined, k + ' is inherited, not owned')
+  }
+  assert.equal(own(m, 'CHF'), undefined)
+  assert.equal(own(null, 'USD'), undefined, 'must not throw during render')
+  assert.equal(own(undefined, 'USD'), undefined)
+
+  // An own property whose value is falsy is still an own property.
+  assert.equal(own({ ZZZ: '' }, 'ZZZ'), '')
+})
+
+test('symbolOf yields a symbol or nothing, never a function body', () => {
+  const CSYM = { USD: '$', GBP: '\u00A3', PHP: '\u20B1', EUR: '\u20AC', AUD: 'A$' }
+  assert.equal(symbolOf('USD', CSYM), '$')
+  for (const k of [...PROTO_KEYS, 'CHF', '', null, undefined]) {
+    const sym = symbolOf(k, CSYM)
+    assert.equal(sym, '', JSON.stringify(k) + ' must yield an empty symbol')
+    assert.equal(typeof sym, 'string')
+  }
+  assert.equal(symbolOf('USD', undefined), '', 'a missing map must not throw')
+})
+
+test('curFmt prints the amount, never a function, whatever the currency says', () => {
+  const CSYM = { USD: '$', PHP: '\u20B1' }
+  assert.equal(curFmt('USD', 1234, CSYM), '$1,234')
+  assert.equal(curFmt('PHP', 1234.6, CSYM), '\u20B11,235')
+  for (const k of PROTO_KEYS) {
+    const out = curFmt(k, 1234, CSYM)
+    assert.equal(out, '1,234', k + ' must print the bare amount')
+    assert.ok(!/function|native code|\[object/.test(out), 'and never a function body')
+  }
+  assert.equal(curFmt('CHF', 50, CSYM), '50', 'an unknown currency still prints its amount')
+  assert.equal(curFmt('USD', null, CSYM), '$0')
+})
+
 test('optionsWith lets a select display the value it is actually given', () => {
   const cos = ['ANG', 'BAR', 'GTOI']
   assert.equal(optionsWith('BAR', cos), cos, 'a known value adds nothing')

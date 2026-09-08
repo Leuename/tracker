@@ -1,4 +1,5 @@
 import { CSYM } from '../data.js'
+import { symbolOf } from '../logic.js'
 import { Field } from '../ui.jsx'
 
 /**
@@ -26,7 +27,7 @@ export default function RateField({ w, cur, onChange, live }) {
       : 'entered by hand'
 
   return (
-    <Field label={'Rate — ₱ per ' + (CSYM[cur] || cur)} hint={hint}>
+    <Field label={'Rate — ₱ per ' + (symbolOf(cur, CSYM) || cur)} hint={hint}>
       <input
         className="field num"
         inputMode="decimal"

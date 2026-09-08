@@ -1,4 +1,5 @@
 import { useActions } from './actions.js'
+import { own } from './logic.js'
 import { SETTINGS_TABS } from './data.js'
 import { IconAck, IconDashboard, IconMaster, IconSettings, IconSignOut, IconTelegraphic, IconTracker } from './icons.jsx'
 import { supabase } from './supabase.js'
@@ -33,7 +34,10 @@ const SCREENS = { dashboard: Dashboard, tracker: Tracker, ackrec: AckRec, telegr
 
 export default function App() {
   const { state, set, go, goSettings } = useActions()
-  const Screen = SCREENS[state.screen] || Dashboard
+  // `own` rather than `SCREENS[...]`: a `screen` of `constructor` would find
+  // the Object constructor, defeat the `|| Dashboard` fallback, and hand React a
+  // value it cannot render. Same class as the currency symbols (D88).
+  const Screen = own(SCREENS, state.screen) || Dashboard
 
   return (
     <div className="app">

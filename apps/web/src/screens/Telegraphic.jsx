@@ -1,6 +1,6 @@
 import { useActions } from '../actions.js'
 import { CSYM, CUR } from '../data.js'
-import { curFmt, dstr, fmt, optionsWith, statusOptions, tagOf, transferTotals } from '../logic.js'
+import { curFmt, dstr, fmt, optionsWith, statusOptions, symbolOf, tagOf, transferTotals } from '../logic.js'
 import { stopRowClick, stopRowKeys } from '../ui.jsx'
 
 const COLS = '84px 172px 124px 92px 132px 124px minmax(190px,1fr) 92px'
@@ -106,7 +106,7 @@ export default function Telegraphic() {
                             padding: '6px 5px', fontSize: 12.5, fontWeight: 600, outline: 'none',
                             background: 'var(--sunken)', color: 'var(--ink)', cursor: 'pointer',
                           }}>
-                    {optionsWith(w.cur, CUR).map((c) => <option key={c} value={c}>{(CSYM[c] ? CSYM[c] + '  ' : '') + c}</option>)}
+                    {optionsWith(w.cur, CUR).map((c) => <option key={c} value={c}>{(symbolOf(c, CSYM) ? symbolOf(c, CSYM) + '  ' : '') + c}</option>)}
                   </select>
                 </div>
                 {/* The row's own figure is exact: it prints in the currency the

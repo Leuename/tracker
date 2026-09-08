@@ -1,5 +1,5 @@
 import { useActions } from '../actions.js'
-import { optionsWith, statusOptions } from '../logic.js'
+import { optionsWith, statusOptions, symbolOf } from '../logic.js'
 import { CSYM, CUR } from '../data.js'
 import { Field, Modal, Select } from '../ui.jsx'
 import RateField from './RateField.jsx'
@@ -46,10 +46,10 @@ export default function EditTransfer() {
       <div className="row-3">
         <Field label="Currency">
           <select className="field" value={e.cur ?? ''} onChange={setTelE('cur')}>
-            {optionsWith(e.cur, CUR).map((c) => <option key={c} value={c}>{(CSYM[c] ? CSYM[c] + '  ' : '') + c}</option>)}
+            {optionsWith(e.cur, CUR).map((c) => <option key={c} value={c}>{(symbolOf(c, CSYM) ? symbolOf(c, CSYM) + '  ' : '') + c}</option>)}
           </select>
         </Field>
-        <Field label="Amount" hint={CSYM[e.cur] || ''}>
+        <Field label="Amount" hint={symbolOf(e.cur, CSYM)}>
           <input className="field num" value={e.amount} onChange={setTelE('amount')} />
         </Field>
         <Field label="Status">
