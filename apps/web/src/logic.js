@@ -1,6 +1,6 @@
 // Pure helpers ported from the prototype's DCLogic class. No React, no state —
 // so `npm test` can exercise the recurrence and period rules directly.
-import { MON, MAX_OCC, TODAY } from './data.js'
+import { MON, MAX_OCC, TAG, TODAY } from './data.js'
 
 export const fmt = (n) => '₱' + Math.round(n).toLocaleString('en-US')
 
@@ -18,6 +18,30 @@ export const dstr = (d) => {
   const p = d.split('-')
   return cap(MON[+p[1] - 1]) + ' ' + p[2]
 }
+
+/**
+ * The colours and label for a row's status, for any status at all.
+ *
+ * `TAG[status]` is a lookup on a plain object and every screen used to do it
+ * raw. `Telegraphic.jsx` guarded it with `|| TAG.pending`; `AckRec.jsx` and the
+ * shared `Tag` in `ui.jsx` did not, so a receipt carrying any status the
+ * dropdown does not offer threw `Cannot read properties of undefined (reading
+ * 'bg')` out of render and **unmounted the whole application** — a blank page
+ * that a reload does not fix, because the same row loads again. Round 31.
+ *
+ * `public.receipts.status` is `text` with no CHECK constraint, so the four
+ * values are enforced by a `<select>` and nothing else: any PostgREST PATCH, a
+ * restore from `backups/receipts.json`, or a value added to the database before
+ * the UI knows it will do this. Defect family (d) — a guard on the client
+ * instead of in the write.
+ *
+ * It deliberately does NOT fall back to `pending`. This is a money screen, and
+ * labelling an unrecognised status as "Pending" states something false about a
+ * receipt. The raw value is shown in a neutral chip instead, so the row stays
+ * readable and the operator can see that something is wrong.
+ */
+export const tagOf = (status, tags = TAG) =>
+  tags[status] || { bg: '#EDEAEB', fg: '#9A8A90', label: String(status ?? 'Unknown') }
 
 /** Overdue is derived, never stored: a pending row past its due date. */
 export const eff = (t, today = TODAY) => (t.status === 'pending' && t.due < today ? 'overdue' : t.status)

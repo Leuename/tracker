@@ -1,6 +1,5 @@
 import { useActions } from '../actions.js'
-import { TAG } from '../data.js'
-import { dstr, fmt } from '../logic.js'
+import { dstr, fmt, tagOf } from '../logic.js'
 
 const COLS = '60px 128px minmax(160px,1fr) 104px 116px 104px 112px 104px 190px'
 
@@ -17,6 +16,22 @@ const STATUSES = [
  * clicks but not keys lets a space press reach the row and open the receipt.
  */
 const stop = (ev) => ev.stopPropagation()
+/**
+ * Keys only. The row opens on Enter or Space, so a control inside it must keep
+ * those two from reaching the row — and nothing else.
+ *
+ * This used to be `stop` for both `onClick` and `onKeyDown`, which stopped
+ * EVERY key. React listens at the root container, so stopping there also stops
+ * the native event before it reaches the `window` listener in
+ * `useEscapeToClose`. Focus stays on the control after it opens a dialog, so
+ * Escape was dead for that dialog's entire lifetime — ten presses left the
+ * Liquidate modal open — defeating the whole `openModals` stack that exists to
+ * guarantee Escape works. Round 31.
+ *
+ * `stop` itself stays for `onClick`, where there is no key to inspect.
+ */
+const stopRowKeys = (ev) => { if (ev.key === 'Enter' || ev.key === ' ') ev.stopPropagation() }
+
 
 export default function AckRec() {
   const { state, setReceiptStatus, openLiquidate, openReceipt, openReceiptFile, askRemoveReceipt, openReceiptRow } = useActions()
@@ -59,7 +74,7 @@ export default function AckRec() {
 
           {state.receipts.map((r) => {
             const diff = r.actual == null ? null : r.amount - r.actual
-            const tag = TAG[r.status]
+            const tag = tagOf(r.status)
             return (
               <div key={r.id} className="sheet-row clickable" role="button" tabIndex={0}
                    aria-label={'Open the receipt for ' + r.name}
@@ -72,7 +87,7 @@ export default function AckRec() {
                 <div className="right bold">{fmt(r.amount)}</div>
                 <div style={{ display: 'flex', justifyContent: 'center' }}>
                   <select value={r.status} onChange={setReceiptStatus(r)} aria-label={'Status for ' + r.name}
-                          onClick={stop} onKeyDown={stop}
+                          onClick={stop} onKeyDown={stopRowKeys}
                           style={{
                             width: 104, textAlign: 'center', textAlignLast: 'center',
                             border: '1px solid var(--border)', borderRadius: 'var(--radius-md)',
@@ -92,15 +107,15 @@ export default function AckRec() {
                 <div className="right" style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
                   {r.filePath ? (
                     <button type="button" className="link"
-                            onClick={(ev) => { ev.stopPropagation(); openReceiptFile(r)() }} onKeyDown={stop}
+                            onClick={(ev) => { ev.stopPropagation(); openReceiptFile(r)() }} onKeyDown={stopRowKeys}
                             title="Open the stored receipt">File</button>
                   ) : null}
                   {r.status !== 'liquidated' ? (
                     <button type="button" className="btn sm"
-                            onClick={(ev) => { ev.stopPropagation(); openLiquidate(r)() }} onKeyDown={stop}>Liquidate</button>
+                            onClick={(ev) => { ev.stopPropagation(); openLiquidate(r)() }} onKeyDown={stopRowKeys}>Liquidate</button>
                   ) : null}
                   <button type="button" className="remove"
-                          onClick={(ev) => { ev.stopPropagation(); askRemoveReceipt(r)() }} onKeyDown={stop}
+                          onClick={(ev) => { ev.stopPropagation(); askRemoveReceipt(r)() }} onKeyDown={stopRowKeys}
                           aria-label={'Delete the receipt for ' + r.name}>Remove</button>
                 </div>
               </div>

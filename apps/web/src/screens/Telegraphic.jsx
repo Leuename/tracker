@@ -1,6 +1,6 @@
 import { useActions } from '../actions.js'
-import { CSYM, CUR, TAG } from '../data.js'
-import { curFmt, dstr, fmt, transferTotals } from '../logic.js'
+import { CSYM, CUR } from '../data.js'
+import { curFmt, dstr, fmt, tagOf, transferTotals } from '../logic.js'
 
 const COLS = '84px 172px 124px 92px 132px 124px minmax(190px,1fr) 92px'
 
@@ -15,6 +15,22 @@ const COLS = '84px 172px 124px 92px 132px 124px minmax(190px,1fr) 92px'
  * mouse; the controls simply stop feeding it.
  */
 const stop = (ev) => ev.stopPropagation()
+/**
+ * Keys only. The row opens on Enter or Space, so a control inside it must keep
+ * those two from reaching the row — and nothing else.
+ *
+ * This used to be `stop` for both `onClick` and `onKeyDown`, which stopped
+ * EVERY key. React listens at the root container, so stopping there also stops
+ * the native event before it reaches the `window` listener in
+ * `useEscapeToClose`. Focus stays on the control after it opens a dialog, so
+ * Escape was dead for that dialog's entire lifetime — ten presses left the
+ * Liquidate modal open — defeating the whole `openModals` stack that exists to
+ * guarantee Escape works. Round 31.
+ *
+ * `stop` itself stays for `onClick`, where there is no key to inspect.
+ */
+const stopRowKeys = (ev) => { if (ev.key === 'Enter' || ev.key === ' ') ev.stopPropagation() }
+
 
 const STATUSES = [
   { v: 'pending', label: 'Pending' },
@@ -67,7 +83,7 @@ export default function Telegraphic() {
           </div>
 
           {state.transfers.map((w) => {
-            const tag = TAG[w.status] || TAG.pending
+            const tag = tagOf(w.status)
             return (
               <div key={w.id} className="sheet-row clickable" role="button" tabIndex={0}
                    aria-label={'Open the transfer to ' + w.name}
@@ -79,12 +95,12 @@ export default function Telegraphic() {
                 <div>
                   <input className="inline-field" value={w.inv} placeholder="Add inv no.…"
                          aria-label={'Invoice number for ' + w.name}
-                         onClick={stop} onKeyDown={stop}
+                         onClick={stop} onKeyDown={stopRowKeys}
                          onChange={(ev) => updTel(w.id, 'inv', ev.target.value)} />
                 </div>
                 <div>
                   <select value={w.cur} aria-label={'Currency for ' + w.name}
-                          onClick={stop} onKeyDown={stop}
+                          onClick={stop} onKeyDown={stopRowKeys}
                           onChange={(ev) => updTel(w.id, 'cur', ev.target.value)}
                           style={{
                             width: '100%', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)',
@@ -99,7 +115,7 @@ export default function Telegraphic() {
                 <div className="right bold">{curFmt(w.cur, w.amount, CSYM)}</div>
                 <div style={{ display: 'flex', justifyContent: 'center' }}>
                   <select value={w.status} aria-label={'Status for ' + w.name}
-                          onClick={stop} onKeyDown={stop}
+                          onClick={stop} onKeyDown={stopRowKeys}
                           onChange={(ev) => updTel(w.id, 'status', ev.target.value)}
                           style={{
                             width: 112, textAlign: 'center', textAlignLast: 'center',
@@ -113,13 +129,13 @@ export default function Telegraphic() {
                 <div>
                   <input className="inline-field" value={w.note} placeholder="Add a note…"
                          aria-label={'Note for ' + w.name}
-                         onClick={stop} onKeyDown={stop}
+                         onClick={stop} onKeyDown={stopRowKeys}
                          onChange={(ev) => updTel(w.id, 'note', ev.target.value)} />
                 </div>
                 <div className="right">
                   <button type="button" className="remove"
                           onClick={(ev) => { ev.stopPropagation(); askRemoveTransfer(w)() }}
-                          onKeyDown={stop}
+                          onKeyDown={stopRowKeys}
                           aria-label={'Delete the transfer to ' + w.name}>Remove</button>
                 </div>
               </div>

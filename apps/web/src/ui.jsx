@@ -1,5 +1,5 @@
 import { cloneElement, isValidElement, useEffect, useId, useRef } from 'react'
-import { periodLabel } from './logic.js'
+import { periodLabel, tagOf } from './logic.js'
 import { useActions } from './actions.js'
 
 /**
@@ -130,7 +130,11 @@ export function Select({ id, label, value, onChange, options, placeholder, inval
 }
 
 export function Tag({ status, tags }) {
-  const t = tags[status]
+  // `tags[status]` raw would throw out of render on an unrecognised status and
+  // take the whole tree down with it. Its one caller does not crash today only
+  // because `visibleRows` drops such a row before it gets here — which is its
+  // own problem, but it means this is one new caller away from a blank page.
+  const t = tagOf(status, tags)
   return <span className="tag" style={{ background: t.bg, color: t.fg }}>{t.label}</span>
 }
 

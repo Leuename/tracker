@@ -1450,6 +1450,61 @@ test('a negative e-cash charge is refused, not added as a reduction', async ({ p
  * The same class, on the receipts side: a liquidation records what was actually
  * spent, and a negative there corrupts the difference the sheet reports.
  */
+// ROUND 31, finding 2. Controls inside a sheet row carried `onKeyDown={stop}`,
+// which stopped EVERY key so a Space press could not reach the row and open it.
+// React listens at the root container, so that also stopped the native event
+// before `useEscapeToClose`'s window listener saw it — and focus stays on the
+// control after it opens a dialog. Escape was therefore dead for the whole
+// lifetime of any modal opened from a row button. Ten presses left the
+// Liquidate dialog open.
+//
+// The offline suite cannot see this: it is a real key event crossing a real
+// React root. Only the browser can.
+test('Escape closes a dialog opened from a row control, not just from the toolbar', async ({ page }) => {
+  await signIn(page)
+  await go(page, 'AckRec')
+
+  const who = D.MARK + ' escape from row'
+  await page.getByRole('button', { name: '+ Add receipt' }).click()
+  const add = page.locator('.modal')
+  await add.getByLabel('Company').selectOption('GTOI')
+  await add.getByLabel('Released to').fill(who)
+  await add.getByLabel('Amount released').fill('1200')
+  await add.getByRole('button', { name: 'Save', exact: true }).click()
+  await expect(add).toBeHidden()
+
+  const row = page.locator('.sheet-row', { hasText: who })
+  await expect(row).toHaveCount(1)
+
+  // The toolbar path always worked; assert it too so a regression tells us
+  // which of the two broke rather than just "Escape is broken".
+  await page.getByRole('button', { name: '+ Add receipt' }).click()
+  await expect(page.locator('.modal')).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(page.locator('.modal'), 'Escape must close a toolbar dialog').toBeHidden()
+
+  // The row path is the one that was dead.
+  await row.getByRole('button', { name: 'Liquidate' }).click()
+  await expect(page.locator('.modal')).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(page.locator('.modal'), 'and a dialog opened from a row control').toBeHidden()
+
+  // Remove asks first, and that confirmation is opened from a row control too.
+  // Its accessible name is the aria-label, not the word on the button.
+  await row.getByRole('button', { name: 'Delete the receipt for ' + who }).click()
+  await expect(page.locator('.modal')).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(page.locator('.modal'), 'including the delete confirmation').toBeHidden()
+
+  // Escape must not have removed it — a dialog that closes AND acts is worse
+  // than one that will not close.
+  const c = await D.db()
+  expect(((await c.from('receipts').select('id').eq('name', who)).data || []).length,
+    'Escape cancels, it does not confirm').toBe(1)
+
+  await D.cleanup()
+})
+
 test('a receipt will not liquidate to a negative actual amount', async ({ page }) => {
   await signIn(page)
   await go(page, 'AckRec')

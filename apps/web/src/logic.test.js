@@ -3,7 +3,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { CSYM, initialState, MAX_OCC, TODAY } from './data.js'
 import {
-  addDays, alphabetical, alreadyOnSheet, amountOf, buildGeneratedRows, curFmt, dstr, eff, forecast, inPesos, monthKeys, monthKeyOf, monthLabel, occurrences, openingView, parsePeriod, periodLabel, positiveAmountOf, unpricedFor, unresolvedFor, rateFor, ruleLabel, SORTS, sortRows, summaryHTML, transferTotals, visibleRows, windowDays, viewerActions, VIEWER_MAY, pushable, pushPlan, groupKey, editRecurring, recValue, draftText, coverageFor } from './logic.js'
+  addDays, alphabetical, alreadyOnSheet, amountOf, buildGeneratedRows, curFmt, dstr, eff, forecast, inPesos, monthKeys, monthKeyOf, monthLabel, occurrences, openingView, parsePeriod, periodLabel, positiveAmountOf, unpricedFor, unresolvedFor, rateFor, ruleLabel, tagOf, SORTS, sortRows, summaryHTML, transferTotals, visibleRows, windowDays, viewerActions, VIEWER_MAY, pushable, pushPlan, groupKey, editRecurring, recValue, draftText, coverageFor } from './logic.js'
 
 const rent = { co: 'GTOI', cat: 'Rental Expense', freq: 'Monthly', desc: 'Warehouse B monthly rent', dueDate: '2026-08-24', amount: 45000 }
 
@@ -556,6 +556,45 @@ test('a row with no parent still deduplicates on the original key', () => {
 // coverage assertion used a single month. These use two.
 // The pin that stops finding 1 coming back: `monthKeyOf` is the inverse of
 // `monthLabel`, and any drift between them silently unscopes coverage.
+// ROUND 31, finding 1. `TAG[r.status]` raw in AckRec.jsx threw
+// "Cannot read properties of undefined (reading 'bg')" out of render for any
+// status the dropdown does not offer, unmounting the whole application — a
+// blank page a reload does not fix, because the same row loads again.
+// Telegraphic.jsx had the guard; AckRec.jsx and ui.jsx's Tag did not. One
+// helper now, so the three cannot drift apart again.
+//
+// `public.receipts.status` is text with NO CHECK constraint, so a `<select>` is
+// the only thing keeping those four values in range.
+test('tagOf never throws, whatever the row carries', () => {
+  for (const known of ['completed', 'pending', 'overdue', 'hold', 'released', 'liquidated', 'onhold', 'cancelled']) {
+    const t = tagOf(known)
+    assert.ok(t.bg && t.fg && t.label, known + ' must keep its own colours')
+  }
+  for (const rogue of ['archived', 'ARCHIVED', '', null, undefined, 'Liquidated', 0]) {
+    const t = tagOf(rogue)
+    assert.ok(t && typeof t.bg === 'string' && typeof t.fg === 'string',
+      'a chip must always be renderable for ' + JSON.stringify(rogue))
+    assert.equal(typeof t.label, 'string')
+  }
+})
+
+test('tagOf shows the unknown status rather than calling it Pending', () => {
+  // Falling back to `pending` was the other option and it is worse: this is a
+  // money screen, and a receipt that is actually 'archived' must not be
+  // labelled "Pending". Show the raw value so the operator sees the problem.
+  assert.equal(tagOf('archived').label, 'archived')
+  assert.notEqual(tagOf('archived').label, tagOf('pending').label)
+  assert.notEqual(tagOf('archived').bg, tagOf('pending').bg)
+  assert.equal(tagOf(null).label, 'Unknown')
+  assert.equal(tagOf(undefined).label, 'Unknown')
+})
+
+test('tagOf takes any tag map, so the shared Tag component is safe too', () => {
+  const custom = { live: { bg: '#fff', fg: '#000', label: 'Live' } }
+  assert.deepEqual(tagOf('live', custom), custom.live)
+  assert.equal(tagOf('missing', custom).label, 'missing', 'and still cannot throw')
+})
+
 test('monthKeyOf round-trips every month label monthLabel can produce', () => {
   for (let m = 1; m <= 12; m++) {
     const key = '2026-' + String(m).padStart(2, '0')
