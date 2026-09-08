@@ -1,3 +1,34 @@
+/**
+ * The calendar date the owner is living in, not the one the server is.
+ *
+ * `new Date().toISOString().slice(0,10)` is the **UTC** date. `schedule.yml`
+ * fires at 22:00 UTC, which is 06:00 the NEXT day in Manila — so the job's idea
+ * of "today" was one Manila day behind on every single run, all year. Two
+ * consequences, both found by round 41:
+ *
+ *   - The overdue digest was chronically blind to anything due "yesterday" by
+ *     the owner's clock: the script called it pending while the owner's own
+ *     Dashboard already showed it overdue.
+ *   - Worse, at a month end the run that lands on Manila's 1st generated for the
+ *     PREVIOUS month. September's payables were not created until 06:00 Manila
+ *     on the 2nd — a full day late — and a payable due on the 1st was therefore
+ *     inserted already satisfying `due < TODAY`, i.e. **overdue at the instant it
+ *     was created**. Every month, including the year boundary.
+ *
+ * The zone is named rather than assumed, and overridable, because "where the
+ * owner is" is a fact about the business and not about the code. `en-CA` is the
+ * locale trick that yields `YYYY-MM-DD` directly.
+ */
+export const ZONE = process.env.SCHEDULE_TZ || 'Asia/Manila'
+
+export const todayIn = (zone = ZONE, now = new Date()) => {
+  const d = now.toLocaleDateString('en-CA', { timeZone: zone })
+  // `en-CA` gives YYYY-MM-DD, but an unknown zone throws rather than lying, and
+  // a silently wrong date here writes money rows into the wrong month.
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) throw new Error('todayIn: unusable date for zone ' + zone)
+  return d
+}
+
 export const classifySchedule = ({ recurring = [], rows = [], skipped = 0, dueCount = 0, unpriced = [], unresolved = [], error = null } = {}) => {
   if (error?.code === '23514') return [{ outcome: 'contract-23514', error }]
   if (error && error.code !== '23505') return [{ outcome: 'failed', error }]

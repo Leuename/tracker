@@ -31,7 +31,7 @@ import { appendFileSync } from 'node:fs'
 import { supabase } from '../src/supabase.js'
 import { db, load } from '../src/db.js'
 import { buildGeneratedRows, eff, monthLabel, occurrences, unpricedFor } from '../src/logic.js'
-import { classifySchedule, formatScheduleOutcome, formatScheduleReport } from './schedule-plan.js'
+import { classifySchedule, formatScheduleOutcome, formatScheduleReport, todayIn, ZONE } from './schedule-plan.js'
 
 const dryRun = process.argv.includes('--dry-run')
 const email = process.env.SCHEDULE_EMAIL
@@ -41,11 +41,17 @@ if (!email || !password) {
   process.exit(2)
 }
 
-const today = new Date().toISOString().slice(0, 10)
+// The owner's calendar date, not the server's. See `todayIn`.
+const today = todayIn()
 const monthKey = today.slice(0, 7)
 
 const lines = []
 const say = (s) => { console.log(s); lines.push(s) }
+
+// Printed because the whole point of `todayIn` is that this is NOT the server's
+// date, and a reader of the job summary should be able to see which one was used.
+say('- Run date ' + today + ' (' + ZONE + '); the runner clock is ' +
+  new Date().toISOString().slice(0, 10) + ' UTC.')
 
 const { error: authError } = await supabase.auth.signInWithPassword({ email, password })
 if (authError) {

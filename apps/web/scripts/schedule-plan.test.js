@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { classifySchedule, formatScheduleOutcome, formatScheduleReport } from './schedule-plan.js'
+import { classifySchedule, formatScheduleOutcome, formatScheduleReport, todayIn } from './schedule-plan.js'
 
 test('classifies the finite scheduler outcomes', () => {
   assert.equal(classifySchedule({}).at(0).outcome, 'not-due')
@@ -101,4 +101,35 @@ test('the rows hang off the generated line, not the last line of the report', ()
   assert.match(bothLines[0], /^- Added 1 payable\(s\)/)
   assert.match(bothLines[1], /^ {2}- GTOI/)
   assert.match(bothLines[2], /no occurrence identity/)
+})
+
+// ROUND 41. `schedule.mjs` used `new Date().toISOString().slice(0,10)` — the UTC
+// date — while `schedule.yml` fires at 22:00 UTC, which is 06:00 the NEXT day in
+// Manila. So the job's "today" was a full Manila day behind on every run, and at
+// a month end the run landing on Manila's 1st generated for the PREVIOUS month.
+test('the run date is the owner\'s calendar date, not the server\'s', () => {
+  // 22:00 UTC is the hour schedule.yml actually fires.
+  const at = (iso) => todayIn('Asia/Manila', new Date(iso))
+
+  assert.equal(at('2026-09-01T22:00:00Z'), '2026-09-02', 'already tomorrow in Manila')
+  assert.notEqual(at('2026-09-01T22:00:00Z'), '2026-09-01', 'the UTC date is the bug')
+
+  // Every month end, including the year boundary: these used to generate for the
+  // month that had just ended.
+  for (const [runAt, month] of [
+    ['2026-08-31T22:00:00Z', '2026-09'],
+    ['2026-01-31T22:00:00Z', '2026-02'],
+    ['2026-12-31T22:00:00Z', '2027-01'],
+    ['2028-02-28T22:00:00Z', '2028-02'],
+  ]) {
+    assert.equal(at(runAt).slice(0, 7), month,
+      runAt + ' must generate for ' + month + ', the month the owner is in')
+  }
+
+  // Midday UTC is the same day in both zones — the fix must not shift those.
+  assert.equal(at('2026-09-01T04:00:00Z'), '2026-09-01')
+
+  // A zone that does not exist must throw rather than quietly yield a date from
+  // somewhere else: a wrong date here writes money rows into the wrong month.
+  assert.throws(() => todayIn('Not/AZone', new Date('2026-09-01T22:00:00Z')))
 })

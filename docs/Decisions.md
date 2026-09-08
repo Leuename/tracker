@@ -3118,6 +3118,63 @@ which produced two findings. It did not reach the six modals, `pending.js`/`quer
 the Manila/UTC date boundary, or `store.jsx`'s load path. Three consecutive rounds have now flagged
 those back untouched.
 
+## D95 — The Scheduler Was Living In A Different Day
+
+**Decision and record, 2026-09-08. Round 41**, which refuted round 40 — and the first round in ten to
+reach an area three consecutive rounds had deferred, because both mined-out classes were explicitly
+closed to it in its brief.
+
+### The defect
+
+`scripts/schedule.mjs` computed `today` as `new Date().toISOString().slice(0, 10)` — the **UTC**
+date. `schedule.yml` fires at 22:00 UTC, which is **06:00 the next day in Manila**. The owner's
+browser gets its `TODAY` from the device clock, so the job's idea of the date was a full Manila day
+behind the owner's, on every run, all year. Not an edge case: a fixed run time makes it deterministic.
+
+Two consequences:
+
+**The overdue digest was chronically blind.** `eff(t, today)` with a UTC `today` called a payable due
+"yesterday by the owner's clock" *pending*, while the owner's own Dashboard showed it *overdue*. The
+one report this project has said the opposite of the screen, every night.
+
+**And at a month end it generated for the wrong month.** Verified across four boundaries:
+
+| Run (22:00 UTC) | Month it used | Month the owner was in |
+|---|---|---|
+| 2026-08-31 | 2026-08 | **2026-09** |
+| 2026-01-31 | 2026-01 | **2026-02** |
+| 2026-12-31 | 2026-12 | **2027-01** |
+
+September's payables were not created until 06:00 Manila on the **2nd** — a full day late — and a
+payable due on the 1st was therefore inserted already satisfying `due < TODAY`: **overdue at the
+instant it was created**, every month, including the year boundary.
+
+### The decision
+
+`todayIn(zone, now)` lives in `schedule-plan.js`, which `npm test` imports, rather than inline in a
+script nothing imports — the same move as [D84](#d84--the-untestable-caller-and-ten-minutes-of-blank-screen)'s
+lesson about untestable callers. The zone is **named and overridable** (`SCHEDULE_TZ`, defaulting to
+`Asia/Manila`) because where the owner is, is a fact about the business, not about the code. An
+unknown zone throws rather than quietly yielding a date from somewhere else, since a wrong date here
+writes money rows into the wrong month.
+
+The job now prints both dates in its summary — `Run date 2026-09-08 (Asia/Manila); the runner clock
+is 2026-09-08 UTC` — because the entire point is that these can differ, and a reader of the job
+summary should be able to see which one was used. Confirmed against production with a dry run.
+
+Pinned across all four month boundaries and a leap day; reverting to the UTC date turns it red.
+
+### What round 41 cleared
+
+The six modals no round had read: no `<form>` wraps any of them, so Enter cannot phantom-submit;
+every delete confirmation re-looks-up its row by id and no-ops if it is gone; `saveRecurring` blocks
+an empty company, category or amount before writing. Concurrency: both debounced row writes have
+matching cancellation on delete, and a cross-tab race degrades to a zero-row `UPDATE` rather than
+corruption. `store.jsx`'s load path guards a stale `load()` with a `cancelled` flag and signs out on
+an expired session.
+
+232 assertions across 13 files.
+
 ## Guideline Basis
 
 - **AGENT-03** ensures adapter workflows stop rather than invent authorization.
