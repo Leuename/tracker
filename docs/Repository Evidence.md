@@ -577,6 +577,27 @@ production on 2026-09-07, closing the one open masterlist gap — 21 companies, 
 receipt `1788471059637` intact with its stored object, `recurring` empty, `audit_log` 8508 and
 append-only.
 
+**Re-read live on 2026-09-08 at 19:14 UTC, after rounds 31 to 46.** The counts above were true when
+written; these supersede them. `npm test` **237 assertions across 13 files**, `npm run build` green,
+`npm audit` **0**, `npx playwright test --workers=1` against a **local dev server** **52 passed**,
+`npm run security` **60 checks, 0 failed, 0 deferred** (last run at `5eadf6e`). Production: 21
+migrations applied, latest `20260907182000`; `txns_one_generated_row_per_occurrence` present and
+D63's `(src, due)` index absent; **no CHECK constraint anywhere mentions `status`**, which is C8
+still open. `txns` 49 rows with 0 linked-but-unresolved and 0 `E2E-` residue; `transfers` 12 rows,
+9 released and 3 pending, **all twelve carrying a rate** — the three that did not were priced by the
+owner at 02:12 UTC the same day, closing the first half of C7; `receipts` 3 with `1788471059637`
+intact; `recurring` **0 rows**; `fx_rates` 12 rows, newest `as_of` 2026-09-07; `app_config`
+`__e2eHeld` null, 19 categories, 21 companies; newest `audit_log` write 15:18:55 UTC, from this
+session's own e2e run.
+
+**The deployed bundle is not `HEAD`.** Production serves `/assets/index-CvO23MaO.js`; a build of
+`HEAD` produces `index-uPCpXUsX.js`; the live bundle contains **zero** occurrences of the
+round-45/46 marker string `already updated` and the local build contains one. The deployed
+application is therefore `c7daee1`'s — round 42's — and rounds 44, 45 and 46 are committed but not
+live, because C9 stopped the CI gate that is the only deploy path ([D27](Decisions.md)). This is
+evidence of drift, not of a broken deployment: the site answers 200 and the running bundle is a
+green one.
+
 **Every fingerprint here is a baseline, and none is an invariant.** On 2026-09-08 at 19:26–19:28
 Manila the owner marked nine payables paid; amounts identical, only `status` moving, so the
 `id:amount:status` fingerprint went `a76686384422360d47403627c35f4f7f` →

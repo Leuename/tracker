@@ -8,25 +8,28 @@ purpose: "A fresh session needs ONE entry point. This note names it, and says wh
 related:
   - "[[AI Agent Context]] — the navigation hub for the whole repository"
   - "[[Handoff]] — the append-only per-pass record in docs/, a different thing from this folder"
-  - "[[Decisions]] — D1 to D83"
+  - "[[Decisions]] — D1 to D100"
   - "[[Repository Evidence]] — the factual baseline"
 up: "[[AI Agent Context]]"
 ---
 
 # Handoff Index
 
-Twenty handoffs, one entry point. This note exists because the folder had none, and because
+Twenty-one handoffs, one entry point. This note exists because the folder had none, and because
 `status: current` in a handoff's own frontmatter means *"accurate when written"* rather than
 *"start here"* — several notes carry it and only one can be the entry point.
 
 ## Start here
 
-> **[[2026-09-08 The Identity Rollout, and Rounds Twenty-Six to Thirty]]**
-> The current complete continuation package and **the entry point**. It carries the
-> occurrence-identity rollout end to end, rounds 26 to 30, the live state, what is *not* verified,
-> and the one resume prompt.
+> **[[2026-09-09 Rounds Thirty-One to Forty-Seven, and the Gate That Stopped]]**
+> The current complete continuation package and **the entry point**. It carries adversarial rounds
+> 31 to 46 (decisions D85-D100), round 47 which a rate limit killed before it read a file, the
+> ten-minute production outage one of its own fixes caused, and **C9 — the CI gate that stopped
+> running jobs, so nothing has deployed since round 42 and three rounds of fixes sit in git,
+> unshipped.** Its resume prompt is written to hand the work to Codex.
 >
 > **Read it with the notes it supersedes as an entry point but not as records:**
+> **[[2026-09-08 The Identity Rollout, and Rounds Twenty-Six to Thirty]]** holds the occurrence-identity rollout and rounds 26-30.
 > **[[2026-09-07 Session Continuation, Rounds One to Twenty-Five]]** holds rounds 1-25 and the shape
 > of the loop. **[[2026-09-06 The Review Loop, Rounds One to Twenty]]** holds the round-by-round
 > ledger and the rate-limit history. **[[2026-09-05 The Design Port, and Three Requirements the File Did Not Show]]**
@@ -36,13 +39,14 @@ Twenty handoffs, one entry point. This note exists because the folder had none, 
 > Before all of those, **[[2026-09-04 Three Answers, and a Finding That Corrected Itself]]** (phase
 > 45) remains the record of C1/C4/C5 and traps 72-76 — every trap in it still applies.
 >
-> **The three lines that matter most across the set:** rounds 16-18 were run by the main session by
+> **The four lines that matter most across the set:** rounds 16-18 were run by the main session by
 > hand under a rate limit and reported the work green, and round 19 — the first real verifier
 > afterwards — refuted that with six findings; rounds 21, 23 and 24 each found their worst defect in
-> code no round had ever examined; and **forty-two of the eighty-one findings were introduced by the
-> fix for the previous defect**. Rounds 1-25 all found something; round 26 reviewed round 25's
-> fixes and closed the local gate with `AUDIT: READY`. Hosted migration and live E2E verification
-> remain owner-gated.
+> code no round had ever examined; **forty-two of the eighty-one findings were introduced by the fix
+> for the previous defect**; and rounds 45 and 46 showed the same thing about the *evidence* — round
+> 46's finding was that round 45's mutation test had proved nothing, because the line it mutated was
+> not the line that ships. **Every round from 1 to 46 found something. The loop has never returned
+> an empty round.**
 
 ## How to read this folder
 
@@ -60,11 +64,48 @@ note is a timestamp, not a claim about today.
 
 ## Newest first
 
+### 2026-09-09
+
+- **[[2026-09-09 Rounds Thirty-One to Forty-Seven, and the Gate That Stopped]]** — *complete
+  package, **the current entry point**.* Adversarial rounds 31 to 46 and the sixteen decision
+  records they produced (D85-D100); round 47, which two dispatches failed to run; the ten-minute
+  production outage one of its own fixes caused; and **C9 — Actions failing every job in 2-3 seconds
+  with zero steps, so nothing has deployed since round 42 and three rounds of fixes, one of them on
+  a money path, are committed but not live.** Its resume prompt is written to hand the work to
+  Codex.
+
+### 2026-09-08
+
+- **[[2026-09-08 The Identity Rollout, and Rounds Twenty-Six to Thirty]]** — *complete package,
+  superseded as an entry point on 2026-09-09, still the record of the rollout.* The
+  owner-authorised occurrence-identity migration end to end — rehearsal, phase 1, deploy, phase 2 —
+  and rounds 26 to 30 (D80-D83). Round 27's finding is the one to remember: a coverage filter had
+  been silently disabled for all twelve months, so a monthly payable would have been generated once,
+  ever.
+
+### 2026-09-07
+
+- **[[2026-09-07 Session Continuation, Rounds One to Twenty-Five]]** — *complete package, superseded
+  as an entry point.* Rounds 1-25 and the shape of the loop, including the three rounds run by hand
+  under a rate limit that reported green and were refuted by the next real verifier.
+
+### 2026-09-06
+
+- **[[2026-09-06 The Review Loop, Rounds One to Twenty]]** — *pass record.* The round-by-round
+  ledger and the rate-limit history. Read it for what a given round actually did.
+
+### 2026-09-05
+
+- **[[2026-09-05 The Design Port, and Three Requirements the File Did Not Show]]** — *pass record,
+  and required reading.* The design port, the twelve client requirements mapped to `file:line`, the
+  **eighty-one-row findings table**, and **traps 77-107**. Forty-two of those eighty-one findings
+  were introduced by the fix for the previous defect.
+
 ### 2026-09-04
 
 - **[[2026-09-04 Three Answers, and a Finding That Corrected Itself]]** — *complete package,
   superseded as an entry point by the 2026-09-05 handoff and ultimately by the sole current entry
-  point, the 2026-09-07 continuation.* Phase 45. The owner answered C1 (sign-out stays global, now explicit, D47),
+  point, the 2026-09-09 continuation.* Phase 45. The owner answered C1 (sign-out stays global, now explicit, D47),
   C4 (no notification channel, D48, which closes D31) and C5 (password rotation deferred again,
   D44). The resolution plan was audited twice — eight defects, then two more — and then mostly left
   unexecuted. Two new findings: C6, GitHub queues scheduled runs 2.5-5 hours late; and C7, three

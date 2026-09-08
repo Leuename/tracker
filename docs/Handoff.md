@@ -1711,6 +1711,34 @@ The two `is_viewer` migrations are applied nowhere. `audit_log` stopped at 250 o
 fix has never seen a live bucket. And `supabase.auth.signOut()` was left global — a one-word,
 user-visible change nobody asked for, and the owner's call.
 
+## 2026-09-08 — Sixteen rounds, a ten-minute outage, and the gate that stopped
+
+The full record is [Rounds Thirty-One to Forty-Seven, and the Gate That Stopped](../handoff/2026-09-09%20Rounds%20Thirty-One%20to%20Forty-Seven,%20and%20the%20Gate%20That%20Stopped.md);
+this entry exists so the per-pass log does not skip the session, not to repeat it.
+
+**Scope.** Adversarial rounds 31 to 46, each dispatched to a fresh-context reviewer, each finding
+something: [Decisions](Decisions.md) D85 through D100. Rounds 32-36 found the same
+`Object.prototype` lookup class in five different files, which is why the fix became `bare()` —
+`Object.create(null)` on every constant this app indexes by row data — rather than a sixth guarded
+call site. Round 46's finding was about round 45's *evidence*: the mutation D99 cited changed a
+constant the tests assert directly, while reverting the production wiring left the suite green.
+
+**Checks.** `npm test` 235 → **237 across 13 files**; `npm run build` green; `npm audit` 0;
+Playwright **52/52** against a local dev server; `npm run security` **60 checks, 0 failed, 0
+deferred**.
+
+**What went wrong, and was mine.** A fix in round 30 dropped two `const` declarations and
+**blanked production for ten and a half minutes** (`c480f3e`, reverted `9f0aee1`, relanded
+`daee328`) — `npm test` and `npm run build` import no `.jsx`, so both stayed green; the rule that
+came out of it is in both policy files. A `git add -A` swept a running verifier's in-flight mutation
+into a pushed commit. And ten decision records overstated their evidence and now carry inline
+corrections.
+
+**What was deliberately not done.** No hand-deploy around the dead CI gate ([D27](Decisions.md)),
+so rounds 44, 45 and 46 sit committed and unshipped. No manual `fx` run — one working day behind is
+what [D43](Decisions.md) designs for. No round 47: two dispatches died, the second on a session rate
+limit, so **the loop has still never returned an empty round** and must not be reported as closed.
+
 ## Guideline Basis
 
 - **PG-04** requires a continuation record with exact scope, checks, limitations, and unresolved evidence.

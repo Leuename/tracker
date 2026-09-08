@@ -2,10 +2,10 @@
 title: Remaining Work and Owner Decisions
 tags: [open-items, decisions, owner, erp, tracker, supabase, backups, testing, security]
 created: 2026-09-04
-status: occurrence-identity rollout awaits owner authorization; C1, C2, C3 and C4 resolved 2026-09-04; C5 deferred again; A and B still blocked
+status: occurrence-identity rollout APPLIED 2026-09-08; C1, C2, C3, C4 resolved 2026-09-04; C7 resolved by the owner 2026-09-08; C5, C6, C8, C9 open; A and B still blocked
 supersedes: "[[Open Problems and Proposals]] as the current open-items record; that note remains the round-2 record of 2026-09-02"
 related:
-  - "[[Decisions]] — D1 to D79, the authority on what is authorised"
+  - "[[Decisions]] — D1 to D100, the authority on what is authorised"
   - "[[2026-09-04 Three Answers, and a Finding That Corrected Itself]] — the current continuation package; C6 and C7 originate there"
   - "[[2026-09-04 Owner Decision Brief, C5 to C7]] — the deep technical detail for C5, C6 and C7, written for a cold-context agent"
   - "[[2026-09-04 Open Items Brief for Codex, Second Pass]] — the same items written for an external agent"
@@ -356,6 +356,18 @@ the three existing wires with the ECB rate for their release date (the same reas
 release should stamp a rate automatically from then on. The first is a one-off write to a live money
 ledger; the second is a behaviour change to the transfer form. Neither is mine to take.
 
+**RESOLVED 2026-09-08, by you, not by me.** All three wires were priced from the app between
+02:12:18 and 02:12:54 UTC — `audit_log` rows 9952, 9960 and 9961, actor `aepinza@gmail.com` — each
+stamped with the ECB rate as of 2026-09-07: `GZZ` EUR 100,000 at 72.801000, `ZPH` USD 79,180 and
+`MCR` USD 78,675 at 62.640681. Read back on 2026-09-08 at 19:14 UTC, **all twelve transfers carry a
+rate**: 9 released and 3 pending, none null. Those three no longer fall to rung 2 of `rateFor()` and
+are no longer re-valued when the feed moves.
+
+**The second question is still open and is still yours.** Nothing in the app stamps a rate when a
+transfer moves to `released` — the rate is a manual field on the form — so the next wire released
+without one repeats this. Making release stamp the rate automatically is a behaviour change to the
+transfer form, not a data fix, and it is not mine to take.
+
 ### C8 — `status` is free text in the database, enforced only by a dropdown
 
 **What it is.** `txns.status`, `receipts.status` and `transfers.status` are all `text` with **no
@@ -461,6 +473,34 @@ zero `E2E-` residue, `__e2eHeld` null, backup proof intact.
 So while Actions is down, nothing is unverified — it is being verified by hand instead, which does
 not scale past a day or two and is the reason this needs closing rather than tolerating.
 
+**Current as of 2026-09-08 19:14 UTC — three rounds are now stranded, not one.** Re-read directly
+rather than inferred: production serves `/assets/index-CvO23MaO.js`, a build of `HEAD` produces
+`index-uPCpXUsX.js`, and the live bundle contains **zero** occurrences of the round-45/46 marker
+string `already updated` while the local build contains one. So the deployed application is still
+`c7daee1`'s, and the undeployed set is now:
+
+| Commit | Round | Application files not live |
+|---|---|---|
+| `6bb176c` | 44 | `src/actions.js`, `src/logic.js`, `src/screens/Masterlist.jsx` |
+| `c4c64e6` | 45 | `src/actions.js`, `src/masterlist.js`, `src/pending.js` |
+| `c3c4a8d` | 46 | `src/actions.js`, `src/masterlist.js`, `src/pending.js` |
+
+`d31e8f0` (round 43) touched only `security/probe.mjs`, which is a local script and never reaches a
+browser, so it costs nothing.
+
+**One of these is a money-path fix, and the paragraph above about "nothing that fixes a live
+breakage" no longer covers the set.** [D99](Decisions.md) is live in production: typing an amount
+into the masterlist and pausing between two digits sends the half-typed number down to the linked
+ledger rows, because the push-down shares the 500 ms keystroke debounce. It fires only when a
+generated payable has linked rows, and `recurring` is **0 rows** today — which is the only reason
+this is a queued fix rather than an emergency. **It becomes one the moment a recurring payable is
+created**, and creating one is ordinary owner work that needs no warning.
+
+**What that changes about the answer:** if the minute balance cannot be restored quickly, say so, and
+the deploy question becomes a real decision rather than a wait. Bypassing the gate is still refused
+by default ([D27](Decisions.md)) — but it is your call to make with the D99 exposure named, not a
+call an agent should take silently in either direction.
+
 **What I would do.** Check Settings → Billing for the Actions minute balance. If that is the cause,
 either top it up or accept that the scheduled jobs pause until the monthly reset — and if they are
 going to pause, take one manual backup first, because that is the only copy of the ledger outside
@@ -473,7 +513,7 @@ Supabase's own free-plan storage.
 occurrence-identity rollout ([D80](Decisions.md)) and the round-27 fixes ([D81](Decisions.md)).
 `git status --short` is the only trustworthy reading of what is outstanding; this line is not.
 
-What remains is C5, C6, C7, C8 and C9 for you, and the A and B items blocked on access nobody has. Every
+What remains is C5, C6, C8, C9 and the second half of C7 for you, and the A and B items blocked on access nobody has. Every
 one of those is a decision or a credential, not work waiting to be done.
 
 ## Summary
