@@ -3162,7 +3162,15 @@ The job now prints both dates in its summary — `Run date 2026-09-08 (Asia/Mani
 is 2026-09-08 UTC` — because the entire point is that these can differ, and a reader of the job
 summary should be able to see which one was used. Confirmed against production with a dry run.
 
-Pinned across all four month boundaries and a leap day; reverting to the UTC date turns it red.
+Pinned across four month boundaries; reverting to the UTC date turns it red.
+
+> **Corrected 2026-09-08 by round 42 ([D96](#d96--a-leap-day-that-crossed-no-month)).** This line
+> read "across all four month boundaries **and a leap day**." The leap-day case was
+> `2028-02-28T22:00:00Z`, which is 29 February in Manila — the **same month**. It proved a leap day
+> exists, not that a leap-year month *end* is handled, which is the thing the sentence claimed. The
+> real crossings (`2028-02-29` → March, plus a non-leap February and the non-leap century year 2100)
+> are in the test now. **Eighth record in this loop to describe a stronger check than the one that
+> ran.**
 
 ### What round 41 cleared
 
@@ -3172,6 +3180,51 @@ an empty company, category or amount before writing. Concurrency: both debounced
 matching cancellation on delete, and a cross-tab race degrades to a zero-row `UPDATE` rather than
 corruption. `store.jsx`'s load path guards a stale `load()` with a `cancelled` flag and signs out on
 an expired session.
+
+232 assertions across 13 files.
+
+## D96 — A Leap Day That Crossed No Month
+
+**Decision and record, 2026-09-08. Round 42**, which refuted round 41 on the one thing that matters
+about a fix to an unattended money job: whether the evidence behind it is what the record says.
+
+### The finding
+
+[D95](#d95--the-scheduler-was-living-in-a-different-day) said the timezone fix was "pinned across all
+four month boundaries **and a leap day**." The leap-day case was:
+
+```js
+['2028-02-28T22:00:00Z', '2028-02'],
+```
+
+28 February 2028 at 22:00 UTC is 29 February in Manila — **the same month**. It asserts that a leap
+day resolves at all; it asserts nothing about a leap-year month boundary, which is what the sentence
+around it claimed and what the rest of that test is about. The genuine crossings are now there:
+`2028-02-29` → March, a non-leap February, and **2100** — a century year that is *not* a leap year,
+where 28 February does cross.
+
+The code was already right. Only the claim was wrong, which is the eighth time in this loop, and by
+now the pattern is worth stating as a rule rather than a note: **a test's name and the comment above
+it are not evidence; the inputs are.** When a record says "verified across X", the reviewer's job is
+to read the cases, not the sentence.
+
+### What round 42 cleared, and it matters because this job runs unattended
+
+- **Full ICU on the runner.** The real risk with `toLocaleDateString('en-CA')` is a small-icu Node,
+  which silently formats as `9/8/2026` — the guard would then throw on **every** run and kill the
+  nightly job. Checked directly: `process.config.variables.icu_small === false` on Node 24, the
+  version `schedule.yml` pins, and the official distribution `actions/setup-node` installs ships full
+  ICU. Not assumed from documentation; read off the runtime.
+- **`ZONE` timing.** Read once at module load. Nothing sets `SCHEDULE_TZ`, and an empty string falls
+  through to the default, so there is no load-order race in production.
+- **The throw path.** `todayIn()` runs at module top level, before sign-in and before any try/catch,
+  so an unresolvable zone kills generation *and* the overdue digest together. That is a sharp edge —
+  and it is the correct one: if the date cannot be determined, neither generating rows nor reporting
+  what is overdue is safe, and it fails **before** authenticating, so nothing is written.
+- **No mixed UTC/local pair.** `logic.js`'s `Date.UTC` arithmetic works on calendar components the
+  caller already resolved and never re-derives "now"; `buildGeneratedRows`'s `now` is an id seed, not
+  a date. `localToday()` in the browser is a separate, pre-existing assumption — that the owner's
+  device is in Manila — and is unchanged by this.
 
 232 assertions across 13 files.
 

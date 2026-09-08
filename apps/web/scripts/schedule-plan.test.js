@@ -120,7 +120,14 @@ test('the run date is the owner\'s calendar date, not the server\'s', () => {
     ['2026-08-31T22:00:00Z', '2026-09'],
     ['2026-01-31T22:00:00Z', '2026-02'],
     ['2026-12-31T22:00:00Z', '2027-01'],
+    // Round 42: the case above this line USED to be the only February one, and
+    // it crosses no month — 28 Feb 2028 + 8h is 29 Feb, same month. It proves a
+    // leap day exists, not that a leap-year month END is handled, which is what
+    // the commit message claimed. These three are the actual crossings.
     ['2028-02-28T22:00:00Z', '2028-02'],
+    ['2028-02-29T22:00:00Z', '2028-03'],
+    ['2027-02-28T22:00:00Z', '2027-03'],
+    ['2100-02-28T22:00:00Z', '2100-03'],
   ]) {
     assert.equal(at(runAt).slice(0, 7), month,
       runAt + ' must generate for ' + month + ', the month the owner is in')
