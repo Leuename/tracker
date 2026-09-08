@@ -3241,6 +3241,72 @@ to read the cases, not the sentence.
 
 232 assertions across 13 files.
 
+## D97 — The Probe Went Greener When The Application Broke
+
+**Decision and record, 2026-09-08. Round 43**, which audited `security/probe.mjs` for the first time
+and found seven ways a check could pass while the thing it tests was broken.
+
+### The one that matters
+
+The probe made **seven** `.update()` calls. **Every one asserted a refusal. Not one asserted that a
+legitimate update succeeds.**
+
+So `revoke update on all tables in schema public from authenticated` — one statement, after which the
+application can no longer edit a transaction, mark a payable paid, liquidate a receipt or save a
+setting — would have taken the suite to **57/57 green**. Simulated: all six UPDATE-dependent refusal
+checks are satisfied by that revoke. The exact-`42501` pin on `occurrence_due` and `src`, which reads
+as the most rigorous check in the file, is the worst of them: it cannot distinguish a column-level
+revoke from a table-level one.
+
+This is verbatim the shape the file's own comment says it exists to prevent — *"that revocation and
+the intended move look the same: both are 'an error'. Only one of them is the fix."* That reasoning
+had been applied to `is_viewer` EXECUTE and to nothing else.
+
+**A positive control now runs first in section 5**: an ordinary edit must succeed and be readable
+back. Under the simulated revoke it fails, so the outage is caught. INSERT already had one; DELETE
+had an indirect one; UPDATE had none.
+
+### The other six
+
+- **The STALE detector could never fire.** `results.filter((r) => r.ok && DEFERRED[r.name])` — but
+  the only deferred name is recorded exclusively on the *failing* branch, so the set was empty by
+  construction in all four reachable states. The docblock promised the file "reports a STALE line
+  when a deferred check starts passing"; it could not. Trap 100 inside the mechanism written to stop
+  exemptions rotting. It now checks whether a deferred name was recorded at all, or recorded passing.
+- **The bundle scan passed over zero bytes.** The `catch` only fired when `dist/assets` was *missing*;
+  an empty directory gave four green secret checks. And `.claude/rules/git-workflow.md` told people to
+  run `npm run security` **before** `npm run build`, so the pre-push scan meant to catch a key you had
+  just pasted read the *previous* bundle. The rule is corrected, and the probe now refuses to conclude
+  from an empty directory or from a bundle older than the newest source file.
+- **`auth.users is not exposed` sent a malformed URL.** `withToken` appends its own query string, so
+  `users?select=*` became `users?select=*?select=id&limit=1`. In the very state the check exists to
+  detect — a `public.users` view readable by `authenticated` — PostgREST would resolve the table, pass
+  the privilege gate, then fail parsing and return 400, satisfying `>= 400`. It now pins 401/403/404.
+- **Two `created_at` checks passed whenever the insert failed for any reason.** `data` is null, so
+  `!spoofed` is true. The D23 regression guard could have been dropped entirely and they stayed green.
+- **An unguarded `.data.data`** would have thrown at top level and taken sections 6-9 with it, so the
+  run died without printing what had passed. Same for an unguarded `fetch(ORIGIN)`.
+
+### The correction I had to make to my own fix
+
+Tightening the `created_at` checks to require a landed row turned them **red**: the insert is refused
+with `42501`, because `created_at` is not grantable at all. That refusal *is* the protection, and the
+strongest possible result. I had converted a vacuous pass into a false failure — the mirror image of
+the same mistake. They now distinguish three outcomes: `42501` is the best case, a landed row with a
+server-set timestamp is a pass, and an insert refused for any *other* reason is a failure, because it
+tests nothing.
+
+**57 checks became 60**, all passing, and three of them can now fail in ways the previous fifty-seven
+could not.
+
+### What round 43 cleared
+
+`hold`/`releaseHeld` survived every attack: a double `hold` preserves the first value, `releaseHeld`
+with nothing held is idempotent, and the restore and the marker-clear happen in a single
+`merge_app_config` call so there is no window where one lands without the other. `undoGenerate`
+cannot name a row Generate did not write — the client-side filter is not the guard; the server-side
+`deleteGeneratedTxns` is.
+
 ## Guideline Basis
 
 - **AGENT-03** ensures adapter workflows stop rather than invent authorization.

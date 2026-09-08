@@ -8,7 +8,7 @@ Avoid inventing repository history while defining reviewable future changes.
 
 The **repository root** is the project root as of 2026-09-01, remote `Leuename/tracker` (private), branch `main`. It was `apps/web/` alone until the re-root; nothing is untracked now except what `.gitignore` names. Use focused changes and concise imperative subjects; PRs should cite affected paths, checks, source gaps, issues, and screenshots for visual work.
 
-**A push to `main` starts the CI gate, and a successful gate deploys to production.** There is no staging branch, so run `npm test`, `npm run e2e`, `npm run security`, and `npm run build` before pushing; `npm run security` remains a local pre-push check because it writes to production.
+**A push to `main` starts the CI gate, and a successful gate deploys to production.** There is no staging branch, so before pushing run `npm test`, then `npm run e2e` against a **local dev server** (`npm test` imports no `.jsx`, so only Playwright catches a render-time error — see [D84](../../docs/Decisions.md)), then **`npm run build` and only then `npm run security`**. That order is load-bearing: the probe's secret scan reads `dist/assets`, so running it before the build scans the *previous* bundle and cannot see a key you just added. `verify.yml` has always had it right; this line had it backwards until 2026-09-08 ([D97](../../docs/Decisions.md)). `npm run security` stays a local pre-push check because it writes to production.
 
 ### Release tags
 

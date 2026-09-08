@@ -9,7 +9,7 @@
  *   SEC_ORIGIN=http://localhost:4173 npm run security
  */
 import { createClient } from '@supabase/supabase-js'
-import { readFileSync, readdirSync } from 'node:fs'
+import { readFileSync, readdirSync, statSync } from 'node:fs'
 
 const URL_ = process.env.VITE_SUPABASE_URL
 const KEY = process.env.VITE_SUPABASE_PUBLISHABLE_KEY
@@ -118,8 +118,16 @@ const withToken = (tok, table = 'txns') =>
 
 console.log('\n== 3. What a signed-in client can reach beyond its own tables ==')
 {
-  const r = await withToken(good, 'users?select=*')
-  check('auth.users is not exposed through the API', r.status >= 400, 'HTTP ' + r.status)
+  // `withToken` appends its own query string, so passing `users?select=*` built
+  // `users?select=*?select=id&limit=1` — an unparseable select expression. In the
+  // very state this check exists to detect (a `public.users` view exposing
+  // `auth.users`), PostgREST would resolve the table, pass the privilege gate,
+  // then fail parsing that garbage and return 400 — satisfying `>= 400`. The
+  // check could not fail in its own failure mode. Pin the exact statuses that
+  // mean "not exposed": 404 (no such table) or 401/403 (refused). Round 43.
+  const r = await withToken(good, 'users')
+  check('auth.users is not exposed through the API', [401, 403, 404].includes(r.status),
+    'HTTP ' + r.status + (r.status === 400 ? ' — a 400 here means the request was malformed, not that access was refused' : ''))
 }
 {
   const r = await fetch(URL_ + '/rest/v1/', { headers: { apikey: KEY, Authorization: 'Bearer ' + good } })
@@ -152,6 +160,37 @@ console.log('\n== 4. Injection through PostgREST filters ==')
 console.log('\n== 5. What a signed-in client may write ==')
 const c = await (async () => signedIn)()
 {
+  // THE POSITIVE CONTROL, and it goes first on purpose.
+  //
+  // Every other UPDATE in this file asserts a REFUSAL. Round 43 pointed out what
+  // that means: `revoke update on all tables in schema public from authenticated`
+  // — one statement, and the application can no longer edit a transaction, mark a
+  // payable paid, liquidate a receipt or save a setting — would make this suite
+  // report 57/57 GREEN. Every refusal check would be satisfied by the outage.
+  //
+  // That is exactly the shape D34 describes and this file claims to guard
+  // against: "that revocation and the intended move look the same; both are 'an
+  // error'. Only one of them is the fix." The reasoning was applied to
+  // `is_viewer` EXECUTE and nowhere else.
+  //
+  // So: an ordinary edit — the thing the owner does dozens of times a day — must
+  // SUCCEED, and the new value must be readable back. If this fails, the column
+  // grants have been revoked too widely and the refusal checks below are
+  // meaningless.
+  const id = Date.now() + 4242
+  const { error: seedErr } = await c.from('txns').insert({
+    id, co: 'GTOI', cat: 'Other', description: 'SEC writable probe', amount: 1, status: 'pending',
+  })
+  const { error: editErr } = await c.from('txns').update({ amount: 2, status: 'completed' }).eq('id', id)
+  const { data: edited } = await c.from('txns').select('amount, status').eq('id', id).maybeSingle()
+  check('an ordinary edit still succeeds — the refusals below are not an outage',
+    !seedErr && !editErr && !!edited && Number(edited.amount) === 2 && edited.status === 'completed',
+    seedErr ? 'seed rejected: ' + seedErr.code
+      : editErr ? 'EDIT REFUSED: ' + editErr.code + ' — UPDATE may be revoked too widely'
+        : 'stored ' + JSON.stringify(edited))
+  await c.from('txns').delete().eq('id', id)
+}
+{
   // Mass assignment: created_at is server-managed and should not be settable.
   const id = Date.now()
   const { error } = await c.from('txns').insert({
@@ -160,8 +199,26 @@ const c = await (async () => signedIn)()
   })
   const { data } = await c.from('txns').select('created_at').eq('id', id).maybeSingle()
   const spoofed = data && String(data.created_at).startsWith('1999')
-  check('created_at cannot be back-dated by the client', !spoofed,
-    error ? 'insert rejected: ' + error.code : 'stored ' + (data && data.created_at))
+  // `!spoofed` alone passed whenever the insert failed for ANY reason — a NOT
+  // NULL violation, a new CHECK, a rate limit — because `data` is then null.
+  // The D23 guard could have been dropped from the database entirely and this
+  // stayed green. The row must actually exist for the conclusion to mean
+  // anything. Round 43.
+  // Two distinct passes, and one of them is the STRONGER result:
+  //   - 42501: the column is not grantable at all, so the value never reaches
+  //     the table. That is the protection working at its best.
+  //   - the row landed and `created_at` is not 1999: the server overrode it.
+  // Anything else is a failure, including an insert refused for some OTHER
+  // reason — that tests nothing and must not read as a pass, which is what
+  // `!spoofed` alone did (round 43). Round 43's own fix then over-corrected and
+  // called the 42501 case untested; it is the best case.
+  const notGrantable = error && error.code === '42501'
+  check('created_at cannot be back-dated by the client',
+    notGrantable || (!error && !!data && !spoofed),
+    notGrantable ? 'the column is not grantable: 42501'
+      : error ? 'INSERT REJECTED for an unrelated reason, so nothing was tested: ' + error.code
+        : !data ? 'NO ROW LANDED, so nothing was tested'
+          : 'stored ' + data.created_at)
   await c.from('txns').delete().eq('id', id)
 }
 {
@@ -176,8 +233,15 @@ const c = await (async () => signedIn)()
   })
   const { data: made } = await c.from('transfers').select('created_at').eq('id', id).maybeSingle()
   const backdated = made && String(made.created_at).startsWith('1999')
-  check('a transfer created_at cannot be back-dated', !backdated,
-    insErr ? 'insert rejected: ' + insErr.code : 'stored ' + (made && made.created_at))
+  // Same as above: no row, no test. The sibling check below already carried this
+  // reasoning in a comment; it was never applied to these two.
+  const telNotGrantable = insErr && insErr.code === '42501'
+  check('a transfer created_at cannot be back-dated',
+    telNotGrantable || (!insErr && !!made && !backdated),
+    telNotGrantable ? 'the column is not grantable: 42501'
+      : insErr ? 'INSERT REJECTED for an unrelated reason, so nothing was tested: ' + insErr.code
+        : !made ? 'NO ROW LANDED, so nothing was tested'
+          : 'stored ' + made.created_at)
 
   // Insert a clean row so the id check actually exercises UPDATE. Skipping it
   // when the back-dated insert was refused would have reported a pass without
@@ -198,8 +262,18 @@ const c = await (async () => signedIn)()
 }
 {
   // updated_at is server-managed too; a client must not be able to set it.
-  const { error } = await c.from('app_config').update({ data: (await c.from('app_config').select('data').maybeSingle()).data.data, updated_at: '1999-01-01T00:00:00Z' }).eq('id', true)
-  check('app_config.updated_at cannot be set by the client', !!error, error ? error.code : 'UPDATE SUCCEEDED')
+  // `.data.data` was unguarded: a failed read threw a TypeError at top level and
+  // took sections 6 to 9 with it, so the run died without printing what had
+  // passed. Round 43.
+  const { data: cfgRow, error: cfgErr } = await c.from('app_config').select('data').maybeSingle()
+  if (cfgErr || !cfgRow) {
+    check('app_config.updated_at cannot be set by the client', false,
+      'could not read app_config, so nothing was tested: ' + (cfgErr ? cfgErr.code : 'no row'))
+  } else {
+    const { error } = await c.from('app_config')
+      .update({ data: cfgRow.data, updated_at: '1999-01-01T00:00:00Z' }).eq('id', true)
+    check('app_config.updated_at cannot be set by the client', !!error, error ? error.code : 'UPDATE SUCCEEDED')
+  }
 }
 
 {
@@ -467,6 +541,24 @@ try {
   const dir = 'dist/assets'
   const files = readdirSync(dir).filter((f) => f.endsWith('.js') || f.endsWith('.css'))
   const text = files.map((f) => readFileSync(dir + '/' + f, 'utf8')).join('\n')
+  // Scanning nothing finds nothing. The `catch` below only fires when the
+  // directory is MISSING — an existing but empty `dist/assets`, or one holding
+  // only a source map, yielded four green secret checks over zero bytes.
+  //
+  // Staleness is the reachable case, not emptiness: `.claude/rules/git-workflow.md`
+  // told people to run `npm run security` BEFORE `npm run build`, so the pre-push
+  // scan meant to catch a key you just pasted read yesterday's bundle. That
+  // ordering is corrected, and this refuses to draw a conclusion from a bundle
+  // older than the source it claims to have scanned. Round 43.
+  check('the bundle scan had something to scan', files.length > 0,
+    files.length + ' file(s) in ' + dir)
+  const newestSrc = Math.max(...readdirSync('src', { recursive: true })
+    .filter((f) => /\.jsx?$/.test(String(f)))
+    .map((f) => statSync('src/' + f).mtimeMs))
+  const newestBundle = Math.max(...files.map((f) => statSync(dir + '/' + f).mtimeMs))
+  check('the scanned bundle is not older than the source', newestBundle >= newestSrc,
+    newestBundle >= newestSrc ? 'built after the last source edit'
+      : 'STALE by ' + Math.round((newestSrc - newestBundle) / 1000) + 's — run npm run build first')
   check('no service_role key in the bundle', !/service_role/.test(text))
   // Match an actual key value, not supabase-js's own `startsWith("sb_secret_")`
   // format check, which is a string literal in the library and not a secret.
@@ -494,7 +586,11 @@ console.log('\n== 8. Sign-up and account enumeration ==')
 
 console.log('\n== 9. Deployment response headers ==')
 {
-  const r = await fetch(ORIGIN, { redirect: 'follow' })
+  // An unguarded fetch here meant an unreachable deployment killed the run with
+  // a stack trace instead of recording six failures — and the summary, which is
+  // the whole output, never printed. Round 43.
+  const r = await fetch(ORIGIN, { redirect: 'follow' }).catch((e) => ({ ok: false, url: ORIGIN, headers: { get: () => null }, error: e }))
+  if (r.error) check('the deployment is reachable', false, ORIGIN + ' — ' + (r.error.message || r.error))
   const h = (n) => r.headers.get(n)
   check('served over HTTPS', ORIGIN.startsWith('https://') ? r.url.startsWith('https://') : true, r.url)
   check('HSTS is set', !!h('strict-transport-security') || !ORIGIN.startsWith('https://'), h('strict-transport-security') || 'missing')
@@ -509,8 +605,23 @@ await signedIn.auth.signOut()
 
 const failed = results.filter((r) => !r.ok && !r.excuse)
 const deferred = results.filter((r) => r.excuse)
-// A deferred check that has started passing: the decision behind it is spent.
-const stale = results.filter((r) => r.ok && DEFERRED[r.name])
+// A deferred check whose reason is spent.
+//
+// This used to be `results.filter((r) => r.ok && DEFERRED[r.name])`, which could
+// never match anything. The only deferred name is recorded exclusively on the
+// FAILING branch — when the thing it excuses is fixed, a DIFFERENT name is
+// recorded — so `r.ok && DEFERRED[r.name]` was empty by construction, in every
+// one of the four reachable states. The docblock above promised this file
+// "reports a STALE line when a deferred check starts passing"; it could not.
+// Trap 100 inside the mechanism written to prevent exemptions from rotting.
+// Round 43.
+//
+// A deferred entry is stale when its name was never recorded at all — the check
+// it excuses no longer runs — or when it did run and passed.
+const recorded = new Set(results.map((r) => r.name))
+const stale = Object.keys(DEFERRED)
+  .filter((name) => !recorded.has(name) || results.some((r) => r.name === name && r.ok))
+  .map((name) => ({ name, excuse: DEFERRED[name] }))
 
 console.log('\n' + results.length + ' checks, ' + failed.length + ' failed' +
   (deferred.length ? ', ' + deferred.length + ' deferred' : ''))
