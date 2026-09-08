@@ -1,6 +1,16 @@
 import { useActions } from '../actions.js'
+import { statusOptions } from '../logic.js'
 import { Field, Modal, PeriodPicker, Select } from '../ui.jsx'
 import { IconTrash } from '../icons.jsx'
+
+// The three states this dialog can set. A row may hold something else — the
+// column is free text — and `statusOptions` makes the control show that rather
+// than silently displaying "Pending".
+const EDIT_STATUSES = [
+  { v: 'pending', label: 'Pending' },
+  { v: 'completed', label: 'Completed' },
+  { v: 'hold', label: 'On hold' },
+]
 
 const EMPTY = { co: '', cat: '', desc: '', period: '', due: '', amount: '', status: 'pending', done: '', notes: '' }
 
@@ -52,10 +62,8 @@ export default function EditTransaction() {
 
       <div className="row-2">
         <Field label="Status">
-          <select className="field" value={e.status} onChange={setEditStatus}>
-            <option value="pending">Pending</option>
-            <option value="completed">Completed</option>
-            <option value="hold">On hold</option>
+          <select className="field" value={e.status ?? ''} onChange={setEditStatus}>
+            {statusOptions(e.status, EDIT_STATUSES).map((s) => <option key={s.v} value={s.v}>{s.label}</option>)}
           </select>
         </Field>
         <Field label="Date completed">

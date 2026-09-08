@@ -2650,6 +2650,68 @@ not exploitable. A 300-character status does not break the layout. `ev.key === '
 Chromium. `App.jsx`'s `SCREENS[state.screen] || Dashboard`, `Settings.jsx`'s `ROWS[tab.k]` and
 `CSYM[cur]` at four call sites are all guarded. And the new Escape spec is genuinely falsifiable.
 
+## D87 — The Same Defect, Three Rounds Running, In Whichever Files Were Named
+
+**Decision and record, 2026-09-08. Round 33**, which refuted round 32.
+
+Round 32 diagnosed a habit: *a round fixes the sites it was told about, so the instance in a file
+nobody named survives.* Round 33 found that the fix for that finding **did it again**.
+`statusOptions` was applied to the two sheet-row `<select>`s in `AckRec.jsx` and `Telegraphic.jsx`
+and to nothing else. The identical defect stood in every edit modal:
+
+| Site | What it displayed |
+|---|---|
+| `EditTransaction.jsx` status | "Pending" for a row that is completed or held — in the dialog used to edit its amount and due date |
+| `EditReceipt.jsx` status | "Pending", **and** it hid the liquidated-only Date and Actual fields, concealing real liquidation data |
+| `EditTransfer.jsx` status | "Pending" for a released wire |
+| `EditTransfer.jsx` / `AddTransfer.jsx` currency | the first currency in the list, while `RateField`'s maths kept using the real one — a display/reality split on money |
+| `Masterlist.jsx` company / category / frequency | the first entry in the list |
+
+The company and category cases are the most reachable of all, and need no rogue write:
+`removeCompany` and `removeCategory` do not check whether a row still uses the value. **Delete a
+company from Settings and every row that referenced it silently displays a different company.**
+
+### The decision: guard the component, not the call sites
+
+`optionsWith(value, options)` is the plain-string half of the rule `statusOptions` already carried
+for `{v, label}` lists, and **`ui.jsx`'s shared `Select` now calls it internally**. That covers
+sixteen call sites at once and, more importantly, covers the seventeenth that nobody has written yet.
+The nine raw `<select>` elements are converted individually because they are raw.
+
+**Guarding a shared component is a different act from guarding its callers, and only the first
+one ends the class.** Three rounds fixed callers. This one fixes the component.
+
+Verified by enumeration rather than by belief: every `<select>` and `<Select>` in `src/` was listed
+and checked, and the check is repeatable —
+
+```
+grep -rn "<select " src/ | while IFS=: read f l rest; do
+  sed -n "${l},$((l+9))p" "$f" | grep -q "optionsWith\|statusOptions" || echo "UNGUARDED $f:$l"
+done
+```
+
+Nine raw elements, all guarded; sixteen component usages, covered centrally.
+
+### What round 33 cleared
+
+Nine `stopPropagation` hits, all correctly paired click-only with `stopRowKeys` after
+[D86](#d86--the-tenth-site-and-a-decision-record-that-was-not-true). No new unguarded bracket lookup
+on row data. No unguarded `.toLowerCase()`/`.trim()`/`.split()`/`.map()` on a nullable value in the
+modals, `rewind.mjs` or `fx.mjs`. No other screen printing a totals claim a dropped row could
+falsify.
+
+### Recorded separately: the scheduled jobs now run the current code
+
+`backup.mjs` gained a fail-closed row-count guard in [D84](#d84--the-untestable-caller-and-ten-minutes-of-blank-screen)
+and **had never executed since** — the job last ran two commits earlier. That is the D84 shape
+exactly: unexercised code in an unattended job. Rather than reason about it, the count call was run
+read-only against all eight tables (every one returns a `number`, including `recurring` at `0`, the
+empty-table case the guard could have broken), and then `backup.yml` was dispatched manually. It
+completed green and the snapshot it wrote is complete: 49 / 3 / 0 / 12 / 1 / 11164 / 5 / 12, matching
+the database row for row, with `audit_log` at 11,164 exercising the keyset pager over twelve pages.
+
+`schedule.yml`, `fx.yml` and `ci.yml` were confirmed to have run on the current code already.
+
 ## Guideline Basis
 
 - **AGENT-03** ensures adapter workflows stop rather than invent authorization.

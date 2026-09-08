@@ -1,4 +1,5 @@
 import { useActions } from '../actions.js'
+import { statusOptions } from '../logic.js'
 import { Field, Modal, Select } from '../ui.jsx'
 
 const EMPTY = { co: '', name: '', desc: '', amount: '', status: 'pending', date: '', actual: '' }
@@ -61,8 +62,8 @@ export default function EditReceipt() {
           <input className="field num" value={e.amount} onChange={setRcpE('amount')} />
         </Field>
         <Field label="Status">
-          <select className="field" value={e.status} onChange={setRcpE('status')}>
-            {STATUSES.map((s) => <option key={s.v} value={s.v}>{s.label}</option>)}
+          <select className="field" value={e.status ?? ''} onChange={setRcpE('status')}>
+            {statusOptions(e.status, STATUSES).map((s) => <option key={s.v} value={s.v}>{s.label}</option>)}
           </select>
         </Field>
       </div>

@@ -1,5 +1,5 @@
 import { cloneElement, isValidElement, useEffect, useId, useRef } from 'react'
-import { periodLabel, tagOf } from './logic.js'
+import { optionsWith, periodLabel, tagOf } from './logic.js'
 import { useActions } from './actions.js'
 
 /**
@@ -120,11 +120,17 @@ export function Field({ label, hint, children }) {
 }
 
 export function Select({ id, label, value, onChange, options, placeholder, invalid, className = 'field' }) {
+  // `optionsWith` rather than `options`, so this control can always display the
+  // value it is given. A `<select>` whose value matches no option silently shows
+  // index 0 instead — the wrong company, category or currency, on a screen that
+  // edits money. Guarded here, once, because the same defect has now been found
+  // three rounds running in whichever call sites the previous round happened to
+  // look at.
   return (
     <select id={id} aria-label={label} className={className + (invalid ? ' invalid' : '')}
-            value={value} onChange={onChange}>
+            value={value ?? ''} onChange={onChange}>
       {placeholder ? <option value="">{placeholder}</option> : null}
-      {options.map((o) => <option key={o} value={o}>{o}</option>)}
+      {optionsWith(value, options).map((o) => <option key={o} value={o}>{o}</option>)}
     </select>
   )
 }

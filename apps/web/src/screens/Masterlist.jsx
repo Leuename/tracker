@@ -1,6 +1,6 @@
 import { useActions } from '../actions.js'
 import { FREQ } from '../data.js'
-import { draftText, monthKeys, monthLabel, ruleLabel } from '../logic.js'
+import { draftText, monthKeys, monthLabel, optionsWith, ruleLabel } from '../logic.js'
 import { IconCheckCircle, IconChevronDown } from '../icons.jsx'
 
 // Category and description gained the room; how-often, due date, amount and the
@@ -73,14 +73,14 @@ export default function Masterlist() {
 
           {state.recurring.map((p) => (
             <div key={p.id} className="sheet-row compact" style={{ gridTemplateColumns: COLS, columnGap: 9, padding: '9px 28px' }}>
-              <select className="inline-field bold" value={p.co} onChange={(e) => updRec(p.id, 'co', e.target.value)} aria-label="Company">
-                {state.companies.map((c) => <option key={c} value={c}>{c}</option>)}
+              <select className="inline-field bold" value={p.co ?? ''} onChange={(e) => updRec(p.id, 'co', e.target.value)} aria-label="Company">
+                {optionsWith(p.co, state.companies).map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
-              <select className="inline-field" value={p.cat} onChange={(e) => updRec(p.id, 'cat', e.target.value)} aria-label="Category">
-                {state.categories.map((c) => <option key={c} value={c}>{c}</option>)}
+              <select className="inline-field" value={p.cat ?? ''} onChange={(e) => updRec(p.id, 'cat', e.target.value)} aria-label="Category">
+                {optionsWith(p.cat, state.categories).map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
-              <select className="inline-field" value={p.freq} onChange={(e) => updRec(p.id, 'freq', e.target.value)} aria-label="How often">
-                {FREQ.map((f) => <option key={f} value={f}>{f}</option>)}
+              <select className="inline-field" value={p.freq ?? ''} onChange={(e) => updRec(p.id, 'freq', e.target.value)} aria-label="How often">
+                {optionsWith(p.freq, FREQ).map((f) => <option key={f} value={f}>{f}</option>)}
               </select>
               <input className="inline-field" value={p.desc} onChange={(e) => updRec(p.id, 'desc', e.target.value)} aria-label="Description" />
               <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>

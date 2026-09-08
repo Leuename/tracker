@@ -1,4 +1,5 @@
 import { useActions } from '../actions.js'
+import { optionsWith, statusOptions } from '../logic.js'
 import { CSYM, CUR } from '../data.js'
 import { Field, Modal, Select } from '../ui.jsx'
 import RateField from './RateField.jsx'
@@ -39,8 +40,8 @@ export default function AddTransfer() {
 
       <div className="row-3">
         <Field label="Currency">
-          <select className="field" value={w.cur} onChange={setTel('cur')}>
-            {CUR.map((c) => <option key={c} value={c}>{CSYM[c] + '  ' + c}</option>)}
+          <select className="field" value={w.cur ?? ''} onChange={setTel('cur')}>
+            {optionsWith(w.cur, CUR).map((c) => <option key={c} value={c}>{(CSYM[c] ? CSYM[c] + '  ' : '') + c}</option>)}
           </select>
         </Field>
         <Field label="Amount" hint={CSYM[w.cur] || ''}>
@@ -48,8 +49,8 @@ export default function AddTransfer() {
                  placeholder="0.00" value={w.amount} onChange={setTel('amount')} />
         </Field>
         <Field label="Status">
-          <select className="field" value={w.status} onChange={setTel('status')}>
-            {STATUSES.map((s) => <option key={s.v} value={s.v}>{s.label}</option>)}
+          <select className="field" value={w.status ?? ''} onChange={setTel('status')}>
+            {statusOptions(w.status, STATUSES).map((s) => <option key={s.v} value={s.v}>{s.label}</option>)}
           </select>
         </Field>
       </div>

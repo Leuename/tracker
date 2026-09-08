@@ -51,6 +51,27 @@ export const tagOf = (status, tags = TAG) =>
   || { bg: '#EDEAEB', fg: '#9A8A90', label: String(status ?? 'Unknown') }
 
 /**
+ * A plain-string option list that can always display the value bound to it.
+ *
+ * The same rule as `statusOptions` below, for the lists that are arrays of
+ * strings rather than `{v, label}` pairs — companies, categories, currencies,
+ * frequencies. A `<select>` whose `value` matches no `<option>` does not error:
+ * the DOM quietly selects index 0 and the control displays a different value
+ * from the one the row holds.
+ *
+ * That is reachable for every one of those lists. `txns.co`, `txns.cat` and
+ * `transfers.cur` are free text in the database with no CHECK constraint, and
+ * the company and category lists live in `app_config` — `removeCompany` and
+ * `removeCategory` do not check whether a row still uses the value. Delete a
+ * company that rows reference and every one of those rows now displays the
+ * first company in the list instead, on a screen that edits money.
+ */
+export const optionsWith = (value, options) =>
+  (value == null || value === '' || (options || []).includes(value))
+    ? (options || [])
+    : [...(options || []), value]
+
+/**
  * The options a status `<select>` must offer so it shows the truth.
  *
  * `tagOf` alone was not enough, and round 32 caught the gap: `AckRec` and

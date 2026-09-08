@@ -3,7 +3,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { CSYM, initialState, MAX_OCC, TODAY } from './data.js'
 import {
-  addDays, alphabetical, alreadyOnSheet, amountOf, buildGeneratedRows, curFmt, dstr, eff, forecast, inPesos, monthKeys, monthKeyOf, monthLabel, occurrences, openingView, parsePeriod, periodLabel, positiveAmountOf, unpricedFor, unresolvedFor, unaccountedRows, TILE_KEYS, rateFor, ruleLabel, statusOptions, tagOf, SORTS, sortRows, summaryHTML, transferTotals, visibleRows, windowDays, viewerActions, VIEWER_MAY, pushable, pushPlan, groupKey, editRecurring, recValue, draftText, coverageFor } from './logic.js'
+  addDays, alphabetical, alreadyOnSheet, amountOf, buildGeneratedRows, curFmt, dstr, eff, forecast, inPesos, monthKeys, monthKeyOf, monthLabel, occurrences, openingView, parsePeriod, periodLabel, positiveAmountOf, unpricedFor, unresolvedFor, unaccountedRows, optionsWith, TILE_KEYS, rateFor, ruleLabel, statusOptions, tagOf, SORTS, sortRows, summaryHTML, transferTotals, visibleRows, windowDays, viewerActions, VIEWER_MAY, pushable, pushPlan, groupKey, editRecurring, recValue, draftText, coverageFor } from './logic.js'
 
 const rent = { co: 'GTOI', cat: 'Rental Expense', freq: 'Monthly', desc: 'Warehouse B monthly rent', dueDate: '2026-08-24', amount: 45000 }
 
@@ -628,6 +628,43 @@ test('unaccountedRows names every row the four tiles cannot hold', () => {
   assert.deepEqual(unaccountedRows([], today), [])
   assert.deepEqual(unaccountedRows(undefined, today), [])
   assert.deepEqual(unaccountedRows([{ id: 6, status: null, due: null, amount: 1 }], today).map((t) => t.id), [6])
+})
+
+// ROUND 33. `statusOptions` was applied only to the two sheet-row selects the
+// previous round happened to look at. The same defect survived in every edit
+// modal — EditTransaction, EditReceipt, EditTransfer — and in Masterlist's
+// company/category/frequency selects, and in the shared `Select` component that
+// sixteen more call sites use. Third round running that this pattern was fixed
+// only where the round was pointed.
+//
+// `optionsWith` is the plain-string half of the rule. The lists it guards are
+// live risks, not theoretical: `txns.co`, `txns.cat` and `transfers.cur` are
+// free text with no CHECK constraint, and `removeCompany`/`removeCategory` do
+// not check whether a row still uses the value — so deleting a company makes
+// every row that referenced it display the FIRST company instead.
+test('optionsWith lets a select display the value it is actually given', () => {
+  const cos = ['ANG', 'BAR', 'GTOI']
+  assert.equal(optionsWith('BAR', cos), cos, 'a known value adds nothing')
+  assert.deepEqual(optionsWith('ZZZ', cos), [...cos, 'ZZZ'],
+    'an unknown value must be offered, or the select shows ANG instead')
+
+  // Absent values must NOT be appended: '' is what an empty select shows, and a
+  // placeholder option already covers it.
+  assert.equal(optionsWith(null, cos), cos)
+  assert.equal(optionsWith(undefined, cos), cos)
+  assert.equal(optionsWith('', cos), cos)
+
+  // Missing option lists must not throw — this runs during render.
+  assert.deepEqual(optionsWith('ZZZ', undefined), ['ZZZ'])
+  assert.deepEqual(optionsWith(null, undefined), [])
+
+  // The caller's array is never mutated.
+  optionsWith('ZZZ', cos)
+  assert.deepEqual(cos, ['ANG', 'BAR', 'GTOI'])
+
+  // The currency case, which is the one that splits display from money: the
+  // rate maths uses the real value while the select would have shown AUD.
+  assert.deepEqual(optionsWith('CHF', ['AUD', 'EUR', 'GBP', 'PHP', 'USD']).at(-1), 'CHF')
 })
 
 test('statusOptions offers the value the row actually holds', () => {
