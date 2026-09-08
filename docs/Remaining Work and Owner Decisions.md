@@ -420,6 +420,25 @@ from `c7daee1`, because the deploy job was skipped rather than half-run. Everyth
 then touches `security/probe.mjs`, documentation and a rule file; **no application code is waiting to
 deploy**, so nothing is stranded.
 
+**Confirmed persistent, not transient.** A fresh `workflow_dispatch` of `fx.yml` at 14:37 UTC failed
+in **2 seconds with zero steps**, identical to the scheduled runs. Re-running the CI job produced the
+same shape on attempt 2. This is not a passing incident.
+
+**Mitigations already taken, so the gap is not open-ended:**
+
+- **A backup was taken by hand and committed.** The last scheduled snapshot was 11:05:25 UTC and the
+  owner marked nine payables paid at 11:26–11:28, so the only copy of the ledger held 7 completed
+  rows while production held 16. The manual snapshot captures all sixteen and matches production row
+  for row on every table. That gap is closed.
+- **The FX feed was deliberately NOT run by hand.** It is one working day behind, which is the state
+  [D43](Decisions.md) designs for — both scheduled runs land before the ECB's ~14:00 UTC publication.
+  Running it manually now would fetch *today's* rate and put the ledger **ahead** of the documented
+  behaviour, so it was left alone. It becomes a real problem only if Actions stays down for several
+  days, at which point the rate drifts genuinely stale rather than deliberately so.
+- **Nothing is waiting to deploy.** Everything committed since the last successful CI run touches
+  `security/probe.mjs`, documentation, a rule file and `backups/`. No application code is stranded,
+  and production is healthy on the bundle from `c7daee1`.
+
 **What I would do.** Check Settings → Billing for the Actions minute balance. If that is the cause,
 either top it up or accept that the scheduled jobs pause until the monthly reset — and if they are
 going to pause, take one manual backup first, because that is the only copy of the ledger outside
