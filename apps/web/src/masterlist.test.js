@@ -117,13 +117,24 @@ test('the real recEffects factory wires draft, paint, save, push and cancellatio
   }
   const save = (promise, label) => calls.push(['save', promise, label])
   const queueRow = (...args) => calls.push(['queueRow', ...args])
-  const queueCall = (key, fn) => { calls.push(['queueCall', key]); fn() }
+  // The third argument is the DELAY, and it is recorded: round 46 found that
+  // dropping it here — putting a money write back on the keystroke debounce —
+  // left the whole suite green, because no test looked at it.
+  const queueCall = (key, fn, delay) => { calls.push(['queueCall', key, delay]); fn() }
   const cancelPush = (...args) => calls.push(['cancelPush', ...args])
   const flash = (value) => calls.push(['flash', value])
-  const fx = recEffects({ set, save, db, queueRow, queueCall, cancelPush, flash, id: 7, key: 'amount' })
+  const noteWrote = (...args) => calls.push(['notePushWrote', ...args])
+  const fx = recEffects({
+    set, save, db, queueRow, queueCall, cancelPush, flash, id: 7, key: 'amount',
+    pushWrote: () => false, notePushWrote: noteWrote, forgetPushWrote: () => {},
+  })
 
   const out = applyMasterlistEdit(row, 'amount', '1250.', fx)
   assert.equal(out.pushed, true)
+  assert.equal(fx.calls === undefined, true)
+  const queued = calls.find(([n]) => n === 'queueCall')
+  assert.equal(queued[2], PUSH_DELAY,
+    'the push-down must be armed with the commit-length delay, not the keystroke one')
   assert.deepEqual(state.recDraft, { id: 7, k: 'amount', text: '1250.' })
   assert.ok(calls.some(([name]) => name === 'queueRow'))
   assert.ok(calls.some(([name]) => name === 'queueCall'))
@@ -131,56 +142,89 @@ test('the real recEffects factory wires draft, paint, save, push and cancellatio
   assert.equal(calls.some(([name]) => name === 'cancelPush'), false)
 })
 
-// ROUND 45. `cancelPush` can only stop a timer that has not fired. The push-down
-// used the same 500ms keystroke debounce as the row save — but a row save firing
-// twice is harmless, while a push-down rewrites the amount on EVERY linked open
-// Tracker row, in a ledger four people share.
+// ROUND 45, corrected by ROUND 46.
 //
-// The reported sequence: type `1250`, pause, then clear the field because the
-// payable has no amount yet. Past 500ms the push had already gone, the retract
-// could not recall it, and no compensating write exists — a blank is unpushable
-// and each row's previous amount is gone. The payable ended at "not decided",
-// the ledger at 1250, and the last toast said the rows were "updated to match".
-test('an ordinary hesitation no longer pushes a value the user takes back', () => {
-  const at = (pauseMs) => {
-    let now = 0, seq = 0
-    const q = []
-    const p = createPending(
-      (fn, ms) => { const id = ++seq; q.push({ id, at: now + ms, fn }); return id },
-      (id) => { const i = q.findIndex((t) => t.id === id); if (i >= 0) q.splice(i, 1) },
-    )
-    const tick = (ms) => { now += ms; for (const t of [...q]) if (t.at <= now) { q.splice(q.indexOf(t), 1); t.fn() } }
-    const pushes = []; const warned = []
-    let row = { id: 5, amount: 800 }
-    const fx = {
-      draft: () => {}, paint: (n) => { row = { ...row, ...n } }, saveRow: () => {},
-      queuePush: (k, patch) => p.queueCall(k, () => pushes.push(patch), PUSH_DELAY),
-      cancelPush: (id, k) => p.cancelPush(id, k),
-      pushFired: (id, k) => p.pushFired(id, k),
-      warnLateRetract: (f) => warned.push(f),
-    }
-    applyMasterlistEdit(row, 'amount', '1250', fx)
-    tick(pauseMs)
-    const r = applyMasterlistEdit(row, 'amount', '', fx)
-    tick(9000)
-    return { pushes, warned, lateRetract: r.lateRetract }
+// The round-45 version of this test built its own `fx` and passed `PUSH_DELAY`
+// itself, so it never touched `recEffects` — the half that actually runs. D99
+// then claimed the mutation turned tests red; it turned the CONSTANT's own
+// assertions red, while reverting the production wiring left all 235 green.
+// Trap 98, in the fix for a defect found by trap 98.
+//
+// This drives the real `recEffects` and the real `createPending`, so the delay
+// the app actually arms a push-down with is what is under test.
+const drive = ({ pauseMs, written = [1, 2], patchFails = false }) => {
+  let now = 0, seq = 0
+  const q = []
+  const p = createPending(
+    (fn, ms) => { const id = ++seq; q.push({ id, at: now + ms, fn }); return id },
+    (id) => { const i = q.findIndex((t) => t.id === id); if (i >= 0) q.splice(i, 1) },
+  )
+  const tick = (ms) => { now += ms; for (const t of [...q]) if (t.at <= now) { q.splice(q.indexOf(t), 1); t.fn() } }
+  const flashes = []
+  const patches = []
+  let row = { id: 5, amount: 800 }
+  const mk = (k) => recEffects({
+    set: (u) => { const n = typeof u === 'function' ? u({ txns: [], recurring: [row] }) : u; if (n.recurring) row = n.recurring[0] },
+    save: (pr) => Promise.resolve(pr).catch(() => {}),
+    db: {
+      updateRecurring: () => Promise.resolve(),
+      patchTxns: (patch) => { patches.push(patch); return patchFails ? Promise.reject(new Error('permission denied')) : Promise.resolve(written) },
+    },
+    queueRow: () => {}, queueCall: p.queueCall, cancelPush: p.cancelPush,
+    pushWrote: p.pushWrote, notePushWrote: p.notePushWrote, forgetPushWrote: p.forgetPushWrote,
+    flash: (m) => flashes.push(m), id: 5, key: k,
+  })
+  const edit = (v) => applyMasterlistEdit(row, 'amount', v, mk('amount'))
+  // `settle` lets the write's promise resolve before the retract, which is what
+  // happens in life: the push goes out, the database answers, and only then does
+  // the person clear the field.
+  const settle = () => new Promise((res) => setTimeout(res, 0))
+  return {
+    async run() {
+      edit('1250')
+      tick(pauseMs)
+      await settle()
+      const r = edit('')
+      tick(9000)
+      await settle()
+      return { patches, flashes, lateRetract: r.lateRetract, again: () => edit('0').lateRetract }
+    },
   }
+}
 
-  // The case that used to write money: a think-pause between keystrokes.
+test('the push-down the APP arms waits longer than a keystroke', async () => {
+  // Reverting `}, PUSH_DELAY)` in recEffects must break this. The round-45
+  // version could not see that change at all.
   for (const pause of [600, 1200, 2400]) {
-    const r = at(pause)
-    assert.deepEqual(r.pushes, [], pause + 'ms must not reach the ledger')
+    const r = await drive({ pauseMs: pause }).run()
+    assert.deepEqual(r.patches, [], pause + 'ms must not reach the ledger')
     assert.equal(r.lateRetract, false)
-    assert.deepEqual(r.warned, [])
   }
+  const late = await drive({ pauseMs: 3000 }).run()
+  assert.deepEqual(late.patches, [{ amount: 1250 }], 'past the window it does go out')
+})
 
-  // Past the commit window the push does go out — only an explicit commit could
-  // prevent that — but the person is TOLD, rather than left with a toast saying
-  // the rows were updated to match a value that is no longer on screen.
-  const late = at(3000)
-  assert.deepEqual(late.pushes, [{ amount: 1250 }])
-  assert.equal(late.lateRetract, true, 'the retract arrived too late and must say so')
-  assert.deepEqual(late.warned, ['amount'])
+// ROUND 46. `pushFired` recorded that the callback RAN. With no linked rows the
+// push writes nothing; if the database refuses it the write fails outright — and
+// both still warned "the rows were already updated". `flash` is a single slot,
+// so that warning ERASED the genuine error and told the person to go correct
+// rows that were never touched. Following that instruction is itself a wrong
+// money write.
+test('the late-retract warning only fires when rows were really changed', async () => {
+  const wroteNothing = await drive({ pauseMs: 3000, written: [] }).run()
+  assert.deepEqual(wroteNothing.patches, [{ amount: 1250 }], 'the push went out')
+  assert.equal(wroteNothing.lateRetract, false, 'but changed no rows, so no warning')
+  assert.equal(wroteNothing.flashes.filter((f) => /already updated/.test(f)).length, 0)
+
+  const refused = await drive({ pauseMs: 3000, patchFails: true }).run()
+  assert.equal(refused.lateRetract, false, 'a refused write must never claim the rows hold the value')
+  assert.equal(refused.flashes.filter((f) => /already updated/.test(f)).length, 0)
+})
+
+test('the warning is delivered once, not on every later keystroke', async () => {
+  const r = await drive({ pauseMs: 3000 }).run()
+  assert.equal(r.lateRetract, true, 'the first retract after a real write warns')
+  assert.equal(r.again(), false, 'and a later keystroke does not warn again')
 })
 
 test('a push-down waits materially longer than a row save', () => {

@@ -41,19 +41,27 @@ export const PUSH_DELAY = 2500
 /** Create a registry. One per module in the app; one per test in the suite. */
 export function createPending(setTimeoutFn = setTimeout, clearTimeoutFn = clearTimeout) {
   const timers = new Map()
-  // Keys whose callback has actually run. `cancel` can only stop a timer that
-  // has not fired, so this is what separates "cancelled in time" from "too late,
-  // and the write is already on its way" — a distinction the masterlist
-  // push-down needs, because the second case leaves real money rows holding a
-  // value the person took back. Round 45.
-  const fired = new Set()
+  // Keys whose write actually CHANGED ROWS.
+  //
+  // Round 45 recorded this when the timer fired, which only means the callback
+  // ran. Round 46 showed what that costs: with no linked rows the push writes
+  // nothing, and if Postgres refuses it the write fails outright — yet both
+  // reported "the rows were already updated", and because `flash` is a single
+  // slot that warning ERASED the genuine error and told the person to go correct
+  // rows that were never touched. Following that instruction is itself a wrong
+  // money write.
+  //
+  // So the caller reports it, after the write comes back and only when it
+  // changed something. Cleared by `arm` and by `cancel` alike — leaving it set
+  // made the warning repeat on every later keystroke, long after the person had
+  // already dealt with it.
+  const wrote = new Set()
 
   const arm = (key, run, delay = DELAY) => {
     clearTimeoutFn(timers.get(key))
-    fired.delete(key)
+    wrote.delete(key)
     timers.set(key, setTimeoutFn(() => {
       timers.delete(key)
-      fired.add(key)
       run()
     }, delay))
   }
@@ -62,6 +70,9 @@ export function createPending(setTimeoutFn = setTimeout, clearTimeoutFn = clearT
     clearTimeoutFn(timers.get(key))
     timers.delete(key)
   }
+
+  /** Forget that a key ever wrote, once its warning has been delivered. */
+  const forget = (key) => wrote.delete(key)
 
   return {
     /** One row write per row, coalesced. */
@@ -84,8 +95,14 @@ export function createPending(setTimeoutFn = setTimeout, clearTimeoutFn = clearT
      */
     isArmed: (key) => timers.has(key),
 
-    /** Did the push for this row and field already go out? */
-    pushFired: (id, field) => fired.has(pushKey(id, field)),
+    /** Did the push for this row and field actually change any rows? */
+    pushWrote: (id, field) => wrote.has(pushKey(id, field)),
+
+    /** The caller says so, after the write returns and only if it changed rows. */
+    notePushWrote: (id, field) => wrote.add(pushKey(id, field)),
+
+    /** One warning per push, not one per subsequent keystroke. */
+    forgetPushWrote: (id, field) => forget(pushKey(id, field)),
 
     cancelRow: (table, id) => cancel(keyOf(table, id)),
 

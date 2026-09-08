@@ -3417,8 +3417,16 @@ and the person is told: *"The linked Tracker rows were already updated with the 
 Clearing it here does not undo that."* **A wrong write that announces itself is recoverable; the same
 write under a toast claiming success is not.**
 
-Pinned at 600/1200/2400 ms and at 3000 ms; putting the push back on the 500 ms debounce turns two
-assertions red, and dropping the late-retract report turns one.
+Pinned at 600/1200/2400 ms and at 3000 ms.
+
+> **Corrected 2026-09-08 by round 46 ([D100](#d100--the-mutation-i-ran-was-not-the-mutation-that-mattered)).**
+> The sentence that followed here claimed "putting the push back on the 500 ms debounce turns two
+> assertions red". **The mutation I ran changed the CONSTANT, which the tests assert directly.
+> Reverting the production wiring — `}, PUSH_DELAY)` in `recEffects` — left all 235 green.** The
+> round-45 test built its own `fx` and passed the delay itself, so it never touched the half that
+> runs. Trap 98, inside the fix for a defect trap 98 produced. Tenth record in this loop to claim more
+> than its check established, and the first where the check and the claim were about *different lines
+> of code*.
 
 ### What round 45 cleared, function by function
 
@@ -3439,6 +3447,65 @@ overlapping loads and no out-of-order overwrite.
 `onOk`, which nothing can currently do. Latent, unproven, written down.
 
 235 assertions across 13 files.
+
+## D100 — The Mutation I Ran Was Not The Mutation That Mattered
+
+**Decision and record, 2026-09-08. Round 46**, which refuted round 45 by attacking the evidence
+behind it rather than the reasoning.
+
+### The claim, and what was actually tested
+
+[D99](#d99--a-think-pause-between-two-digits-wrote-money) said the fix was guarded: *"putting the
+push back on the 500 ms debounce turns two assertions red."* I ran that mutation and watched it go
+red. It went red because it changed `PUSH_DELAY = 2500` — **a constant the tests assert directly**:
+
+```js
+assert.ok(PUSH_DELAY > 2000)
+assert.ok(PUSH_DELAY >= DELAY * 4)
+```
+
+Reverting the **use** of it — `}, PUSH_DELAY)` back to `})` in `recEffects`, which is the entire
+production wiring and the exact pre-fix behaviour — left **all 235 tests passing**. The round-45
+regression test built its own `fx` object and passed `PUSH_DELAY` itself, so it exercised
+`applyMasterlistEdit` and never `recEffects`.
+
+**Trap 98, inside the fix for a defect that trap 98 produced.** The module's own doc comment says it
+was extracted so its caller could be pinned; the test pinned the helper and left the caller open.
+
+Tenth record in this loop to claim more than its check established, and the first where the check and
+the claim were about **different lines of code**. The rule that follows: *a mutation test proves
+something about the line you mutated. If that line is not the one shipping the behaviour, it proves
+nothing about the behaviour.*
+
+### The warning lied on two paths
+
+`fired.add(key)` ran when the timer fired, so `pushFired` meant "the callback executed" — never "the
+database accepted it". Two consequences, both on a money screen:
+
+- **No linked rows.** The push writes nothing, and the retract still announced *"The linked Tracker
+  rows were already updated with the previous amount… set it on those rows if it is wrong."* With
+  `recurring` currently empty in production, that is the *normal* path.
+- **The write was refused.** The genuine error — `Couldn't save the linked Tracker rows — permission
+  denied` — was flashed first, and then **overwritten** by the warning, because `flash` is a single
+  slot. The person is told the rows hold a value they do not hold, and instructed to go correct them.
+  **Following that instruction is itself a wrong money write.**
+
+D99's own thesis was that a wrong write which announces itself is recoverable. The inverse was also
+true here: a write that never happened announced itself as having happened, and the announcement
+outranked the error.
+
+Now the caller reports it — after the write returns, and only when `written.length > 0`. And `cancel`
+clears the record, because leaving it set re-warned on every later keystroke, long after the person
+had dealt with it.
+
+### The mutations that run now
+
+Against the **production wiring**, not the constant: dropping `PUSH_DELAY` at the call site turns two
+assertions red, stubbing `warnLateRetract` one, never recording a write one, never forgetting one
+one. The rewritten test drives the real `recEffects` with the real `createPending` and a fake clock,
+and lets the write settle before the retract — which is what happens in life.
+
+237 assertions across 13 files.
 
 ## Guideline Basis
 

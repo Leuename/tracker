@@ -17,7 +17,7 @@ import { addToList, alphabetical, amountOf, buildGeneratedRows, fmt, isMonthKey,
 // three defects in this session were cancellation bugs in it, and the last fix
 // could be deleted with the whole suite still green (D68, trap 91).
 const pending = createPending()
-const { queueRow, queueCall, cancelRow, cancelPush, cancelForRecurring, pushFired } = pending
+const { queueRow, queueCall, cancelRow, cancelPush, cancelForRecurring, pushWrote, notePushWrote, forgetPushWrote } = pending
 
 /**
  * Every mutation in one hook, ported from the prototype's DCLogic methods.
@@ -668,7 +668,7 @@ export function useActions() {
   const blurRec = () => set({ recDraft: null })
 
   const updRec = (id, k, v) => applyMasterlistEdit(state.recurring.find((p) => p.id === id), k, v,
-    recEffects({ set, save, db, queueRow, queueCall, cancelPush, pushFired, flash, id, key: k }))
+    recEffects({ set, save, db, queueRow, queueCall, cancelPush, pushWrote, notePushWrote, forgetPushWrote, flash, id, key: k }))
 
   /**
    * Removing a payable unlinks its rows rather than taking them with it.
