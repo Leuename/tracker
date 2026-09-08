@@ -87,8 +87,13 @@ test('the rows hang off the generated line, not the last line of the report', ()
   assert.match(lines[0], /^- Added 1 payable\(s\)/)
   assert.match(lines[1], /^ {2}- GTOI · Rent · Retainer · due 2026-09-15$/)
   assert.match(lines[2], /have no amount and were skipped/)
-  assert.ok(lines.indexOf(lines.find((l) => /^ {2}- /.test(l))) < lines.findIndex((l) => /no amount/.test(l)),
-    'the detail must precede the unrelated outcome, not hang under it')
+  // Positional, not `indexOf(find(...))`: that returns -1 when no detail row
+  // exists at all, and -1 < anything passes vacuously — a pin that cannot fail.
+  const detailAt = lines.findIndex((l) => /^ {2}- /.test(l))
+  const unrelatedAt = lines.findIndex((l) => /no amount/.test(l))
+  assert.notEqual(detailAt, -1, 'there must BE a detail row for this assertion to mean anything')
+  assert.notEqual(unrelatedAt, -1)
+  assert.ok(detailAt < unrelatedAt, 'the detail must precede the unrelated outcome, not hang under it')
 
   // Unresolved identity is the other multi-outcome shape.
   const both = classifySchedule({ recurring: [{}, {}], dueCount: 2, rows, unresolved: [{ id: 9 }] })
