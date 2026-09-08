@@ -1,5 +1,5 @@
 import { useActions } from '../actions.js'
-import { TAG } from '../data.js'
+import { TAG, bare } from '../data.js'
 import { SORTS, dstr, eff, fmt, forecast, groupKey, monthKeys, monthLabel, sortRows, unresolvedFor, unpricedFor, visibleRows, own } from '../logic.js'
 import { Check, Tag, stopRowKeys } from '../ui.jsx'
 import { IconExport, IconFilter, IconSort } from '../icons.jsx'
@@ -33,7 +33,7 @@ export default function Tracker() {
     (state.search ? 1 : 0)
 
   const toggleAll = () => set(() => {
-    if (!allOpen) return { collapsed: {} }
+    if (!allOpen) return { collapsed: bare({}) }
     const c = {}
     order.forEach((k) => { c[k] = true })
     return { collapsed: c }

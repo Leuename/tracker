@@ -1,5 +1,5 @@
 import { useActions } from '../actions.js'
-import { MON, TODAY } from '../data.js'
+import { MON, TODAY, bare } from '../data.js'
 import { addDays, eff, fmt, forecast, longDate, unaccountedRows, unresolvedFor, windowDays } from '../logic.js'
 import { Check, Select } from '../ui.jsx'
 import { IconChevronRight, IconPencil, IconTrash } from '../icons.jsx'
@@ -174,7 +174,7 @@ export default function Dashboard() {
                 ? () => set({ screen: 'masterlist', genMonth: b.month })
                 : () => set({
                   screen: 'tracker', catFilter: b.cat, coFilter: 'All companies', search: '',
-                  collapsed: {}, statuses: { pending: true, overdue: true, completed: false, hold: false },
+                  collapsed: bare({}), statuses: bare({ pending: true, overdue: true, completed: false, hold: false }),
                   filtersOpen: false, settingsMenuOpen: false,
                 })
               return (

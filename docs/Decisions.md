@@ -2835,6 +2835,14 @@ trap 104, inside the file written to prevent this class.
 **however it is spelled** — raw, optional-chained, reflected, destructured, template-keyed, or split
 across lines.
 
+> **Corrected 2026-09-08 by round 37 ([D91](#d91--a-guarantee-that-did-not-survive-its-own-lifecycle)).**
+> That paragraph was true of eight of the ten maps and false of two. `statuses` and `collapsed` are
+> reducer state, and **a spread of a null-prototype object produces an ordinary one** — so the
+> guarantee lasted until the first status toggle and no longer. `bare()` was applied where the maps
+> are *constructed*; the test written to prove it checked only `TAG` and `CSYM`, which are constants
+> and never change. Every construction site is re-bared now and the lifecycle is pinned. **The two
+> guarantees are not the same strength and D91 states which is which.**
+
 **A regex over source text can always be out-written. A missing prototype cannot.** The guard moved
 from the spelling of the access into the data itself, which is the only version of this fix that does
 not need a sixth round to find the site it missed.
@@ -2863,6 +2871,60 @@ table names from a fixed app-controlled enumeration rather than user text. That 
 is **not** covered by this check, and no claim is made that it is.
 
 224 assertions across 13 files.
+
+## D91 — A Guarantee That Did Not Survive Its Own Lifecycle
+
+**Decision and record, 2026-09-08. Round 37**, which refuted round 36.
+
+[D90](#d90--make-the-shape-impossible-not-detectable) said the inherited-key class was closed
+structurally, because every map indexed by row data is built with `Object.create(null)`. Round 37
+ran the reducer's own expressions and printed the answer:
+
+```
+initial statuses proto null? true
+after one toggle, proto null? false
+statuses.constructor now: [Function: Object]
+```
+
+**A spread of a null-prototype object produces an ordinary one.** `{ ...s.statuses, [k]: v }` is how
+every status toggle and every group collapse works, so the guarantee held until the user's first
+interaction — which is to say, in practice, not at all. It was true of eight maps and false of the
+two that are actually mutable.
+
+The proof test could not catch it because it checked `TAG` and `CSYM`: constants, which never spread.
+**`bare()` was applied at construction and verified at construction, while the defect lives in the
+lifecycle.** Trap 101 in fresh clothes — the guard was placed where it belonged and tested where it
+was placed, not where the value goes.
+
+### The decision, and an honest statement of two different strengths
+
+Every construction site is re-bared — the two spreads, the `tileFilter` reset, the Dashboard
+deadline reset, both group-by buttons in `Filters.jsx`, and `Tracker.jsx`'s expand-all. **Four of
+those seven were not in round 37's report**; a grep for `collapsed: {}` and `statuses: {` found them,
+which is the same lesson as [D87](#d87--the-same-defect-three-rounds-running-in-whichever-files-were-named):
+fix the pattern, not the sites you were handed.
+
+But the two guarantees are **not** equally strong, and saying so is the point of this record:
+
+| Map | Guarantee | Strength |
+|---|---|---|
+| `TAG`, `CSYM`, `TRANSFER_RATES`, `PUSH_DOWN`, `SCREENS`, `ROWS`, `ACK_STATUS`, `fxRates` | built once with `bare()`, never spread | **structural** — cannot be undone by later code |
+| `statuses`, `collapsed` | `bare()` at every construction site | **conventional** — any future spread that forgets re-bares nothing, silently |
+
+So for the mutable pair the load-bearing guard remains `own()` at the point of access, which is
+immune to a prototype whether or not the object has one — `logic.js:541`, `Tracker.jsx:26,156`. The
+`bare()` calls there are defence in depth. A test now pins the lifecycle rather than the
+construction: toggling through the exact reducer expressions must leave the prototype null, and a
+plain spread turns it red.
+
+### Five records have now overstated their evidence
+
+D85, D88, D89's ratchet, D90, and D90's own correction scope. The pattern is consistent enough to
+name: **a fix is verified where it is written, and the claim is then stated for where the value
+travels.** The remedy that has actually worked is to write the check so it runs over the thing being
+claimed — `lookups.test.js` for the class, and now the lifecycle test for the reducer.
+
+225 assertions across 13 files.
 
 ## Guideline Basis
 

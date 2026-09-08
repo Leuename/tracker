@@ -712,6 +712,41 @@ test('the constant maps have no prototype to inherit from', () => {
   }
 })
 
+// ROUND 37. `bare()` was applied where these maps are CONSTRUCTED, and the test
+// above only checked `TAG` and `CSYM` — which are constants and never change.
+// `statuses` and `collapsed` are reducer state, and **a spread of a
+// null-prototype object produces an ordinary one**, so the guarantee lasted
+// until the first status toggle and no longer. D90 claimed it held for all ten
+// maps; it held for eight.
+//
+// This pins the LIFECYCLE, not the construction — the distinction round 37 used.
+test('mutable state stays prototype-less across the reducer expressions', () => {
+  assert.equal(Object.getPrototypeOf(initialState.statuses), null, 'at rest')
+  assert.equal(Object.getPrototypeOf(initialState.collapsed), null)
+
+  // The exact expressions `actions.js` uses to toggle a status filter and a
+  // group. A plain `{ ...s.statuses }` here is what the defect was.
+  let statuses = initialState.statuses
+  for (const k of ['pending', 'hold', 'pending']) {
+    statuses = bare({ ...statuses, [k]: !statuses[k] })
+    assert.equal(Object.getPrototypeOf(statuses), null, 'still bare after toggling ' + k)
+    assert.equal(statuses.constructor, undefined, 'and no constructor to find')
+  }
+  assert.equal(statuses.pending, initialState.statuses.pending, 'two toggles return the value')
+
+  let collapsed = initialState.collapsed
+  for (const name of ['ANG', 'constructor', 'Rental Expense']) {
+    collapsed = bare({ ...collapsed, [name]: true })
+    assert.equal(Object.getPrototypeOf(collapsed), null, 'still bare after collapsing ' + name)
+  }
+  assert.equal(collapsed.constructor, true, 'a GROUP named constructor is its own entry, not the prototype')
+
+  // And the resets, which are their own construction sites.
+  for (const reset of [bare({}), bare({ pending: true, overdue: true, completed: false, hold: false })]) {
+    assert.equal(Object.getPrototypeOf(reset), null)
+  }
+})
+
 test('bare keeps every real entry while dropping the prototype', () => {
   const m = bare({ USD: '$', PHP: '\u20B1' })
   assert.equal(m.USD, '$')

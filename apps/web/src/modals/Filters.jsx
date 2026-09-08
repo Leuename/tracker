@@ -1,4 +1,5 @@
 import { useActions } from '../actions.js'
+import { bare } from '../data.js'
 import { eff, visibleRows } from '../logic.js'
 import { Check, Select, useEscapeToClose } from '../ui.jsx'
 
@@ -69,9 +70,9 @@ export default function Filters() {
           <div className="eyebrow" style={{ marginBottom: 7 }}>Group rows by</div>
           <div style={{ display: 'flex', gap: 6 }}>
             <button type="button" className={'pill' + (state.groupBy === 'company' ? ' on' : '')}
-                    style={{ flex: 1 }} onClick={() => set({ groupBy: 'company', collapsed: {} })}>Company</button>
+                    style={{ flex: 1 }} onClick={() => set({ groupBy: 'company', collapsed: bare({}) })}>Company</button>
             <button type="button" className={'pill' + (state.groupBy === 'category' ? ' on' : '')}
-                    style={{ flex: 1 }} onClick={() => set({ groupBy: 'category', collapsed: {} })}>Category</button>
+                    style={{ flex: 1 }} onClick={() => set({ groupBy: 'category', collapsed: bare({}) })}>Category</button>
           </div>
         </div>
 

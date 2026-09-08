@@ -46,12 +46,12 @@ export function useActions() {
 
   /** Tile click: jump to the Tracker already filtered to that status, filters cleared. */
   const tileFilter = (key) => () => {
-    const statuses = { pending: false, overdue: false, completed: false, hold: false }
+    const statuses = bare({ pending: false, overdue: false, completed: false, hold: false })
     if (key === 'all') Object.keys(statuses).forEach((k) => { statuses[k] = true })
     else statuses[key] = true
     set({
       screen: 'tracker', statuses, coFilter: 'All companies', catFilter: 'All categories',
-      search: '', collapsed: {}, filtersOpen: false, settingsMenuOpen: false,
+      search: '', collapsed: bare({}), filtersOpen: false, settingsMenuOpen: false,
     })
   }
 
@@ -961,15 +961,18 @@ export function useActions() {
 
   // ---- tracker filters -------------------------------------------------
   const toggleStatus = (k) => () =>
-    set((s) => ({ statuses: { ...s.statuses, [k]: !s.statuses[k] } }))
+    // `bare(...)`, not `{...}`: spreading a null-prototype object produces an
+    // ORDINARY one, so without this the guarantee lasted until the first toggle
+    // and no longer. Round 37.
+    set((s) => ({ statuses: bare({ ...s.statuses, [k]: !s.statuses[k] }) }))
 
   const toggleGroup = (name) => () =>
     // Keyed by a company or category name, both free text. See `own`.
-    set((s) => ({ collapsed: { ...s.collapsed, [name]: !own(s.collapsed, name) } }))
+    set((s) => ({ collapsed: bare({ ...s.collapsed, [name]: !own(s.collapsed, name) }) }))
 
   const clearFilters = () => set({
     coFilter: 'All companies', catFilter: 'All categories', search: '',
-    statuses: { pending: true, overdue: true, completed: false, hold: false },
+    statuses: bare({ pending: true, overdue: true, completed: false, hold: false }),
   })
 
   const field = (k) => (e) => set({ [k]: e.target.value })
