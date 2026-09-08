@@ -450,6 +450,17 @@ same shape on attempt 2. This is not a passing incident.
   billing problem would remove the gate exactly when nothing else is checking. Production is healthy
   on `c7daee1`'s bundle.
 
+**`verify.yml`'s coverage has been reproduced by hand, so the gap is proven rather than assumed.**
+All three of its suites were run locally against production on 2026-09-08 after the failures began:
+`npx playwright test --workers=1` **52/52**, `npm run security` **60 checks 0 failed**, and
+`npm run smoke` **passed — including the receipt document stored, read back and restored
+byte-for-byte**, which is the only check that exercises the storage round trip. Production was
+verified clean afterwards: 49 txns at ₱2,226,438.00, 3 receipts, 12 transfers, zero smoke residue,
+zero `E2E-` residue, `__e2eHeld` null, backup proof intact.
+
+So while Actions is down, nothing is unverified — it is being verified by hand instead, which does
+not scale past a day or two and is the reason this needs closing rather than tolerating.
+
 **What I would do.** Check Settings → Billing for the Actions minute balance. If that is the cause,
 either top it up or accept that the scheduled jobs pause until the monthly reset — and if they are
 going to pause, take one manual backup first, because that is the only copy of the ledger outside
