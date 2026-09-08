@@ -6,15 +6,15 @@ status: current
 kind: complete continuation package — THE entry point. A fresh chat resumes from this file.
 supersedes: "[[2026-09-07 Session Continuation, Rounds One to Twenty-Five]] as the entry point. It is not obsolete: it remains the record of rounds 1-25 and the shape of the loop."
 covers: "the owner-authorised occurrence-identity rollout — rehearsal, two production migrations, deployment — and adversarial rounds 26 to 30, which produced decisions D80 to D83"
-decisions-made: "[[Decisions]] D80 to D84"
-verification-status: "The rollout is COMPLETE and verified. Rounds 27 to 30 each REFUTED the one before; every finding is fixed, deployed and mutation-checked. Round 30's own fix BLANKED PRODUCTION for ten and a half minutes and was reverted and relanded. Round 31 was dispatched and its result is NOT in this document."
+decisions-made: "[[Decisions]] D80 to D85"
+verification-status: "The rollout is COMPLETE and verified. Rounds 27 to 31 each REFUTED the one before; every finding is fixed, deployed and mutation-checked. Round 30's own fix BLANKED PRODUCTION for ten and a half minutes and was reverted and relanded. Round 32 was dispatched and its result is NOT in this document."
 related:
   - "[[2026-09-07 Session Continuation, Rounds One to Twenty-Five]] — rounds 1-25 and the loop's shape"
   - "[[2026-09-06 The Review Loop, Rounds One to Twenty]] — the round-by-round ledger and the rate-limit history"
   - "[[2026-09-05 The Design Port, and Three Requirements the File Did Not Show]] — the design port, the twelve client requirements, the eighty-one-row findings table, traps 77-107"
-  - "[[Decisions]] — D1 to D84, the authority on what is authorised"
+  - "[[Decisions]] — D1 to D85, the authority on what is authorised"
   - "[[Repository Evidence]] — the factual baseline"
-  - "[[Remaining Work and Owner Decisions]] — A1-A2, B1-B2, C5-C7"
+  - "[[Remaining Work and Owner Decisions]] — A1-A2, B1-B2, C5-C8"
   - "[[Handoff Index]] — every handoff, newest first"
 up: "[[AI Agent Context]]"
 ---
@@ -62,7 +62,8 @@ after the LAST phase.**
 | **29** | **REFUTED, 3** | **The round-28 rollback closed a feedback loop** — 79 writes and 79 toasts from one toggle in 500ms; a guard that skipped the case it was written for; row detail attached to the wrong summary line |
 | **30** | **REFUTED, 2** | The round-29 rollback **still** lost the change it was written to recover — the patch was computed at effect time and frozen in the debounce closure; and the whole of round 29's fix could be deleted with 201 tests green |
 | — | **a production outage** | Round 30's fix dropped two `const` declarations. `ReferenceError` from `StoreProvider`'s render, React unmounted the tree, **production blank for ten and a half minutes**. Build green, 209 tests green, gate green, deployed |
-| 31 | **dispatched; result not in this document** | |
+| **31** | **REFUTED, 2** | **A `receipts.status` outside the four the dropdown offers blanked the whole app**, unrecoverable by reload — one pattern in three places, guarded in one. And **Escape was dead for every dialog opened from a row control** |
+| 32 | **dispatched; result not in this document** | |
 
 Decisions [[Decisions]] D81 to D84 carry the reasoning. Four findings across these rounds were
 introduced by the previous round's fix, which is the loop's oldest pattern.
@@ -96,8 +97,8 @@ your own writes, never against a number in a document.
 
 | | |
 |---|---|
-| `npm test` | **209/209** across 12 files, offline |
-| `npx playwright test --workers=1` | **51/51** against the deployed bundle, run after phase 2 |
+| `npm test` | **212/212** across 12 files, offline |
+| `npx playwright test --workers=1` | **52/52**, run against a local dev server before each push and against the deployment after |
 | `npm run security` | **57 checks, 0 failed, 0 deferred**; `OCCURRENCE_IDENTITY_PHASE` now defaults to `2` |
 | `npm audit` | **0** |
 | `npm run build` | green, `vite v8.2.2` |
@@ -124,11 +125,12 @@ now in `AGENTS.md` and `CLAUDE.md`.
 
 Also unverified:
 
-- **Round 31's result is not in this document.** Check it before treating the loop as clean.
+- **Round 32's result is not in this document.** Check it before treating the loop as clean.
 - Never audited by any round: `src/App.jsx`, `src/icons.jsx`, `src/screens/Settings.jsx`,
-  `AckRec.jsx`, `Telegraphic.jsx`, `Dashboard.jsx`, `src/modals/*.jsx` other than `PayMethod`,
-  `scripts/rewind.mjs`, `scripts/fx.mjs`. Round 29 cleared the migrations.
-- **The loop has never returned clean in thirty rounds.** Do not report this work as defect-free.
+  `Dashboard.jsx`, `Masterlist.jsx`, `Tracker.jsx`, `src/modals/*.jsx` other than `PayMethod`,
+  `scripts/rewind.mjs`, `scripts/fx.mjs`. Round 29 cleared the migrations; round 31 covered
+  `AckRec.jsx`, `Telegraphic.jsx` and `ui.jsx` — **and found a defect in each of the first two.**
+- **The loop has never returned clean in thirty-one rounds.** Do not report this work as defect-free.
 
 ## 7. Still open — none of it is mine to close
 
@@ -221,12 +223,12 @@ NON-NULL __e2eHeld a run was killed mid-spec — do not clear it by hand, run th
 beforeAll give the value back. Afterwards run `rm -rf apps/web/test-results`: traces hold
 E2E_PASSWORD and live refresh tokens in plaintext.
 
-CONTINUE THE REVIEW LOOP. Round 31 was dispatched against round 30's fixes and ITS RESULT IS NOT IN
-THE HANDOFF — find out whether it finished before assuming anything. Round 30's fixes are in commit
-daee328: apps/web/src/config-save.js is new and owns the config baseline, the diff and the rollback,
-with send() taking a config rather than a patch so a frozen patch is unrepresentable;
-apps/web/src/store.jsx keeps only the debounce and the wiring; scripts/backup.mjs refuses a
-non-numeric row count instead of reading it as zero. ROUNDS 1-30 ALL FOUND SOMETHING. THE LOOP HAS NEVER RETURNED CLEAN, NO ROUND HAS EVER SURVIVED THE
+CONTINUE THE REVIEW LOOP. Round 32 was dispatched against round 31's fixes and ITS RESULT IS NOT IN
+THE HANDOFF — find out whether it finished before assuming anything. Round 31's fixes are in commit
+b0e5b19: apps/web/src/logic.js gained tagOf, which AckRec.jsx, Telegraphic.jsx and ui.jsx's Tag all
+route through so an unrecognised status cannot throw out of render; and stopRowKeys replaced
+onKeyDown={stop} in those two screens so Escape reaches modals opened from row controls.
+ROUNDS 1-31 ALL FOUND SOMETHING. THE LOOP HAS NEVER RETURNED CLEAN, NO ROUND HAS EVER SURVIVED THE
 NEXT ONE, and roughly half of all findings were introduced by the fix for the previous defect.
 
 RUN THE E2E SUITE AGAINST A LOCAL DEV SERVER BEFORE PUSHING ANYTHING UNDER apps/web/src/.
@@ -266,10 +268,19 @@ THE TRAPS THAT KEEP BITING, AND HOW THE LAST FOUR ROUNDS FOUND THEIR DEFECTS:
 - TRAP 98: delete each fix AT ITS CALL SITE, not in the helper.
 - TRAP 101: moving a guard to where it belongs can move it out of where it was tested.
 
-ALSO ASK WHAT HAS NEVER BEEN IN SCOPE. Rounds 21, 23, 24 and 27 each found their worst defect in code
-no round had examined. Still unaudited: src/App.jsx, src/icons.jsx, src/screens/Settings.jsx,
-AckRec.jsx, Telegraphic.jsx, Dashboard.jsx, src/modals/*.jsx other than PayMethod, scripts/rewind.mjs,
-scripts/backup.mjs, scripts/fx.mjs. Round 29 cleared the migrations.
+ALSO ASK WHAT HAS NEVER BEEN IN SCOPE. Rounds 21, 23, 24, 27 and 31 each found their worst defect in
+code no round had examined. Still unaudited: src/App.jsx, src/icons.jsx, src/screens/Settings.jsx,
+Dashboard.jsx, Masterlist.jsx, Tracker.jsx, src/modals/*.jsx other than PayMethod, scripts/rewind.mjs,
+scripts/fx.mjs. Round 29 cleared the migrations; round 31 covered AckRec.jsx, Telegraphic.jsx and
+ui.jsx and found a defect in each of the first two.
+
+THE TECHNIQUE THAT IS FINDING THINGS: drive a real browser against a LOCAL dev server, listen for
+pageerror and console.error, and rewrite PostgREST GET responses in flight with page.route to inject
+values the UI never produces — never by writing to the database. Round 31 found both of its defects
+that way, including one it proved with a real keyboard press and document.activeElement. Look for an
+unguarded lookup on a plain object keyed by data the database does not constrain: txns.status,
+receipts.status, transfers.status, transfers.cur, txns.co and txns.cat are ALL free text with no
+CHECK constraint, enforced by dropdowns and nothing else.
 
 Each round: dispatch a fresh-context `verifier` subagent; tell it what changed since the last round
 and to ATTACK THAT FIRST; give it the defect families and the traps above; require it to MUTATION-TEST
@@ -279,11 +290,13 @@ security probe; forbid Playwright unless a finding demands it AND the owner is n
 `rm -rf apps/web/test-results` afterwards; and refuse a clean verdict that does not list the attempts
 behind it. Keep running rounds until one comes back genuinely empty.
 
-FOUR THINGS NEED THE OWNER AND ARE NOT YOURS TO CLOSE. C5: admin@admin.com / admin is still live —
+FIVE THINGS NEED THE OWNER AND ARE NOT YOURS TO CLOSE. C5: admin@admin.com / admin is still live —
 viewer role, reads the whole ledger, most-guessed credential on the internet, deferred twice; do not
 rotate it yourself, because putting a production credential in a transcript is itself a disclosure.
 C6: scheduled runs land 2.5-5 hours late. C7: three released wires carry no rate, and both halves are
-owner decisions. And the Vercel project setting that exposes system variables to the framework prefix
+owner decisions. C8: status is free text in the database on txns, receipts and transfers — the crash
+it caused is fixed in the client, but a rogue status still drops a payable from the Tracker sheet AND
+the grand total, and adding the CHECK is a production schema change. And the Vercel project setting that exposes system variables to the framework prefix
 is still on — the code no longer reads them, which is the durable fix, but a future file could
 reopen it.
 
