@@ -6,13 +6,13 @@ status: current
 kind: complete continuation package — THE entry point. A fresh chat resumes from this file.
 supersedes: "[[2026-09-07 Session Continuation, Rounds One to Twenty-Five]] as the entry point. It is not obsolete: it remains the record of rounds 1-25 and the shape of the loop."
 covers: "the owner-authorised occurrence-identity rollout — rehearsal, two production migrations, deployment — and adversarial rounds 26 to 30, which produced decisions D80 to D83"
-decisions-made: "[[Decisions]] D80 to D83"
-verification-status: "The rollout is COMPLETE and verified. Rounds 27, 28 and 29 each REFUTED the one before; every finding is fixed, deployed and mutation-checked. Round 30 was dispatched and its result is NOT in this document — check before assuming the loop is clean."
+decisions-made: "[[Decisions]] D80 to D84"
+verification-status: "The rollout is COMPLETE and verified. Rounds 27 to 30 each REFUTED the one before; every finding is fixed, deployed and mutation-checked. Round 30's own fix BLANKED PRODUCTION for ten and a half minutes and was reverted and relanded. Round 31 was dispatched and its result is NOT in this document."
 related:
   - "[[2026-09-07 Session Continuation, Rounds One to Twenty-Five]] — rounds 1-25 and the loop's shape"
   - "[[2026-09-06 The Review Loop, Rounds One to Twenty]] — the round-by-round ledger and the rate-limit history"
   - "[[2026-09-05 The Design Port, and Three Requirements the File Did Not Show]] — the design port, the twelve client requirements, the eighty-one-row findings table, traps 77-107"
-  - "[[Decisions]] — D1 to D83, the authority on what is authorised"
+  - "[[Decisions]] — D1 to D84, the authority on what is authorised"
   - "[[Repository Evidence]] — the factual baseline"
   - "[[Remaining Work and Owner Decisions]] — A1-A2, B1-B2, C5-C7"
   - "[[Handoff Index]] — every handoff, newest first"
@@ -60,9 +60,11 @@ after the LAST phase.**
 | **27** | **REFUTED, 4** | **`coverageFor`'s month scope was dead code — a monthly payable generated once, ever.** Plus `payErr` with no reader, a doubled scheduler summary, and the probe failing by default against a correctly locked database |
 | **28** | **REFUTED, 4** | The `occurrence_due` READ mapping was never pinned **and a commit message claimed it was**; a new e2e assertion that could not fail; a hardcoded month pair that expires; report ordering that no test could reach |
 | **29** | **REFUTED, 3** | **The round-28 rollback closed a feedback loop** — 79 writes and 79 toasts from one toggle in 500ms; a guard that skipped the case it was written for; row detail attached to the wrong summary line |
-| 30 | **dispatched; result not in this document** | Died once on a session rate limit and was relaunched |
+| **30** | **REFUTED, 2** | The round-29 rollback **still** lost the change it was written to recover — the patch was computed at effect time and frozen in the debounce closure; and the whole of round 29's fix could be deleted with 201 tests green |
+| — | **a production outage** | Round 30's fix dropped two `const` declarations. `ReferenceError` from `StoreProvider`'s render, React unmounted the tree, **production blank for ten and a half minutes**. Build green, 209 tests green, gate green, deployed |
+| 31 | **dispatched; result not in this document** | |
 
-Decisions [[Decisions]] D81, D82, D83 carry the reasoning. Three findings across these rounds were
+Decisions [[Decisions]] D81 to D84 carry the reasoning. Four findings across these rounds were
 introduced by the previous round's fix, which is the loop's oldest pattern.
 
 **Two of them were mine and are worth naming.** I wrote a `.catch(() => {})` onto the one assertion
@@ -84,6 +86,8 @@ fresh verifier.
   probe's phase defaulted to `1`. Fixed, and the workflow now states its expectation.
 - **A `git add -A` swept a verifier's in-flight mutation into a commit** and pushed it. The gate
   caught it in 12 seconds and the deploy was skipped. Stage explicit paths while an agent is running.
+- **I blanked production for ten and a half minutes** relanding round 30's fix. See D84 and section 6
+  — the rule that came out of it is the most useful thing in this handoff.
 
 ## 5. Live state
 
@@ -92,7 +96,7 @@ your own writes, never against a number in a document.
 
 | | |
 |---|---|
-| `npm test` | **201/201** across 11 files, offline |
+| `npm test` | **209/209** across 12 files, offline |
 | `npx playwright test --workers=1` | **51/51** against the deployed bundle, run after phase 2 |
 | `npm run security` | **57 checks, 0 failed, 0 deferred**; `OCCURRENCE_IDENTITY_PHASE` now defaults to `2` |
 | `npm audit` | **0** |
@@ -106,17 +110,25 @@ your own writes, never against a number in a document.
 | `E2E-` residue | 0 everywhere |
 | Git | **everything committed and pushed**; the gate ran green on every push and production is deployed |
 
-## 6. What is NOT verified
+## 6. What is NOT verified — and the rule that matters most
 
-- **Round 30's result is not in this document.** Check it before treating the loop as clean.
-- **The config retry loop and its rollback have no automated test.** `store.jsx` is React and nothing
-  offline imports it. Both were proved by harness — evidence, not coverage. A future edit can
-  reintroduce either with the suite green.
+**`npm test` imports no `.jsx` at all.** Not `store.jsx`, not `App.jsx`, not a single screen or
+modal. A render-time error in any component passes `npm test`, passes `npm run build`, passes the CI
+gate, deploys, and blanks the page for every signed-in user. That is not hypothetical: it happened on
+2026-09-08 and cost ten and a half minutes of blank production (D84).
+
+**So: run the Playwright suite against a LOCAL dev server before pushing anything under
+`apps/web/src/`.** `E2E_REQUIRE_CREDENTIALS=1 npx playwright test --workers=1` with `E2E_BASE_URL`
+unset. It drives the real UI and is the only check here that does. Two and a half minutes. This is
+now in `AGENTS.md` and `CLAUDE.md`.
+
+Also unverified:
+
+- **Round 31's result is not in this document.** Check it before treating the loop as clean.
 - Never audited by any round: `src/App.jsx`, `src/icons.jsx`, `src/screens/Settings.jsx`,
   `AckRec.jsx`, `Telegraphic.jsx`, `Dashboard.jsx`, `src/modals/*.jsx` other than `PayMethod`,
-  `scripts/rewind.mjs`, `scripts/backup.mjs`, `scripts/fx.mjs`. Round 29 cleared the migrations.
-- **The loop has never returned clean in twenty-nine rounds.** Do not report this work as
-  defect-free.
+  `scripts/rewind.mjs`, `scripts/fx.mjs`. Round 29 cleared the migrations.
+- **The loop has never returned clean in thirty rounds.** Do not report this work as defect-free.
 
 ## 7. Still open — none of it is mine to close
 
@@ -209,13 +221,20 @@ NON-NULL __e2eHeld a run was killed mid-spec — do not clear it by hand, run th
 beforeAll give the value back. Afterwards run `rm -rf apps/web/test-results`: traces hold
 E2E_PASSWORD and live refresh tokens in plaintext.
 
-CONTINUE THE REVIEW LOOP. Round 30 was dispatched against round 29's fixes and ITS RESULT IS NOT IN
-THE HANDOFF — find out whether it finished before assuming anything. Round 29's fixes are: the config
-effect in apps/web/src/store.jsx now keys on JSON.stringify(configOf(state)) instead of on state, and
-rolls its baseline back unconditionally on a refused write; and formatScheduleReport in
-apps/web/scripts/schedule-plan.js attaches row detail to the `generated` outcome specifically.
-ROUNDS 1-29 ALL FOUND SOMETHING. THE LOOP HAS NEVER RETURNED CLEAN, NO ROUND HAS EVER SURVIVED THE
+CONTINUE THE REVIEW LOOP. Round 31 was dispatched against round 30's fixes and ITS RESULT IS NOT IN
+THE HANDOFF — find out whether it finished before assuming anything. Round 30's fixes are in commit
+daee328: apps/web/src/config-save.js is new and owns the config baseline, the diff and the rollback,
+with send() taking a config rather than a patch so a frozen patch is unrepresentable;
+apps/web/src/store.jsx keeps only the debounce and the wiring; scripts/backup.mjs refuses a
+non-numeric row count instead of reading it as zero. ROUNDS 1-30 ALL FOUND SOMETHING. THE LOOP HAS NEVER RETURNED CLEAN, NO ROUND HAS EVER SURVIVED THE
 NEXT ONE, and roughly half of all findings were introduced by the fix for the previous defect.
+
+RUN THE E2E SUITE AGAINST A LOCAL DEV SERVER BEFORE PUSHING ANYTHING UNDER apps/web/src/.
+`E2E_REQUIRE_CREDENTIALS=1 npx playwright test --workers=1` with E2E_BASE_URL unset. npm test imports
+no .jsx at all, so a ReferenceError in a React component passes the tests, passes the build, passes
+the gate, deploys, and blanks the page for everyone. That happened on 2026-09-08 — ten and a half
+minutes of blank production, ended by git revert. The Playwright suite is the ONLY check here that
+drives the real UI.
 
 NEVER RUN A ROUND IN THE MAIN SESSION IF A SUBAGENT IS AVAILABLE, and never report a main-session
 round as clean. Rounds 16-18 were run by hand under a rate limit and reported the work green; round
@@ -238,7 +257,10 @@ THE TRAPS THAT KEEP BITING, AND HOW THE LAST FOUR ROUNDS FOUND THEIR DEFECTS:
   source-text match, a test that ERRORS instead of asserting. Make every new assertion fail on
   purpose before trusting it.
 - A FIX TRADES ONE FAILURE FOR ANOTHER (family c) — this is the one that keeps landing. Round 28's
-  rollback became round 29's retry loop: 79 writes and 79 toasts from one toggle in 500ms.
+  rollback became round 29's retry loop (79 writes and 79 toasts from one toggle in 500ms), round
+  29's fix still lost the change it was written to recover, and round 30's fix blanked the app.
+- THE .jsx LAYER HAS NO OFFLINE COVERAGE. Every defect in it ships green. When you touch a component,
+  the local e2e run above is not optional.
 - A GUARD ADDED FOR A RARE HARM CAN BLOCK THE COMMON CASE. Round 29's second finding: the rollback
   guard skipped exactly the situation the rollback existed for.
 - TRAP 98: delete each fix AT ITS CALL SITE, not in the helper.
