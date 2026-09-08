@@ -1,6 +1,6 @@
 import { useActions } from './actions.js'
 import { own } from './logic.js'
-import { SETTINGS_TABS } from './data.js'
+import { SETTINGS_TABS, bare } from './data.js'
 import { IconAck, IconDashboard, IconMaster, IconSettings, IconSignOut, IconTelegraphic, IconTracker } from './icons.jsx'
 import { supabase } from './supabase.js'
 import Dashboard from './screens/Dashboard.jsx'
@@ -30,7 +30,7 @@ const NAV = [
   { k: 'masterlist', label: 'Masterlist', Icon: IconMaster },
 ]
 
-const SCREENS = { dashboard: Dashboard, tracker: Tracker, ackrec: AckRec, telegraphic: Telegraphic, masterlist: Masterlist, settings: Settings }
+const SCREENS = bare({ dashboard: Dashboard, tracker: Tracker, ackrec: AckRec, telegraphic: Telegraphic, masterlist: Masterlist, settings: Settings })
 
 export default function App() {
   const { state, set, go, goSettings } = useActions()

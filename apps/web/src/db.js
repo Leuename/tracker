@@ -1,7 +1,7 @@
 import { supabase } from './supabase.js'
 import { pageAll } from './pending.js'
 import { deleteGeneratedTxns, pushDownTxns } from './queries.js'
-import { initialState } from './data.js'
+import { initialState, bare } from './data.js'
 import { isAuthError, sessionExpired } from './errors.js'
 import { alphabetical } from './logic.js'
 import {
@@ -57,7 +57,7 @@ async function start() {
   const defaults = configOf(initialState)
   await supabase.from('app_config').insert({ id: true, data: defaults }).then(ok)
   return {
-    txns: [], receipts: [], recurring: [], transfers: [], fxRates: {}, ...defaults, notes: [],
+    txns: [], receipts: [], recurring: [], transfers: [], fxRates: bare({}), ...defaults, notes: [],
     // Whoever reaches this line is an administrator: creating the config row is
     // an INSERT on app_config, and only "administrators may create the settings"
     // permits one — a viewer would have thrown above. Saying so explicitly
@@ -178,7 +178,9 @@ async function read() {
     // second rung. An empty object is a valid state, not a failure: it is what
     // a database with no rates yet looks like, and every wire then falls
     // through to TRANSFER_RATES exactly as it did before rates existed.
-    fxRates: Object.fromEntries((fx || []).map((r) => [r.cur, { rate: Number(r.rate), as_of: r.as_of }])),
+    // `bare`: this map is indexed by `transfers.cur`, which is free text, so a
+    // prototype it does not need is a prototype something can be found on.
+    fxRates: bare(Object.fromEntries((fx || []).map((r) => [r.cur, { rate: Number(r.rate), as_of: r.as_of }]))),
     notes: cfg.notes || initialState.notes,
     // Held a–z on the way in, so a row written before the lists were sorted
     // still displays in order without needing a migration to rewrite it.

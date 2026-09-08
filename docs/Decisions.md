@@ -2804,6 +2804,66 @@ claim is executable, so the next round does not have to take it on trust.
 
 221 assertions across 13 files.
 
+## D90 — Make The Shape Impossible, Not Detectable
+
+**Decision and record, 2026-09-08. Round 36**, which refuted round 35.
+
+Five consecutive rounds found the same class: `obj[key]` finds `Object.prototype` members, those are
+truthy, and they defeat every `|| fallback` written after them. The answers escalated —
+[D86](#d86--the-tenth-site-and-a-decision-record-that-was-not-true) guarded one function,
+[D88](#d88--one-guard-for-the-class-because-the-sites-keep-moving) added `own()` and claimed the
+class closed, [D89](#d89--a-ratchet-instead-of-a-promise) replaced the claim with a source ratchet.
+
+**Round 36 defeated the ratchet with ordinary code**, live against the real suite:
+
+| Bypass | Result |
+|---|---|
+| the lookup split across two lines | 221/221 still passed |
+| `rates?.[key]` | 221/221 still passed |
+| a fresh `TAG[prev.status]` appended to an already-allowed line | both tests passed |
+| `Reflect.get`, a template-literal key, a destructured computed key | never matched |
+
+It also found the ratchet's self-test duplicated the regex literal instead of importing it, so the
+two could drift and the self-test would keep validating a pattern the real check no longer used —
+trap 104, inside the file written to prevent this class.
+
+### The decision: `Object.create(null)`
+
+`bare(o)` in `data.js`, and **every map this app indexes by row data is built with it**: `TAG`,
+`CSYM`, `TRANSFER_RATES`, `PUSH_DOWN`, `SCREENS`, `ROWS`, `ACK_STATUS`, and the data-derived
+`fxRates`, `statuses` and `collapsed`. There is no prototype to inherit from, so the lookup is safe
+**however it is spelled** — raw, optional-chained, reflected, destructured, template-keyed, or split
+across lines.
+
+**A regex over source text can always be out-written. A missing prototype cannot.** The guard moved
+from the spelling of the access into the data itself, which is the only version of this fix that does
+not need a sixth round to find the site it missed.
+
+Proven rather than asserted: a probe exercised all six prototype keys through every one of round 36's
+bypass spellings against the real modules, and `rateFor` end to end — everything returns `undefined`
+and the rate stays numeric. `logic.test.js` pins it, and reverting `bare` to a spread turns three
+assertions red.
+
+### The ratchet stays, demoted and honest
+
+`own()` is now the second belt and `lookups.test.js` the third. The file's header states plainly
+which bypasses it cannot see, and names `bare()` as the actual guarantee, so a green run is not
+mistaken for proof. Three of round 36's findings are fixed there anyway: the matcher accepts `?.[`,
+the regex is defined once and exported so the self-test cannot drift from it, and an allowance now
+covers only the snippet it names — the whole line is no longer skipped.
+
+**That last fix immediately found a real one:** `(prev.settings || {})[key]` in `rows.js`, shielded
+until now by an allowance for a different lookup on the same line. A settings blob is JSON and can
+carry an own key named `constructor`, which would have made a spurious patch. Routed through `own`.
+
+### Scope, stated because D88's was not
+
+The ratchet walks `src/`. `scripts/backup.mjs` and `scripts/rewind-plan.js` also index objects, by
+table names from a fixed app-controlled enumeration rather than user text. That is a weaker risk, it
+is **not** covered by this check, and no claim is made that it is.
+
+224 assertions across 13 files.
+
 ## Guideline Basis
 
 - **AGENT-03** ensures adapter workflows stop rather than invent authorization.

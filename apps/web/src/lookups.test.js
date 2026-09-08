@@ -1,25 +1,35 @@
 // Run with: npm test  (node --test, no framework)
 //
-// A ratchet, not a behaviour test.
+// A ratchet, and the THIRD belt — not the guarantee.
 //
-// `obj[key]` finds `Object.prototype` members, and those are **truthy**, so they
-// defeat every `|| fallback` written after them. That single fact has produced a
-// finding in three consecutive rounds:
+// `obj[key]` finds `Object.prototype` members, and those are truthy, so they
+// defeat every `|| fallback` written after them. That produced a finding in five
+// consecutive rounds (32-36), each time in whichever site the previous round had
+// not been pointed at.
 //
-//   32  `TAG[r.status]` threw out of render and blanked the application
-//   34  `curFmt` printed a function's source beside the amount on the transfer
-//       sheet, a hole it had carried since it was written
-//   35  the status filter PASSED a row it was meant to hold, and the receipt
-//       form seeded itself with a function
+// The guarantee is now `bare()` in `data.js`: every constant this app indexes by
+// row data is built with `Object.create(null)`, so there is no prototype to
+// inherit from and the lookup is safe **however it is spelled**. `own()` is the
+// second belt. This file is the third: it keeps NEW raw lookups from appearing
+// on maps that might not be bare.
 //
-// Each round fixed the sites it was pointed at, and the next round found one it
-// was not. The behaviour of the guard is pinned in `logic.test.js`; what this
-// file pins is that no NEW raw lookup appears. It is the check that would have
-// caught rounds 33, 34 and 35 before they were written.
+// **What it cannot catch, stated plainly rather than discovered later.** Round 36
+// defeated an earlier version of this file with each of these, and a regex over
+// source text can always be out-written:
 //
-// When this fails you have two honest options: route the new lookup through
-// `own`, or — if the key genuinely cannot come from outside the code — add it to
-// `ALLOWED` with a reason. Deleting the test is not one of them.
+//   - a lookup split across two lines            `(rates || {})\n  [cur]`
+//   - `Reflect.get(TAG, r.status)`               no brackets at all
+//   - `` TAG[`${r.status}`] ``                   template-literal key
+//   - `const { [key]: v } = TAG`                 destructured computed key
+//
+// Those are the reason `bare()` exists. Do not treat a green run here as proof
+// that the class is closed — the proof is in `logic.test.js`, which asserts the
+// maps have no prototype and that every one of those spellings returns
+// `undefined`. Optional chaining and the allowlist holes ARE fixed below.
+//
+// When this fails: route the lookup through `own`, or — if the key cannot come
+// from outside the code — add it to `ALLOWED` with a reason. Deleting it is not
+// one of the options.
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readdirSync, readFileSync, statSync } from 'node:fs'
@@ -37,6 +47,16 @@ const walk = (dir) => readdirSync(dir).flatMap((f) => {
  * Lookups that are safe because the key cannot come from outside the code.
  * Each entry is `file:snippet` and every one carries the reason it is here.
  */
+/**
+ * An identifier, a dot-chain, or a closing paren — optionally followed by `?.` —
+ * indexed by something that is not a plain number or a quoted literal.
+ *
+ * Defined ONCE. The previous version wrote this literal twice, so the self-test
+ * below could validate a pattern the real check no longer used (round 36).
+ */
+export const LOOKUP =
+  /(?:\)|(?<![.\w])(?:[A-Za-z_$][A-Za-z0-9_$]*)(?:\.[A-Za-z0-9_$]+)*)(?:\?\.)?\[(?![0-9'"`\]])[^\]]+\]/
+
 const ALLOWED = [
   // The guard itself.
   ['logic.js', 'obj[key] : undefined'],
@@ -52,6 +72,8 @@ const ALLOWED = [
   ['rows.js', 'patch[key]'],
   ['rows.js', 's[k]'],
   ['rows.js', 'next.settings[key]'],
+  // `prev.settings` is read through `own` now; only the own-key write remains.
+  ['rows.js', 'settings[key] = next.settings[key]'],
   ['db.js', 'patch[k]'],
   // Keys that are literals in this codebase, not data: field names a caller
   // passes, and the fixed lists behind the settings and filter chrome.
@@ -76,16 +98,20 @@ const ALLOWED = [
   ['Dashboard.jsx', 'MON[+p[1] - 1]'],
 ]
 
-const allowed = (file, line) =>
-  ALLOWED.some(([f, snippet]) => file.endsWith(f) && line.includes(snippet))
+/**
+ * Strip the allowed lookups out of a line, then judge what is left.
+ *
+ * The previous version skipped the WHOLE line on any allowed substring match, so
+ * appending `const rogue = TAG[prev.status]` to an already-allowed line walked
+ * straight through — round 36 proved it live. An allowance covers the snippet it
+ * names, not everything that shares a line with it.
+ */
+const withoutAllowed = (file, line) =>
+  ALLOWED.reduce((acc, [f, snippet]) =>
+    (file.endsWith(f) ? acc.split(snippet).join(' ') : acc), line)
 
 test('no raw bracket lookup on data the database does not constrain', () => {
   // An identifier indexed by something that is not a plain number.
-  // Matches an identifier OR a closing paren before the bracket. The paren case
-  // is not hypothetical: `((symbols || {})[cur] || '')` is exactly what `curFmt`
-  // carried, and an identifier-only matcher would have missed the very finding
-  // that motivated this file.
-  const LOOKUP = /(?:\)|(?<![.\w])(?:[A-Za-z_$][A-Za-z0-9_$]*)(?:\.[A-Za-z0-9_$]+)*)\[(?![0-9'"`\]])[^\]]+\]/
 
   const offenders = []
   for (const file of walk(SRC)) {
@@ -98,7 +124,8 @@ test('no raw bracket lookup on data the database does not constrain', () => {
       // lookups. `own(...)` is the guard, so a line that uses it is the fix.
       if (/^(const|let|var)\s*\[/.test(code) || /own\(/.test(code)) return
       if (/\[[A-Za-z0-9_$.]+\]\s*:/.test(code)) return
-      if (allowed(file, code)) return
+      const rest = withoutAllowed(file, code)
+      if (!LOOKUP.test(rest)) return
       offenders.push(`${file.replace(SRC, '')}: ${code.slice(0, 100)}`)
     })
   }
@@ -108,24 +135,23 @@ test('no raw bracket lookup on data the database does not constrain', () => {
     offenders.join('\n  '))
 })
 
-test('the ratchet can actually fail', () => {
-  // TRAP 104: a pin that cannot fail reads as coverage. This proves the matcher
-  // recognises the shape it exists to catch, without needing a real offender in
-  // the tree.
-  // Matches an identifier OR a closing paren before the bracket. The paren case
-  // is not hypothetical: `((symbols || {})[cur] || '')` is exactly what `curFmt`
-  // carried, and an identifier-only matcher would have missed the very finding
-  // that motivated this file.
-  const LOOKUP = /(?:\)|(?<![.\w])(?:[A-Za-z_$][A-Za-z0-9_$]*)(?:\.[A-Za-z0-9_$]+)*)\[(?![0-9'"`\]])[^\]]+\]/
+test('the ratchet can actually fail, on the shapes it claims to catch', () => {
+  // TRAP 104: a pin that cannot fail reads as coverage. This exercises the SAME
+  // exported `LOOKUP` the real check uses — the previous version duplicated the
+  // literal, so the two could drift and this would keep passing against a
+  // pattern that was no longer in use (round 36).
   for (const bad of [
-    'const sym = CSYM[w.cur] || \'\'',
+    "const sym = CSYM[w.cur] || ''",
     'const tag = TAG[r.status]',
     'if (!st.statuses[eff(t)]) return false',
-    'status: ACK_STATUS[s.settings.ackDefaultStatus] || \'pending\'',
+    "status: ACK_STATUS[s.settings.ackDefaultStatus] || 'pending'",
     'const open = !state.collapsed[name]',
-    // The shape an identifier-only matcher misses, and the one `curFmt` had.
+    // The parenthesised shape `curFmt` carried for thirty-three rounds.
     "const sym = ((symbols || {})[cur] || '')",
     'const live = (rates || {})[w && w.cur]',
+    // Optional chaining, which defeated the previous matcher (round 36).
+    'const live = rates?.[w && w.cur]',
+    'const t = TAG?.[r.status]',
   ]) {
     assert.ok(LOOKUP.test(bad), 'must flag: ' + bad)
   }
@@ -137,4 +163,12 @@ test('the ratchet can actually fail', () => {
   ]) {
     assert.ok(!LOOKUP.test(fine) || /own\(/.test(fine), 'must not flag: ' + fine)
   }
+
+  // An allowance covers its own snippet, never the rest of the line. Round 36
+  // smuggled a fresh `TAG[prev.status]` onto an already-allowed line and the
+  // whole line was skipped.
+  const line = "if (!same(prev[key], next[key])) patch[key] = next[key]; const rogue = TAG[prev.status]"
+  const stripped = ['prev[key]', 'next[key]', 'patch[key] = next[key]']
+    .reduce((acc, sn) => acc.split(sn).join(' '), line)
+  assert.ok(LOOKUP.test(stripped), 'a smuggled lookup must survive the allowance strip')
 })

@@ -1,7 +1,7 @@
 // Run with: npm test  (node --test, no framework)
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { CSYM, initialState, MAX_OCC, TODAY } from './data.js'
+import { bare, CSYM, initialState, MAX_OCC, TAG, TODAY } from './data.js'
 import {
   addDays, alphabetical, alreadyOnSheet, amountOf, buildGeneratedRows, curFmt, dstr, eff, forecast, inPesos, monthKeys, monthKeyOf, monthLabel, occurrences, openingView, parsePeriod, periodLabel, positiveAmountOf, unpricedFor, unresolvedFor, unaccountedRows, optionsWith, own, symbolOf, TILE_KEYS, rateFor, ruleLabel, statusOptions, tagOf, SORTS, sortRows, summaryHTML, transferTotals, visibleRows, windowDays, viewerActions, VIEWER_MAY, pushable, pushPlan, groupKey, editRecurring, recValue, draftText, coverageFor } from './logic.js'
 
@@ -682,6 +682,62 @@ test('the status filter holds a row whose status it does not recognise', () => {
   // guard must not turn "no filter" into "hide the row".
   const off = { ...base, statuses: { pending: false, completed: false, overdue: false, hold: false } }
   assert.deepEqual(visibleRows({ ...off, txns: rows }, today).map((t) => t.id), [1, 2])
+})
+
+// ROUND 36. Rounds 34 and 35 answered the inherited-key class with `own()` at
+// each lookup, then with a source ratchet to catch lookups nobody had converted.
+// Round 36 defeated the ratchet with a lookup split across two lines, with
+// `?.[`, with `Reflect.get`, with a template-literal key and with destructuring
+// — because a regex over source text can always be out-written.
+//
+// `Object.create(null)` ends the argument instead of continuing it: there is no
+// prototype to inherit from, so the lookup is safe HOWEVER it is spelled. These
+// assertions use the raw, unguarded forms deliberately — every one of them was
+// a live defect at some point in this loop.
+const PROTO = ['constructor', '__proto__', 'toString', 'valueOf', 'hasOwnProperty', 'isPrototypeOf']
+
+test('the constant maps have no prototype to inherit from', () => {
+  for (const [name, map] of [['TAG', TAG], ['CSYM', CSYM]]) {
+    assert.equal(Object.getPrototypeOf(map), null, name + ' must be prototype-less')
+    for (const k of PROTO) {
+      // The raw lookup, exactly as five rounds of code kept writing it.
+      assert.equal(map[k], undefined, name + '[' + k + '] must be undefined, not a function')
+      // And every spelling round 36 used to defeat the source ratchet.
+      assert.equal(map?.[k], undefined, 'optional chaining')
+      assert.equal(Reflect.get(map, k), undefined, 'Reflect.get')
+      assert.equal(map[`${k}`], undefined, 'template-literal key')
+      const { [k]: destructured } = map
+      assert.equal(destructured, undefined, 'destructured computed key')
+    }
+  }
+})
+
+test('bare keeps every real entry while dropping the prototype', () => {
+  const m = bare({ USD: '$', PHP: '\u20B1' })
+  assert.equal(m.USD, '$')
+  assert.equal(m.PHP, '\u20B1')
+  assert.deepEqual(Object.keys(m), ['USD', 'PHP'], 'own keys are unchanged')
+  assert.equal(Object.getPrototypeOf(m), null)
+  assert.equal(m.constructor, undefined)
+
+  // The things this app actually does with these maps must still work.
+  assert.deepEqual({ ...m }, { USD: '$', PHP: '\u20B1' }, 'spread')
+  assert.equal(JSON.stringify(m), '{"USD":"$","PHP":"\u20B1"}', 'serialisation')
+  assert.ok(Object.prototype.hasOwnProperty.call(m, 'USD'), 'the own() guard still works on it')
+  assert.deepEqual(Object.entries(m).map(([k]) => k), ['USD', 'PHP'])
+  assert.equal(bare({}).anything, undefined)
+})
+
+test('a raw unguarded lookup is now safe, which is the point', () => {
+  // If this ever fails, someone has given a constant map a prototype again and
+  // the class is reopened — regardless of what the source ratchet says.
+  for (const k of PROTO) {
+    const tag = TAG[k] || { bg: '#EDEAEB', fg: '#9A8A90', label: String(k) }
+    assert.equal(tag.label, k, 'the fallback must win for ' + k)
+    assert.equal(typeof tag.bg, 'string')
+    const sym = CSYM[k] || ''
+    assert.equal(sym, '', 'and an unknown currency yields no symbol')
+  }
 })
 
 test('own never returns something the object merely inherited', () => {

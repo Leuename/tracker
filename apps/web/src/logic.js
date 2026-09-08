@@ -1,6 +1,6 @@
 // Pure helpers ported from the prototype's DCLogic class. No React, no state —
 // so `npm test` can exercise the recurrence and period rules directly.
-import { MON, MAX_OCC, TAG, TODAY } from './data.js'
+import { MON, MAX_OCC, TAG, TODAY, bare } from './data.js'
 
 export const fmt = (n) => '₱' + Math.round(n).toLocaleString('en-US')
 
@@ -633,7 +633,7 @@ export const alphabetical = (list) => [...(list || [])].sort((a, b) => String(a)
  * low, so anything landing on them understates. That is why `rateFor` reports
  * which rung it used and the strip says so on screen.
  */
-export const TRANSFER_RATES = { PHP: 1, USD: 58, GBP: 74, EUR: 63, AUD: 38 }
+export const TRANSFER_RATES = bare({ PHP: 1, USD: 58, GBP: 74, EUR: 63, AUD: 38 })
 
 /**
  * Which rate values a wire, and where it came from.
@@ -840,7 +840,7 @@ export const summaryHTML = (st, today = TODAY) => {
 export const pushable = (k, val) => (k === 'amount' ? val > 0 : String(val ?? '').trim() !== '')
 
 /** The masterlist fields that travel onto linked Tracker rows, and the column each becomes. */
-export const PUSH_DOWN = { co: 'co', cat: 'cat', desc: 'description', amount: 'amount' }
+export const PUSH_DOWN = bare({ co: 'co', cat: 'cat', desc: 'description', amount: 'amount' })
 
 /**
  * What a masterlist keystroke should do to the linked Tracker rows.

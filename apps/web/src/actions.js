@@ -1,6 +1,6 @@
 import { useStore } from './store.jsx'
 import { createPending } from './pending.js'
-import { CUR, TODAY, blankForm } from './data.js'
+import { CUR, TODAY, blankForm, bare } from './data.js'
 import { db } from './db.js'
 import { applyMasterlistEdit, recEffects } from './masterlist.js'
 import { alphabetical, amountOf, buildGeneratedRows, fmt, isMonthKey, longDate, monthLabel, parsePeriod, periodLabel, positiveAmountOf, summaryHTML, unpricedFor, viewerActions, own } from './logic.js'
@@ -342,7 +342,7 @@ export function useActions() {
 
   // The status dropdown starts on whatever `ackDefaultStatus` says — the
   // setting was stored but unwired until this form existed to honour it.
-  const ACK_STATUS = { Pending: 'pending', Released: 'released', 'On hold': 'hold' }
+  const ACK_STATUS = bare({ Pending: 'pending', Released: 'released', 'On hold': 'hold' })
 
   const openReceipt = () => set((s) => ({
     rcpOpen: true,

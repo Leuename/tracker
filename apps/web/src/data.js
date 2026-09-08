@@ -24,6 +24,32 @@ const localToday = () => {
 export const TODAY = localToday()
 
 
+/**
+ * A map with **no prototype**, for every constant this app indexes by row data.
+ *
+ * `({}).constructor` is the `Object` constructor, `({}).toString` is a function,
+ * and both are truthy — so `TAG[row.status]` for a status of `constructor`
+ * returned a function instead of `undefined`, defeating every `|| fallback`
+ * written after it. That single fact produced a finding in five consecutive
+ * rounds (32, 33, 34, 35, 36), each time in whichever site the previous round
+ * had not been pointed at.
+ *
+ * Rounds 34 and 35 answered it with `own()` at each lookup and then a source
+ * ratchet to find lookups that had not been converted. Round 36 defeated the
+ * ratchet with a lookup split across two lines, with `?.[`, with `Reflect.get`,
+ * with a template-literal key, and with destructuring — because a regex over
+ * source text can always be out-written.
+ *
+ * `Object.create(null)` ends the argument. There is no prototype to inherit
+ * from, so `TAG['constructor']` is `undefined` **however the lookup is written**:
+ * raw, optional-chained, reflected, destructured, or split across lines. The
+ * guard is in the data, not in the spelling of the access.
+ *
+ * `own()` stays as the second belt and the ratchet stays as the third, but
+ * neither is load-bearing any more.
+ */
+export const bare = (o) => Object.assign(Object.create(null), o)
+
 /** The date the seed rows were written around, so the demo still reads sensibly. */
 export const SEED_TODAY = '2026-08-30'
 
@@ -35,9 +61,9 @@ export const CAT = ['Accounting Services', 'Advertising Expense', 'Alan Expense'
 
 /** The currencies a wire may be sent in, and how each one prints. */
 export const CUR = ['AUD', 'EUR', 'GBP', 'PHP', 'USD']
-export const CSYM = { USD: '$', GBP: '\u00A3', PHP: '\u20B1', EUR: '\u20AC', AUD: 'A$' }
+export const CSYM = bare({ USD: '$', GBP: '\u00A3', PHP: '\u20B1', EUR: '\u20AC', AUD: 'A$' })
 
-export const TAG = {
+export const TAG = bare({
   completed: { bg: '#DFF0E6', fg: '#5C8F72', label: 'Completed' },
   pending: { bg: '#F9EFDC', fg: '#BE8A38', label: 'Pending' },
   overdue: { bg: '#FADCE6', fg: '#C4566E', label: 'Overdue' },
@@ -46,7 +72,7 @@ export const TAG = {
   liquidated: { bg: '#DFF0E6', fg: '#5C8F72', label: 'Liquidated' },
   onhold: { bg: '#F1E7EC', fg: '#8B7079', label: 'Onhold' },
   cancelled: { bg: '#EDEAEB', fg: '#9A8A90', label: 'Cancelled' },
-}
+})
 
 export const MON = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
 
@@ -157,7 +183,8 @@ export const initialState = {
   catDraft: '',
   coFilter: 'All companies',
   catFilter: 'All categories',
-  statuses: { pending: true, overdue: true, completed: false, hold: false },
+  // Indexed by `eff(t)`, i.e. `txns.status`, which is free text.
+  statuses: bare({ pending: true, overdue: true, completed: false, hold: false }),
   filtersOpen: false,
   settingsMenuOpen: false,
   settingsTab: 'masterlist',
@@ -170,7 +197,8 @@ export const initialState = {
     dashDefaultScope: 'All companies', dashWindow: 'Next 30 days', dashShowNotes: true,
   },
   groupBy: 'company',
-  collapsed: {},
+  // Indexed by a company or category name, both free text.
+  collapsed: bare({}),
   search: '',
   // Tracker sort. 'none' keeps the order the rows arrive in, which is what the
   // sheet did before there was a control for it.

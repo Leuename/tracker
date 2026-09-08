@@ -1,3 +1,4 @@
+import { own } from './logic.js'
 /**
  * Row mapping between the app's in-memory shapes and Postgres.
  *
@@ -145,7 +146,10 @@ export function configPatch(prev, next) {
 
   const settings = {}
   for (const key of Object.keys(next.settings || {})) {
-    if (!same((prev.settings || {})[key], next.settings[key])) settings[key] = next.settings[key]
+    // `own`: a settings blob is JSON, so it CAN carry an own key named
+    // `constructor` — and `(prev.settings || {})['constructor']` would then
+    // return the prototype's, making a spurious patch. Round 36.
+    if (!same(own(prev.settings, key), next.settings[key])) settings[key] = next.settings[key]
   }
   if (Object.keys(settings).length) patch.settings = settings
 

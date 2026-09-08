@@ -1,11 +1,11 @@
 import { useActions } from '../actions.js'
-import { FREQ, SETTINGS_TABS } from '../data.js'
+import { FREQ, SETTINGS_TABS, bare } from '../data.js'
 import { Select, Switch } from '../ui.jsx'
 
 const toggle = (k, name, hint) => ({ k, name, hint, kind: 'toggle' })
 const select = (k, name, hint, options) => ({ k, name, hint, kind: 'select', options })
 
-const ROWS = {
+const ROWS = bare({
   // Every control here changes something. Two were removed rather than left
   // switchable: "Generate recurring payables automatically" on the 1st of the
   // month, and "Notify the holder when a receipt ages" after 14 days. Both
@@ -30,7 +30,7 @@ const ROWS = {
     select('dashWindow', 'Deadline window', 'How far ahead Upcoming deadlines looks.', ['Next 7 days', 'Next 30 days', 'Next 90 days']),
     toggle('dashShowNotes', 'Show notes & reminders', 'Keep the reminder list on the dashboard.'),
   ],
-}
+})
 
 function Chips({ title, items, count, draft, onDraft, onAdd, onRemove, placeholder }) {
   return (
