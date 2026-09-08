@@ -577,6 +577,13 @@ production on 2026-09-07, closing the one open masterlist gap — 21 companies, 
 receipt `1788471059637` intact with its stored object, `recurring` empty, `audit_log` 8508 and
 append-only.
 
+**Every fingerprint here is a baseline, and none is an invariant.** On 2026-09-08 at 19:26–19:28
+Manila the owner marked nine payables paid; amounts identical, only `status` moving, so the
+`id:amount:status` fingerprint went `a76686384422360d47403627c35f4f7f` →
+`0c5dee50b9f39d0e115f2c392dcf3612` while the count and total held at 49 and ₱2,226,438.00. Read any
+of these numbers as *your* starting point, assert them unchanged across *your own* writes, and never
+treat a value copied out of a document as something the ledger owes you.
+
 **`transfers` is a moving baseline too, and it moved while this work was running.** It went 9 → 12
 at 02:13–02:15 UTC on 2026-09-08, three wires entered through the UI by `aepinza@gmail.com` —
 Thesis LTD (GZZ, EUR 98,500), Julius Mars (GZZ, EUR 75,000) and Cordelia Commercial (MCR, USD

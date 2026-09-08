@@ -112,7 +112,7 @@ your own writes, never against a number in a document.
 | `npm run build` | green, `vite v8.2.2` |
 | `verify.yml` | dispatched on the current commit and **passed e2e, security and smoke** |
 | Migrations | **21, all applied**, latest `20260907182000` |
-| `txns` | 49 · PHP 2,226,438.00 · identity fingerprint `a76686384422360d47403627c35f4f7f` unchanged throughout |
+| `txns` | 49 · PHP 2,226,438.00 · `id:amount:status` fingerprint `0c5dee50b9f39d0e115f2c392dcf3612` — it was `a766863…` until the owner marked nine payables paid on the evening of 2026-09-08. **A baseline, not an invariant**: assert it unchanged across *your own* writes only |
 | `transfers` | **12** — was 9; three wires entered by `aepinza@gmail.com` at 02:13–02:15 UTC today |
 | `recurring` / linked / unresolved | 0 / 0 / 0 |
 | `app_config` | `ackRequirePhoto: false` · `warnDuplicate: true` · `dashWindow: Next 30 days` · **`__e2eHeld: null`** · 19 categories · 21 companies |

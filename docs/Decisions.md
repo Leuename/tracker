@@ -2187,7 +2187,20 @@ The ledger did not move: 49 rows and PHP 2,226,438.00 throughout, with the ident
 `id:amount:status` constant at `a76686384422360d47403627c35f4f7f`. The whole-row fingerprint
 changed from `f9f84adad1c9b5c4fa3e3495712ac09f` to `08a747319f890079f3e107ec258bec51` **because a
 column was added, not because data changed** — the second time that has happened for that reason.
-Read the whole-row value as a moving baseline and the `id:amount:status` value as the invariant.
+Read the whole-row value as a moving baseline and the `id:amount:status` value as a narrower one.
+
+> **Corrected 2026-09-08 by the owner's ordinary work.** This sentence originally called
+> `id:amount:status` **"the invariant"**. It is not one, and the correction matters more than the
+> fingerprint does. At 19:26–19:28 Manila `aepinza@gmail.com` marked **nine payables paid** — every
+> amount identical before and after, only `status` moving `pending` → `completed` — so the
+> `id:amount:status` value changed from `a76686384422360d47403627c35f4f7f` to
+> `0c5dee50b9f39d0e115f2c392dcf3612` while the count and the total stayed at 49 and PHP 2,226,438.00.
+>
+> **There is no invariant here, only baselines read fresh.** The narrow fingerprint is useful for the
+> thing it was built for — asserting that a suite of *my* writes changed nothing — and it says
+> nothing at all across a gap in which a person used the application. Ninth record in this loop to
+> state a claim wider than the check that produced it, and the shape is identical every time: verify
+> under one condition, then write the sentence without it.
 
 **Two defects surfaced only by running the suite after phase 2, and both are recorded here because
 the plan's own ordering hid them.**
