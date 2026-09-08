@@ -1,5 +1,5 @@
 import { useActions } from '../actions.js'
-import { optionsWith, statusOptions, symbolOf } from '../logic.js'
+import { optionsWith, own, statusOptions, symbolOf } from '../logic.js'
 import { CSYM, CUR } from '../data.js'
 import { Field, Modal, Select } from '../ui.jsx'
 import RateField from './RateField.jsx'
@@ -59,7 +59,7 @@ export default function EditTransfer() {
         </Field>
       </div>
 
-      <RateField w={e} cur={e.cur} live={(state.fxRates || {})[e.cur]} onChange={setTelE('rate')} />
+      <RateField w={e} cur={e.cur} live={own(state.fxRates, e.cur)} onChange={setTelE('rate')} />
 
       <Field label="Inv No" hint="optional">
         <input className="field" placeholder="e.g. SM-40218" value={e.inv} onChange={setTelE('inv')} />

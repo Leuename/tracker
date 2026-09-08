@@ -2737,8 +2737,13 @@ with no CHECK constraint, so it is reachable by any PATCH, a restore, or a clien
 One `own(obj, key)` in `logic.js`, and everything routes through it — `tagOf`, the new
 `symbolOf(cur, syms)`, `curFmt`, `rateFor`'s `TRANSFER_RATES` lookup, and `App.jsx`'s
 `SCREENS[state.screen]` (where an inherited key would have handed React the `Object` constructor and
-defeated its `|| Dashboard` fallback). There is now **no raw bracket lookup on row-shaped data
-anywhere in `src/`**, verified by `grep -rn "CSYM\[" src/` returning only comments.
+defeated its `|| Dashboard` fallback). > **Corrected 2026-09-08 by round 35 ([D89](#d89--a-ratchet-instead-of-a-promise)).** This paragraph
+> claimed "no raw bracket lookup on row-shaped data anywhere in `src/`", **verified by a grep for
+> `CSYM[`**. The claim was about a class; the check was about one name. Round 35 found four more —
+> `ACK_STATUS[settings.ackDefaultStatus]`, the status filter, `rateFor`'s live-rate lookup, and the
+> group-collapse map — and the ratchet written afterwards found three more again. A record that
+> states more than its check establishes is the same defect as D85's, which round 32 caught. The
+> claim is now enforced by `src/lookups.test.js` rather than asserted here.
 
 **This is the third round in a row where the previous fix was correct and incomplete**, so the shape
 of the fix has changed: not a guard at each site, but a named helper the sites call. Round 33 learned
@@ -2758,6 +2763,46 @@ restoring the raw `curFmt` — turn 4, 2 and 1 assertions red respectively. 215 
 placeholder still matches). All sixteen `<Select>` call sites read: none relied on the old index-0
 fallback, and `Filters`' `All companies` sentinel is a member of its own list, so the guard correctly
 extends to filters. `Masterlist` read in full.
+
+## D89 — A Ratchet Instead Of A Promise
+
+**Decision and record, 2026-09-08. Round 35**, which refuted round 34.
+
+Round 34 introduced `own(obj, key)` and routed the lookups it knew about through it.
+[D88](#d88--one-guard-for-the-class-because-the-sites-keep-moving) then declared the class closed.
+Round 35 found four more, and **the check behind the claim was a grep for one identifier**:
+
+| Site | Effect |
+|---|---|
+| `actions.js` `ACK_STATUS[settings.ackDefaultStatus]` | An inherited key defeats `\|\| 'pending'` and seeds the receipt form with a **function**. `JSON.stringify` then drops it, so the row saves with no status at all |
+| `logic.js` `st.statuses[eff(t)]` | The status filter **passed** a row it was meant to hold — inherited keys are truthy, so `!truthy` is false |
+| `logic.js` `(rates \|\| {})[w.cur]` | Harmless — a function has no `.rate` — but raw, while D88 said otherwise |
+| `actions.js` / `Tracker.jsx` `collapsed[name]` | Keyed by a company or category name, both free text |
+
+### The decision: stop promising, start ratcheting
+
+`src/lookups.test.js` walks every `.js`/`.jsx` under `src/` and fails on any bracket lookup keyed by
+a non-literal, unless it is in an `ALLOWED` list where **every entry carries the reason it is safe** —
+an own-key iteration, an array index, a write to a fresh object, a numeric month. It is the check
+that would have caught rounds 33, 34 and 35 before they were written.
+
+**Writing it immediately found three more instances nobody had reported**:
+`(state.fxRates || {})[cur]` in `actions.js` and both transfer modals, feeding the exchange-rate
+field. Harmless downstream, raw in form.
+
+**And the first version of the ratchet was itself the trap it exists to catch.** Its matcher required
+an *identifier* before the bracket, so `((symbols || {})[cur] || '')` — the exact shape `curFmt` had
+carried through thirty-three rounds, and the reason D88 was written — did not match. Its
+"can-this-fail" test used only identifier examples, so it passed while the matcher was blind. The
+matcher now accepts a closing paren, its self-test includes the parenthesised shape, and restoring
+`curFmt`'s old body turns it red.
+
+**The general rule: a claim about a class needs a check that runs over the class.** A grep for one
+name is evidence about that name. Three decision records in this loop have now overstated what their
+check established — D85, D88, and the ratchet's own first draft. The difference here is that the
+claim is executable, so the next round does not have to take it on trust.
+
+221 assertions across 13 files.
 
 ## Guideline Basis
 

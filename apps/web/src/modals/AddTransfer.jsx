@@ -1,5 +1,5 @@
 import { useActions } from '../actions.js'
-import { optionsWith, statusOptions, symbolOf } from '../logic.js'
+import { optionsWith, own, statusOptions, symbolOf } from '../logic.js'
 import { CSYM, CUR } from '../data.js'
 import { Field, Modal, Select } from '../ui.jsx'
 import RateField from './RateField.jsx'
@@ -55,7 +55,7 @@ export default function AddTransfer() {
         </Field>
       </div>
 
-      <RateField w={w} cur={w.cur} live={(state.fxRates || {})[w.cur]} onChange={setTel('rate')} />
+      <RateField w={w} cur={w.cur} live={own(state.fxRates, w.cur)} onChange={setTel('rate')} />
 
       {/* Beside the note, not inside it: an invoice number is an identifier you
           match against a document, and it has to stay readable as its own

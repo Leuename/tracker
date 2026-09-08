@@ -535,7 +535,10 @@ export const visibleRows = (st, today = TODAY) => {
   return st.txns.filter((t) => {
     if (st.coFilter !== 'All companies' && t.co !== st.coFilter) return false
     if (st.catFilter !== 'All categories' && t.cat !== st.catFilter) return false
-    if (anyStatus && !st.statuses[eff(t, today)]) return false
+    // `own`, not `st.statuses[...]`: `eff` returns `t.status`, which is free
+    // text, and an inherited key is truthy — so a rogue status slipped THROUGH
+    // the status filter instead of being held by it. Round 35.
+    if (anyStatus && !own(st.statuses, eff(t, today))) return false
     if (st.search && (t.desc + ' ' + t.cat + ' ' + t.co).toLowerCase().indexOf(needle) < 0) return false
     return true
   })
@@ -652,7 +655,12 @@ export const TRANSFER_RATES = { PHP: 1, USD: 58, GBP: 74, EUR: 63, AUD: 38 }
  */
 export const rateFor = (w, rates) => {
   if (w && w.rate != null && w.rate !== '') return { rate: Number(w.rate), src: 'wire', asOf: w.rate_as_of || null }
-  const live = (rates || {})[w && w.cur]
+  // Guarded like every other lookup keyed by `cur`, which is free text. This
+  // one happens to be harmless — an inherited member is a function and has no
+  // `.rate`, so it falls through — but D88 claimed the whole class was closed
+  // while this line was still raw, and a record that overstates is worse than
+  // none. Round 35.
+  const live = own(rates, w && w.cur)
   if (live && live.rate != null) return { rate: Number(live.rate), src: 'feed', asOf: live.as_of || null }
   return { rate: own(TRANSFER_RATES, w && w.cur) || 1, src: 'constant', asOf: null }
 }
@@ -860,7 +868,7 @@ export const PUSH_DOWN = { co: 'co', cat: 'cat', desc: 'description', amount: 'a
  */
 export const pushPlan = (k, val) => {
   const ok = pushable(k, val)
-  const column = PUSH_DOWN[k]
+  const column = own(PUSH_DOWN, k)
   return {
     column,
     retract: !ok,

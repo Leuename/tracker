@@ -1,6 +1,6 @@
 import { useActions } from '../actions.js'
 import { TAG } from '../data.js'
-import { SORTS, dstr, eff, fmt, forecast, groupKey, monthKeys, monthLabel, sortRows, unresolvedFor, unpricedFor, visibleRows } from '../logic.js'
+import { SORTS, dstr, eff, fmt, forecast, groupKey, monthKeys, monthLabel, sortRows, unresolvedFor, unpricedFor, visibleRows, own } from '../logic.js'
 import { Check, Tag, stopRowKeys } from '../ui.jsx'
 import { IconExport, IconFilter, IconSort } from '../icons.jsx'
 
@@ -22,7 +22,8 @@ export default function Tracker() {
   // Groups keep the order rows first appear in, so filtering never reshuffles them.
   const order = []
   rows.forEach((t) => { if (order.indexOf(keyOf(t)) < 0) order.push(keyOf(t)) })
-  const allOpen = order.every((k) => !state.collapsed[k])
+  // Group names are company or category values — free text. See `own`.
+  const allOpen = order.every((k) => !own(state.collapsed, k))
 
   const defaultStatuses = state.statuses.pending && state.statuses.overdue && !state.statuses.completed && !state.statuses.hold
   const filterCount =
@@ -152,7 +153,7 @@ export default function Tracker() {
 
           {order.map((name) => {
             const rs = rows.filter((t) => keyOf(t) === name)
-            const open = !state.collapsed[name]
+            const open = !own(state.collapsed, name)
             return (
               <div key={name}>
                 <button type="button" className="group-head" onClick={toggleGroup(name)} aria-expanded={open}>

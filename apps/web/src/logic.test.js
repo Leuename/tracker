@@ -650,6 +650,40 @@ test('unaccountedRows names every row the four tiles cannot hold', () => {
 // in front of its amount — on the transfer sheet, next to the money.
 const PROTO_KEYS = ['constructor', '__proto__', 'toString', 'valueOf', 'hasOwnProperty', 'isPrototypeOf']
 
+// ROUND 35. The guard was introduced in round 34 and applied to the lookups
+// that round happened to name. Four more were keyed by data the database does
+// not constrain — `eff(t)` returns `t.status`, `groupKey` returns `t.co` or
+// `t.cat`, and `ackDefaultStatus` comes from the free-form settings blob.
+//
+// The status filter is the one that changes behaviour: an inherited key is
+// truthy, so `!st.statuses['constructor']` was FALSE and a rogue-status row
+// slipped THROUGH the filter that was supposed to hold it.
+test('the status filter holds a row whose status it does not recognise', () => {
+  const today = '2026-09-08'
+  const base = {
+    coFilter: 'All companies', catFilter: 'All categories', search: '',
+    statuses: { pending: true, completed: false, overdue: false, hold: false },
+  }
+  const rows = [
+    { id: 1, co: 'ANG', cat: 'Rent', desc: 'real', status: 'pending', due: '2026-12-01', amount: 10 },
+    { id: 2, co: 'ANG', cat: 'Rent', desc: 'rogue', status: 'constructor', due: '2026-12-01', amount: 20 },
+  ]
+  const shown = visibleRows({ ...base, txns: rows }, today).map((t) => t.id)
+  assert.deepEqual(shown, [1], 'only the row whose status the filter actually ticked')
+
+  // Every prototype key, because the defect was the whole class.
+  for (const k of ['constructor', '__proto__', 'toString', 'valueOf', 'hasOwnProperty']) {
+    const one = [{ id: 9, co: 'ANG', cat: 'Rent', desc: 'x', status: k, due: '2026-12-01', amount: 1 }]
+    assert.deepEqual(visibleRows({ ...base, txns: one }, today), [],
+      k + ' must not slip through the status filter')
+  }
+
+  // And with no status ticked the filter is off, so everything shows — the
+  // guard must not turn "no filter" into "hide the row".
+  const off = { ...base, statuses: { pending: false, completed: false, overdue: false, hold: false } }
+  assert.deepEqual(visibleRows({ ...off, txns: rows }, today).map((t) => t.id), [1, 2])
+})
+
 test('own never returns something the object merely inherited', () => {
   const m = { USD: '$', PHP: '\u20B1' }
   assert.equal(own(m, 'USD'), '$')

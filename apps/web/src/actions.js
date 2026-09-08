@@ -3,7 +3,7 @@ import { createPending } from './pending.js'
 import { CUR, TODAY, blankForm } from './data.js'
 import { db } from './db.js'
 import { applyMasterlistEdit, recEffects } from './masterlist.js'
-import { alphabetical, amountOf, buildGeneratedRows, fmt, isMonthKey, longDate, monthLabel, parsePeriod, periodLabel, positiveAmountOf, summaryHTML, unpricedFor, viewerActions } from './logic.js'
+import { alphabetical, amountOf, buildGeneratedRows, fmt, isMonthKey, longDate, monthLabel, parsePeriod, periodLabel, positiveAmountOf, summaryHTML, unpricedFor, viewerActions, own } from './logic.js'
 
 // The masterlist and the transfer sheet both edit in place, so their text
 // fields fire on every keystroke. One pending write per row, coalesced,
@@ -347,7 +347,11 @@ export function useActions() {
   const openReceipt = () => set((s) => ({
     rcpOpen: true,
     rcpError: '',
-    rcp: { co: '', name: '', desc: '', amount: '', status: ACK_STATUS[s.settings.ackDefaultStatus] || 'pending' },
+    // `own`: `ackDefaultStatus` comes from the free-form `app_config` blob, and
+    // an inherited key is TRUTHY — so `ACK_STATUS['constructor']` would defeat
+    // the `|| 'pending'` and seed the form with a function. `JSON.stringify`
+    // then drops it, so the row would save with no status at all. Round 35.
+    rcp: { co: '', name: '', desc: '', amount: '', status: own(ACK_STATUS, s.settings.ackDefaultStatus) || 'pending' },
   }))
 
   const closeReceipt = () => set({ rcpOpen: false, rcpError: '' })
@@ -521,7 +525,7 @@ export function useActions() {
    * no rate to offer and should not invent one.
    */
   const rateDefault = (cur) => {
-    const live = (state.fxRates || {})[cur]
+    const live = own(state.fxRates, cur)
     return live && live.rate != null
       ? { rate: String(live.rate), rate_as_of: live.as_of || '' }
       : { rate: '', rate_as_of: '' }
@@ -960,7 +964,8 @@ export function useActions() {
     set((s) => ({ statuses: { ...s.statuses, [k]: !s.statuses[k] } }))
 
   const toggleGroup = (name) => () =>
-    set((s) => ({ collapsed: { ...s.collapsed, [name]: !s.collapsed[name] } }))
+    // Keyed by a company or category name, both free text. See `own`.
+    set((s) => ({ collapsed: { ...s.collapsed, [name]: !own(s.collapsed, name) } }))
 
   const clearFilters = () => set({
     coFilter: 'All companies', catFilter: 'All categories', search: '',
