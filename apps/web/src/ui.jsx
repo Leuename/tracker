@@ -129,6 +129,29 @@ export function Select({ id, label, value, onChange, options, placeholder, inval
   )
 }
 
+/**
+ * Swallow a click inside a sheet row, so the control acts and the row does not.
+ */
+export const stopRowClick = (ev) => ev.stopPropagation()
+
+/**
+ * Swallow only the keys the row itself acts on.
+ *
+ * A row opens on Enter or Space, so a control inside it must keep those two
+ * from reaching the row — and nothing else. Stopping every key also stopped
+ * Escape: React listens at the root container, so `stopPropagation` there beats
+ * the `window` listener in `useEscapeToClose`, and focus stays on the control
+ * after it opens a dialog. Escape was dead for that dialog's whole lifetime.
+ *
+ * It lives here, once, because round 31 fixed this in `AckRec.jsx` and
+ * `Telegraphic.jsx` by defining the helper twice, locally — and round 32 then
+ * found the tenth site, an inline anonymous `stopPropagation` in `Tracker.jsx`
+ * on the button that opens the **payment** dialog. The worst of the eleven, on
+ * a control an operator uses dozens of times a day. A helper copied into the
+ * files that were known about is how the one that was not gets missed.
+ */
+export const stopRowKeys = (ev) => { if (ev.key === 'Enter' || ev.key === ' ') ev.stopPropagation() }
+
 export function Tag({ status, tags }) {
   // `tags[status]` raw would throw out of render on an unrecognised status and
   // take the whole tree down with it. Its one caller does not crash today only

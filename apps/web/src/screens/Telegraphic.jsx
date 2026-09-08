@@ -1,6 +1,7 @@
 import { useActions } from '../actions.js'
 import { CSYM, CUR } from '../data.js'
-import { curFmt, dstr, fmt, tagOf, transferTotals } from '../logic.js'
+import { curFmt, dstr, fmt, statusOptions, tagOf, transferTotals } from '../logic.js'
+import { stopRowClick, stopRowKeys } from '../ui.jsx'
 
 const COLS = '84px 172px 124px 92px 132px 124px minmax(190px,1fr) 92px'
 
@@ -14,7 +15,6 @@ const COLS = '84px 172px 124px 92px 132px 124px minmax(190px,1fr) 92px'
  * its keyboard handler, because removing it would strand anyone not using a
  * mouse; the controls simply stop feeding it.
  */
-const stop = (ev) => ev.stopPropagation()
 /**
  * Keys only. The row opens on Enter or Space, so a control inside it must keep
  * those two from reaching the row — and nothing else.
@@ -29,7 +29,6 @@ const stop = (ev) => ev.stopPropagation()
  *
  * `stop` itself stays for `onClick`, where there is no key to inspect.
  */
-const stopRowKeys = (ev) => { if (ev.key === 'Enter' || ev.key === ' ') ev.stopPropagation() }
 
 
 const STATUSES = [
@@ -95,12 +94,12 @@ export default function Telegraphic() {
                 <div>
                   <input className="inline-field" value={w.inv} placeholder="Add inv no.…"
                          aria-label={'Invoice number for ' + w.name}
-                         onClick={stop} onKeyDown={stopRowKeys}
+                         onClick={stopRowClick} onKeyDown={stopRowKeys}
                          onChange={(ev) => updTel(w.id, 'inv', ev.target.value)} />
                 </div>
                 <div>
                   <select value={w.cur} aria-label={'Currency for ' + w.name}
-                          onClick={stop} onKeyDown={stopRowKeys}
+                          onClick={stopRowClick} onKeyDown={stopRowKeys}
                           onChange={(ev) => updTel(w.id, 'cur', ev.target.value)}
                           style={{
                             width: '100%', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)',
@@ -114,8 +113,8 @@ export default function Telegraphic() {
                     wire is actually sent in, never converted. */}
                 <div className="right bold">{curFmt(w.cur, w.amount, CSYM)}</div>
                 <div style={{ display: 'flex', justifyContent: 'center' }}>
-                  <select value={w.status} aria-label={'Status for ' + w.name}
-                          onClick={stop} onKeyDown={stopRowKeys}
+                  <select value={w.status ?? ''} aria-label={'Status for ' + w.name}
+                          onClick={stopRowClick} onKeyDown={stopRowKeys}
                           onChange={(ev) => updTel(w.id, 'status', ev.target.value)}
                           style={{
                             width: 112, textAlign: 'center', textAlignLast: 'center',
@@ -123,13 +122,13 @@ export default function Telegraphic() {
                             padding: '5px 7px', fontSize: 11.5, fontWeight: 600,
                             background: tag.bg, color: tag.fg, outline: 'none', cursor: 'pointer',
                           }}>
-                    {STATUSES.map((s) => <option key={s.v} value={s.v}>{s.label}</option>)}
+                    {statusOptions(w.status, STATUSES).map((s) => <option key={s.v} value={s.v}>{s.label}</option>)}
                   </select>
                 </div>
                 <div>
                   <input className="inline-field" value={w.note} placeholder="Add a note…"
                          aria-label={'Note for ' + w.name}
-                         onClick={stop} onKeyDown={stopRowKeys}
+                         onClick={stopRowClick} onKeyDown={stopRowKeys}
                          onChange={(ev) => updTel(w.id, 'note', ev.target.value)} />
                 </div>
                 <div className="right">

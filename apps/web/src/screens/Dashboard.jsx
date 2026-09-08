@@ -1,6 +1,6 @@
 import { useActions } from '../actions.js'
 import { MON, TODAY } from '../data.js'
-import { addDays, eff, fmt, forecast, longDate, unresolvedFor, windowDays } from '../logic.js'
+import { addDays, eff, fmt, forecast, longDate, unaccountedRows, unresolvedFor, windowDays } from '../logic.js'
 import { Check, Select } from '../ui.jsx'
 import { IconChevronRight, IconPencil, IconTrash } from '../icons.jsx'
 
@@ -22,6 +22,10 @@ export default function Dashboard() {
   const scope = typeof state.scope === 'string' ? state.scope : 'All companies'
   const scoped = scope === 'All companies' ? state.txns : state.txns.filter((t) => t.co === scope)
   const unresolved = unresolvedFor(state)
+  // Rows the four tiles cannot account for. See `unaccountedRows`: the note
+  // below claims the four add up to the total, and one of these makes that
+  // false by its own amount, silently.
+  const stray = unaccountedRows(scoped)
   const of = (k) => scoped.filter((t) => eff(t) === k)
 
   // The window setting used to relabel this list without filtering it, so
@@ -91,7 +95,13 @@ export default function Dashboard() {
           })}
         </div>
         <div className="dash-note">
-          Payables is the total — the four beside it add up to it. Click any tile to open the Tracker already filtered.
+          {stray.length
+            ? <><strong>Payables is the total, and the four beside it do not add up to it.</strong>{' '}
+              {stray.length === 1 ? 'One row carries' : stray.length + ' rows carry'} a status this
+              screen does not recognise — {fmt(stray.reduce((a, t) => a + t.amount, 0))} unaccounted
+              for, and not shown on the Tracker either. Click any tile to open the Tracker already
+              filtered.</>
+            : <>Payables is the total — the four beside it add up to it. Click any tile to open the Tracker already filtered.</>}
         </div>
         {unresolved.length ? <div className="dash-note">{unresolved.length} linked Tracker {unresolved.length === 1 ? 'row has' : 'rows have'} no occurrence identity; generation is paused for those payables.</div> : null}
 
@@ -154,7 +164,7 @@ export default function Dashboard() {
           <section className="card">
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 9 }}>
               <div className="card-title">Upcoming deadlines</div>
-              <div className="hint">{state.settings.dashWindow.toLowerCase()}</div>
+              <div className="hint">{String(state.settings.dashWindow || 'Next 30 days').toLowerCase()}</div>
             </div>
             {deadlines.map((b) => {
               const over = b.due < TODAY
@@ -190,7 +200,7 @@ export default function Dashboard() {
             {more > 0 ? (
               <button type="button" className="link" style={{ textAlign: 'left', padding: '2px 4px' }}
                       onClick={go('tracker')}>
-                +{more} more due {more === 1 ? 'date' : 'dates'} in {state.settings.dashWindow.toLowerCase()}
+                +{more} more due {more === 1 ? 'date' : 'dates'} in {String(state.settings.dashWindow || 'Next 30 days').toLowerCase()}
               </button>
             ) : null}
             <div className="spacer" />

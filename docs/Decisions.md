@@ -2524,9 +2524,16 @@ from the Tracker sheet and from the grand total.
 
 **Decision: one `tagOf(status, tags)` in `logic.js`, and all three sites route through it.** It
 deliberately does **not** fall back to `pending`. This is a money screen; labelling an `archived`
-receipt "Pending" states something false about it. The raw value is shown in a neutral chip, so the
-row stays readable and the operator can see that something is wrong. Three offline tests; the
-raw-lookup mutation turns three of them red.
+receipt "Pending" states something false about it.
+
+> **Corrected 2026-09-08 by round 32 ([D86](#d86--the-tenth-site-and-a-decision-record-that-was-not-true)).**
+> The paragraph that stood here claimed "the raw value is shown in a neutral chip, so the row stays
+> readable and the operator can see that something is wrong." **That was false on the screen it was
+> written for.** `AckRec` renders the status as a `<select value={r.status}>` and never reads
+> `tag.label` at all; an unmatched value falls to `selectedIndex 0`, so an `archived` receipt
+> displayed **"Pending"** — the exact statement this decision says it refused to make. `tagOf`
+> delivered only a grey tint on a control that was lying. Fixed by `statusOptions`, which appends the
+> unrecognised value as its own `<option>`; the correction and its evidence are in D86.
 
 ### Why it was reachable at all
 
@@ -2563,6 +2570,85 @@ modals, had never been done. It should be part of any round that touches a compo
 And the new rule earned its keep immediately: running the suite locally before pushing caught my own
 wrong locator, because the Remove button's accessible name is its `aria-label` rather than the word
 printed on it.
+
+## D86 — The Tenth Site, and a Decision Record That Was Not True
+
+**Decision and record, 2026-09-08. Round 32**, which refuted round 31. Four findings. Both halves of
+round 31's fix were incomplete, and [D85](#d85--a-status-the-dropdown-does-not-offer)'s central
+justification was **factually false about the screen it was written for**.
+
+### A decision record that stated the opposite of what the code did
+
+D85 said `tagOf` shows the raw value "in a neutral chip, so the row stays readable and the operator
+can see that something is wrong." `AckRec` has no chip. It renders the status as a
+`<select value={r.status}>` and reads only `tag.bg` and `tag.fg` — never `tag.label`. When the value
+matches no `<option>`, the DOM falls to `selectedIndex 0`, so an `archived` receipt displayed
+**"Pending"**: precisely the false statement D85 congratulated itself on refusing, on a money screen.
+
+Round 32 proved it by rewriting the `receipts` GET in flight and reading the live DOM:
+`{"value":"pending","selectedIndex":0,"shown":"Pending"}`.
+
+**Round 31 therefore made things worse, not better.** It converted a loud, unmissable crash into a
+quiet, plausible misstatement about money. A blank page gets reported in minutes; a receipt that
+reads "Pending" does not get reported at all.
+
+**Fixed by `statusOptions(status, known)`**, which appends the unrecognised value as its own
+`<option>` so the control can show what the row actually holds; `tagOf` still greys it so it reads as
+wrong rather than as a fifth legitimate state. Both screens use it. The mutation — never appending —
+turns the test red.
+
+**The lesson is about the record, not the code.** D85's claim was written from the design intent and
+never checked against the rendered output. A decision record that describes what the author meant
+rather than what the software does is worse than none, because the next reader trusts it. D85 now
+carries the correction inline.
+
+### The tenth site
+
+Round 31 fixed nine `onKeyDown={stop}` sites across the two files it was pointed at, and defined the
+helper **twice, locally**, in those two files. `Tracker.jsx:197` had a tenth — an inline anonymous
+`(ev) => ev.stopPropagation()` — so a grep for the helper name could not find it.
+
+It is the worst of the eleven. It guards the button that opens the **payment** dialog, the
+money-writing one, on the control an operator uses dozens of times a day. Escape was still dead
+there, by both mouse and keyboard, ten presses leaving it open.
+
+`stopRowKeys` and `stopRowClick` now live once, in `ui.jsx`, and all three screens import them.
+**Copying a helper into the files you know about is how the file you do not know about gets missed** —
+trap 98, in the fix for trap 98.
+
+### A guard that was itself the shape it removed
+
+`tagOf` did `tags[status]`, an unguarded plain-object lookup — exactly the pattern it exists to
+eliminate. A status of `constructor`, `toString`, `valueOf`, `hasOwnProperty` or `__proto__` finds an
+inherited member, which is truthy, short-circuits the fallback, and yields an object with no `bg`,
+`fg` or `label`: an empty, unstyled, unlabelled chip. "Cannot throw" was true; "always returns a
+renderable chip" was not. Guarded with `Object.prototype.hasOwnProperty.call`.
+
+Its test was one string short of catching this — `assert.ok(typeof t.bg === 'string')` was the right
+assertion attached to an incomplete input list. The prototype keys are in the list now.
+
+### An invariant the screen prints, and a row that makes it false
+
+The Dashboard prints "Payables is the total — the four beside it add up to it." `of(k)` partitions by
+`eff(t)`, so a row whose status is outside the four counts in the total and in no bucket. Round 32
+injected one row of PHP 1,234,567: the total came out exactly that much above the sum of the four,
+the row was absent from the Tracker sheet, and **no filter state could reach it**, because the status
+checkboxes only offer the same four keys.
+
+`unaccountedRows` is now a tested helper, and the Dashboard names the discrepancy — count and amount
+— instead of printing a claim that is not true. Related: [C8](Remaining%20Work%20and%20Owner%20Decisions.md),
+the missing database CHECK that makes any of this reachable.
+
+Also fixed while there: `state.settings.dashWindow.toLowerCase()` was called bare at two points, so
+an explicit `null` in the stored settings would throw out of render. Same family (d).
+
+### What round 32 cleared
+
+`tagOf` against objects, arrays, `0`, `false`, `NaN`, `Symbol` — no throw, and `String(status ??
+'Unknown')` is right for the falsy-but-present cases. Markup in a status is escaped by React and is
+not exploitable. A 300-character status does not break the layout. `ev.key === ' '` is correct for
+Chromium. `App.jsx`'s `SCREENS[state.screen] || Dashboard`, `Settings.jsx`'s `ROWS[tab.k]` and
+`CSYM[cur]` at four call sites are all guarded. And the new Escape spec is genuinely falsifiable.
 
 ## Guideline Basis
 

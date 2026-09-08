@@ -41,7 +41,34 @@ export const dstr = (d) => {
  * readable and the operator can see that something is wrong.
  */
 export const tagOf = (status, tags = TAG) =>
-  tags[status] || { bg: '#EDEAEB', fg: '#9A8A90', label: String(status ?? 'Unknown') }
+  // `tags[status]` would be the very shape this function exists to remove: a
+  // status of `constructor`, `toString`, `valueOf`, `hasOwnProperty` or
+  // `__proto__` finds an inherited member, which is truthy, short-circuits the
+  // fallback and yields an object with no `bg`, `fg` or `label` — an empty,
+  // unstyled, unlabelled chip. "Cannot throw" was true; "always returns a
+  // renderable chip" was not, until this guard. Round 32.
+  (Object.prototype.hasOwnProperty.call(tags, status) ? tags[status] : null)
+  || { bg: '#EDEAEB', fg: '#9A8A90', label: String(status ?? 'Unknown') }
+
+/**
+ * The options a status `<select>` must offer so it shows the truth.
+ *
+ * `tagOf` alone was not enough, and round 32 caught the gap: `AckRec` and
+ * `Telegraphic` render the status as a `<select value={row.status}>`, not as a
+ * chip, and they never read `tag.label`. When the value matches no `<option>`
+ * the DOM falls back to `selectedIndex 0` — so a receipt whose status is
+ * `archived` displayed **"Pending"**. That is precisely the false statement
+ * [D85] said the design refused to make, made on a money screen, and it is
+ * worse than the crash it replaced: a loud failure became a quiet misstatement.
+ *
+ * Appending the unrecognised value as its own option makes the control show
+ * what the row actually holds. `tagOf` still greys it, so it reads as wrong
+ * rather than as a fifth legitimate state.
+ */
+export const statusOptions = (status, known) =>
+  known.some((s) => s.v === status)
+    ? known
+    : [...known, { v: status ?? '', label: String(status ?? 'Unknown') }]
 
 /** Overdue is derived, never stored: a pending row past its due date. */
 export const eff = (t, today = TODAY) => (t.status === 'pending' && t.due < today ? 'overdue' : t.status)
@@ -279,6 +306,28 @@ export const alreadyOnSheet = (existing, p, label, due, desc) =>
  * re-running Generate is safe. `alreadyOnSheet` owns that rule — it is not a
  * description match any more, because a description can be edited.
  */
+/** The four states the Dashboard tiles partition by, and the Tracker filters on. */
+export const TILE_KEYS = ['completed', 'pending', 'overdue', 'hold']
+
+/**
+ * Rows whose effective status is none of the four the tiles account for.
+ *
+ * The Dashboard prints "Payables is the total — the four beside it add up to
+ * it." A row whose `eff` is outside `TILE_KEYS` counts in the total and in no
+ * bucket, so that sentence becomes false by exactly that row's amount, silently.
+ * Round 32 measured it: one injected row of PHP 1,234,567 put the total
+ * 1,234,567 above the sum of the four, with the row absent from the Tracker
+ * sheet as well and unreachable by any filter, because the status checkboxes
+ * only offer the same four keys.
+ *
+ * Nothing the application writes can produce one — `status` is `text` with no
+ * CHECK constraint, so a PostgREST PATCH, a restore, or a value added to the
+ * database ahead of the UI can. The Dashboard names the discrepancy now rather
+ * than printing a claim that is not true.
+ */
+export const unaccountedRows = (rows, today = TODAY) =>
+  (rows || []).filter((t) => !TILE_KEYS.includes(eff(t, today)))
+
 /**
  * The occurrences of one payable in one month that nothing on the sheet covers.
  *

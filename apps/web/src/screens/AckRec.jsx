@@ -1,5 +1,6 @@
 import { useActions } from '../actions.js'
-import { dstr, fmt, tagOf } from '../logic.js'
+import { dstr, fmt, statusOptions, tagOf } from '../logic.js'
+import { stopRowClick, stopRowKeys } from '../ui.jsx'
 
 const COLS = '60px 128px minmax(160px,1fr) 104px 116px 104px 112px 104px 190px'
 
@@ -15,7 +16,6 @@ const STATUSES = [
  * transfer sheet: a row here opens on Enter or Space, and a control that stops
  * clicks but not keys lets a space press reach the row and open the receipt.
  */
-const stop = (ev) => ev.stopPropagation()
 /**
  * Keys only. The row opens on Enter or Space, so a control inside it must keep
  * those two from reaching the row — and nothing else.
@@ -30,7 +30,6 @@ const stop = (ev) => ev.stopPropagation()
  *
  * `stop` itself stays for `onClick`, where there is no key to inspect.
  */
-const stopRowKeys = (ev) => { if (ev.key === 'Enter' || ev.key === ' ') ev.stopPropagation() }
 
 
 export default function AckRec() {
@@ -86,15 +85,15 @@ export default function AckRec() {
                 <div style={{ paddingRight: 14, color: 'var(--ink-mid)' }}>{r.desc}</div>
                 <div className="right bold">{fmt(r.amount)}</div>
                 <div style={{ display: 'flex', justifyContent: 'center' }}>
-                  <select value={r.status} onChange={setReceiptStatus(r)} aria-label={'Status for ' + r.name}
-                          onClick={stop} onKeyDown={stopRowKeys}
+                  <select value={r.status ?? ''} onChange={setReceiptStatus(r)} aria-label={'Status for ' + r.name}
+                          onClick={stopRowClick} onKeyDown={stopRowKeys}
                           style={{
                             width: 104, textAlign: 'center', textAlignLast: 'center',
                             border: '1px solid var(--border)', borderRadius: 'var(--radius-md)',
                             padding: '5px 7px', fontSize: 11.5, fontWeight: 600,
                             background: tag.bg, color: tag.fg, outline: 'none', cursor: 'pointer',
                           }}>
-                    {STATUSES.map((s) => <option key={s.v} value={s.v}>{s.label}</option>)}
+                    {statusOptions(r.status, STATUSES).map((s) => <option key={s.v} value={s.v}>{s.label}</option>)}
                   </select>
                 </div>
                 <div style={{ color: r.date ? 'var(--ink-mid)' : 'var(--faint)' }}>{r.date ? dstr(r.date) : '—'}</div>

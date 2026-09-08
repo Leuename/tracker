@@ -3,7 +3,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { CSYM, initialState, MAX_OCC, TODAY } from './data.js'
 import {
-  addDays, alphabetical, alreadyOnSheet, amountOf, buildGeneratedRows, curFmt, dstr, eff, forecast, inPesos, monthKeys, monthKeyOf, monthLabel, occurrences, openingView, parsePeriod, periodLabel, positiveAmountOf, unpricedFor, unresolvedFor, rateFor, ruleLabel, tagOf, SORTS, sortRows, summaryHTML, transferTotals, visibleRows, windowDays, viewerActions, VIEWER_MAY, pushable, pushPlan, groupKey, editRecurring, recValue, draftText, coverageFor } from './logic.js'
+  addDays, alphabetical, alreadyOnSheet, amountOf, buildGeneratedRows, curFmt, dstr, eff, forecast, inPesos, monthKeys, monthKeyOf, monthLabel, occurrences, openingView, parsePeriod, periodLabel, positiveAmountOf, unpricedFor, unresolvedFor, unaccountedRows, TILE_KEYS, rateFor, ruleLabel, statusOptions, tagOf, SORTS, sortRows, summaryHTML, transferTotals, visibleRows, windowDays, viewerActions, VIEWER_MAY, pushable, pushPlan, groupKey, editRecurring, recValue, draftText, coverageFor } from './logic.js'
 
 const rent = { co: 'GTOI', cat: 'Rental Expense', freq: 'Monthly', desc: 'Warehouse B monthly rent', dueDate: '2026-08-24', amount: 45000 }
 
@@ -570,7 +570,11 @@ test('tagOf never throws, whatever the row carries', () => {
     const t = tagOf(known)
     assert.ok(t.bg && t.fg && t.label, known + ' must keep its own colours')
   }
-  for (const rogue of ['archived', 'ARCHIVED', '', null, undefined, 'Liquidated', 0]) {
+  // The prototype keys are the point: `tags[status]` finds an inherited member
+  // for these, which is truthy and short-circuits the fallback. Round 32 caught
+  // the pin one string short of working.
+  for (const rogue of ['archived', 'ARCHIVED', '', null, undefined, 'Liquidated', 0,
+    'constructor', 'toString', 'valueOf', 'hasOwnProperty', '__proto__', 'isPrototypeOf']) {
     const t = tagOf(rogue)
     assert.ok(t && typeof t.bg === 'string' && typeof t.fg === 'string',
       'a chip must always be renderable for ' + JSON.stringify(rogue))
@@ -587,6 +591,69 @@ test('tagOf shows the unknown status rather than calling it Pending', () => {
   assert.notEqual(tagOf('archived').bg, tagOf('pending').bg)
   assert.equal(tagOf(null).label, 'Unknown')
   assert.equal(tagOf(undefined).label, 'Unknown')
+})
+
+// ROUND 32, finding 2. `tagOf` was not enough on its own: AckRec and
+// Telegraphic render the status as a `<select value={row.status}>` and never
+// read `tag.label`, so an unrecognised value matched no `<option>`, the DOM fell
+// to `selectedIndex 0`, and an `archived` receipt displayed "Pending" — the
+// exact false statement the design claimed to refuse, on a money screen.
+// ROUND 32, finding 4. The Dashboard prints "Payables is the total — the four
+// beside it add up to it." A row whose `eff` is outside the four counts in the
+// total and in no bucket, so that sentence is false by exactly its amount, in
+// silence. Measured: one injected row of PHP 1,234,567 put the total that much
+// above the sum of the four, with the row absent from the Tracker sheet too and
+// unreachable by any filter.
+test('unaccountedRows names every row the four tiles cannot hold', () => {
+  const today = '2026-09-08'
+  const rows = [
+    { id: 1, status: 'completed', due: '2026-09-01', amount: 10 },
+    { id: 2, status: 'pending', due: '2026-12-01', amount: 20 },
+    { id: 3, status: 'pending', due: '2026-09-01', amount: 30 },   // overdue by derivation
+    { id: 4, status: 'hold', due: '2026-12-01', amount: 40 },
+  ]
+  assert.deepEqual(unaccountedRows(rows, today), [], 'the four states are all accounted for')
+
+  const stray = { id: 5, status: 'archived', due: '2026-12-01', amount: 1234567 }
+  assert.deepEqual(unaccountedRows([...rows, stray], today).map((t) => t.id), [5])
+
+  // The invariant the screen prints, stated as an assertion.
+  const all = [...rows, stray]
+  const bucketed = TILE_KEYS.reduce((a, k) => a + all.filter((t) => eff(t, today) === k)
+    .reduce((x, t) => x + t.amount, 0), 0)
+  const total = all.reduce((a, t) => a + t.amount, 0)
+  assert.equal(total - bucketed, stray.amount,
+    'the shortfall is exactly the stray row, which is why the screen must name it')
+
+  assert.deepEqual(unaccountedRows([], today), [])
+  assert.deepEqual(unaccountedRows(undefined, today), [])
+  assert.deepEqual(unaccountedRows([{ id: 6, status: null, due: null, amount: 1 }], today).map((t) => t.id), [6])
+})
+
+test('statusOptions offers the value the row actually holds', () => {
+  const known = [
+    { v: 'pending', label: 'Pending' },
+    { v: 'released', label: 'Released' },
+    { v: 'liquidated', label: 'Liquidated' },
+    { v: 'hold', label: 'On hold' },
+  ]
+  assert.equal(statusOptions('released', known), known, 'a known status adds nothing')
+  assert.deepEqual(statusOptions('pending', known), known)
+
+  const rogue = statusOptions('archived', known)
+  assert.equal(rogue.length, known.length + 1)
+  assert.deepEqual(rogue.at(-1), { v: 'archived', label: 'archived' },
+    'the select must be able to show what the row holds')
+  assert.ok(rogue.some((s) => s.v === 'archived'),
+    'without this the select falls to index 0 and reads "Pending"')
+
+  // Absent values still get an option, or the same silent fallback happens.
+  assert.deepEqual(statusOptions(null, known).at(-1), { v: '', label: 'Unknown' })
+  assert.deepEqual(statusOptions(undefined, known).at(-1), { v: '', label: 'Unknown' })
+  assert.deepEqual(statusOptions('', known).at(-1), { v: '', label: '' })
+
+  // And the original list is never mutated.
+  assert.equal(known.length, 4)
 })
 
 test('tagOf takes any tag map, so the shared Tag component is safe too', () => {

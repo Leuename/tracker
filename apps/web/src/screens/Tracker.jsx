@@ -1,7 +1,7 @@
 import { useActions } from '../actions.js'
 import { TAG } from '../data.js'
 import { SORTS, dstr, eff, fmt, forecast, groupKey, monthKeys, monthLabel, sortRows, unresolvedFor, unpricedFor, visibleRows } from '../logic.js'
-import { Check, Tag } from '../ui.jsx'
+import { Check, Tag, stopRowKeys } from '../ui.jsx'
 import { IconExport, IconFilter, IconSort } from '../icons.jsx'
 
 // Wider on the two columns that carry words and narrower on the six that carry
@@ -195,7 +195,7 @@ export default function Tracker() {
                       <div className="right">
                         {e !== 'completed' ? (
                           <button type="button" className="btn sm" onClick={openPay(t)}
-                                  onKeyDown={(ev) => ev.stopPropagation()}>Mark as paid</button>
+                                  onKeyDown={stopRowKeys}>Mark as paid</button>
                         ) : null}
                       </div>
                     </div>

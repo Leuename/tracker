@@ -1502,6 +1502,20 @@ test('Escape closes a dialog opened from a row control, not just from the toolba
   expect(((await c.from('receipts').select('id').eq('name', who)).data || []).length,
     'Escape cancels, it does not confirm').toBe(1)
 
+  // The Tracker's "Mark as paid" is the tenth site of this pattern and the one
+  // round 31 missed: an inline anonymous stopPropagation rather than the named
+  // helper, so a grep for the helper did not find it. It opens the PAYMENT
+  // dialog, which is the money-writing one and the control an operator uses
+  // dozens of times a day.
+  await go(page, 'Tracker')
+  const paid = await addPendingRow(page, 'escape from pay')
+  await page.locator('.sheet-row', { hasText: paid.description })
+    .getByRole('button', { name: 'Mark as paid' }).click()
+  await expect(page.locator('.modal')).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(page.locator('.modal'), 'Escape must close the payment dialog too').toBeHidden()
+  expect((await D.txnById(paid.id)).status, 'and must not have paid it').toBe('pending')
+
   await D.cleanup()
 })
 
