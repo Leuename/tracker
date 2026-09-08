@@ -435,7 +435,11 @@ same shape on attempt 2. This is not a passing incident.
   Running it manually now would fetch *today's* rate and put the ledger **ahead** of the documented
   behaviour, so it was left alone. It becomes a real problem only if Actions stays down for several
   days, at which point the rate drifts genuinely stale rather than deliberately so.
-- **Application code IS now waiting to deploy, as of `6bb176c`** — this was not true earlier and the
+- **The restore fix needs no deploy and is already in force.** Round 44's most serious finding was
+  remediated in `backups/README.md` and `backups/verify-restore.sql` — files a human reads while
+  performing a restore. They are not built, bundled or shipped, so committing them *is* the fix
+  landing. Nothing about C9 delays it.
+- **Application code IS waiting to deploy, as of `6bb176c`** — this was not true earlier and the
   line here said so. Round 44's fixes touch `src/logic.js`, `src/actions.js` and
   `src/screens/Masterlist.jsx`. **None of them fixes a live breakage**, verified against production:
   zero duplicate categories, zero duplicate companies, zero null `due_date` rows. They prevent
