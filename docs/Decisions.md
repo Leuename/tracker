@@ -2991,6 +2991,73 @@ Round 38 stopped after this finding and explicitly declined to audit `rewind.mjs
 claiming coverage it had not done. That is the right behaviour and it is recorded here so the next
 round does not read this decision as evidence those files are clean.
 
+## D93 — A Pasted Number That Was Seven Orders Of Magnitude Wrong
+
+**Decision and record, 2026-09-08. Round 39**, which refuted round 38 — and the first round in eight
+to find something outside the prototype class, because it was forbidden from reporting one.
+
+### The finding
+
+`amountOf` stripped everything outside `[0-9.]`. That deletes the `E` and the `+` from a pasted
+`1.20E+07` and splices the surviving digits together:
+
+```
+amountOf('1.20E+07')  ->  1.2007      (intended 12,000,000)
+amountOf('1.5e6')     ->  1.56
+amountOf('12.34.56')  ->  12.34       silently truncated
+```
+
+**A spreadsheet renders a number in scientific notation whenever the column is too narrow.** Copying
+the displayed cell is an ordinary thing to do, and the resulting value cleared every guard in the
+system: it is positive, so `positiveAmountOf` accepted it, and D65's `amount > 0` CHECK accepted it
+too. **The client and the database agreed on a number seven orders of magnitude from what the person
+meant** — which is exactly the gap the round was told to hunt for, and one no constraint could have
+caught, because the value is perfectly legal.
+
+Live on eight money paths: the edit form's amount, the e-cash fee, the liquidation base, the payment
+dialog's running total, and the masterlist's recurring amount.
+
+### The decision: refuse, do not guess
+
+`amountOf` now strips only decoration — spaces, a leading currency symbol — and then requires a
+strict decimal shape. Anything else returns `NaN` and the existing validation rejects it. `1.` and
+`.5` are deliberately still accepted: both are states a field passes through while somebody types a
+decimal, and refusing them mid-keystroke is trap 105, which took twenty-three rounds to find.
+
+A comma is treated as a thousands separator **only in a valid grouping position**. Blind stripping
+read `1 234,56` — European for 1234.56 — as `123456`, a hundred times out: the same silent
+misreading in a different costume, found while testing the first fix. This app prints `1,234.56`
+through `toLocaleString('en-US')`, so that is the shape a paste-back has; anything else is refused
+rather than guessed at.
+
+All 226 existing assertions passed unchanged against the stricter parser, which says no behaviour
+depended on the mangling.
+
+### The rewind footnote, fixed because of what that file is
+
+`rewind.mjs` emits SQL a human applies as `postgres`. `actor_email` was interpolated raw into a `--`
+comment line, so a newline in it would end the comment and put the remainder on a **live line**.
+GoTrue validates email syntax before it reaches `auth.users`, so this was never a live path — and it
+is fixed anyway, because "the other system validates it" is precisely the assumption that stops
+being true quietly, and this file's output is applied to real money by hand. Every interpolated
+value is flattened to one line now, and a test asserts no `drop table` can reach a non-comment line.
+
+### What round 39 cleared
+
+`rewind.mjs` and `rewind-plan.js` read in full: `--since` rejects a non-ISO and a future date, paging
+is keyset, a DELETE-then-reinsert of one id collapses to the oldest post-cut entry, and row payloads
+go through `JSON.stringify` → `lit()` → `jsonb_populate_record`, which is injection-safe — verified
+with a payload carrying quotes, a semicolon, `--`, newlines and a NUL byte. `fx.mjs` read in full:
+idempotence is exact comparison against a deterministically rounded value, EUR is self-checked
+against the ECB's own PHP figure, a malformed response fails loudly, and the write is read back.
+`errors.js` and `icons.jsx` are static and clear.
+
+**Not covered, and stated rather than implied:** the six unaudited modals, `pending.js`/`queries.js`
+concurrency, and the Manila/UTC date boundary. Round 39 stopped once it had a concrete defect and
+flagged the rest back, which is the same discipline round 38 used.
+
+229 assertions across 13 files.
+
 ## Guideline Basis
 
 - **AGENT-03** ensures adapter workflows stop rather than invent authorization.

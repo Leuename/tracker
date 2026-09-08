@@ -104,3 +104,30 @@ test('identity-aware rewinds may delete a linked post-migration insert', () => {
   const entry = e(1, 'txns', 'INSERT', null, { id: 7, src: 3 })
   assert.equal(planRewind([entry], { occurrenceIdentity: true }).steps[0].action, 'delete')
 })
+
+// ROUND 39. Every value interpolated into a `--` comment reaches a file an
+// operator applies as `postgres`. A newline in one would end the comment and put
+// the remainder on a live line. `actor_email` is validated by GoTrue before it
+// reaches `auth.users`, so this was never a live path — but this file's whole
+// purpose is that a human runs its output against real money, and "the other
+// system validates it" is exactly the assumption that stops being true quietly.
+test('no value can break out of a comment line into executable SQL', () => {
+  const entries = [{
+    id: 9, tbl: 'txns', op: 'UPDATE', row_id: 1,
+    before: { id: 1, amount: 10 }, after: { id: 1, amount: 20 },
+    at: '2026-09-08T00:00:00Z',
+    actor_email: 'a@b.com\ndrop table public.txns; --',
+  }]
+  const sql = toSql(planRewind(entries), { since: '2026-09-07T00:00:00Z', generatedAt: '2026-09-08T00:00:00Z' })
+  const lines = sql.split('\n')
+
+  for (const line of lines) {
+    const code = line.trim()
+    if (!code || code.startsWith('--')) continue
+    assert.ok(!/drop table/i.test(code),
+      'a newline in an audited value must not reach a live line: ' + code)
+  }
+  // And the text is still there, on the comment, flattened rather than dropped.
+  assert.ok(sql.includes('a@b.com drop table public.txns; --'),
+    'the value is preserved for the reader, just made harmless')
+})

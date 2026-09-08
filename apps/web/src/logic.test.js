@@ -775,6 +775,42 @@ test('a raw unguarded lookup is now safe, which is the point', () => {
   }
 })
 
+// ROUND 39. `amountOf` stripped everything outside `[0-9.]`, which deleted the
+// `E` and `+` from a pasted `1.20E+07` and spliced the remaining digits into
+// `1.2007` — seven orders of magnitude out, on a money field. A spreadsheet
+// renders a number in scientific notation whenever the column is too narrow, so
+// copying the displayed cell is an ordinary action, and the wrong value cleared
+// every guard: positive, so `positiveAmountOf` passed it and the database CHECK
+// (D65, `amount > 0`) took it. `12.34.56` was silently truncated to `12.34` the
+// same way. Both are now refused rather than guessed at.
+test('amountOf refuses what it cannot read, instead of mangling it', () => {
+  for (const rogue of ['1.20E+07', '1.5e6', '3E5', '12.34.56', 'abc', '1,23', '1,2345', '1 234,56', '']) {
+    assert.ok(Number.isNaN(amountOf(rogue)), JSON.stringify(rogue) + ' must be refused')
+    assert.ok(Number.isNaN(positiveAmountOf(rogue)), 'and must not pass the positive guard either')
+  }
+  // The specific number that started it: seven orders of magnitude, and it
+  // would have been stored as a legal positive amount.
+  assert.notEqual(amountOf('1.20E+07'), 1.2007)
+})
+
+test('amountOf still reads every shape a person or this app produces', () => {
+  assert.equal(amountOf('1234.56'), 1234.56)
+  assert.equal(amountOf('1,234.56'), 1234.56, 'the shape toLocaleString prints')
+  assert.equal(amountOf('12,345,678.90'), 12345678.9)
+  assert.equal(amountOf('1,234'), 1234)
+  assert.equal(amountOf('\u20B11,234.56'), 1234.56, 'a pasted peso sign')
+  assert.equal(amountOf('-25'), -25)
+  assert.equal(amountOf('+7'), 7)
+  assert.equal(amountOf('0'), 0)
+  assert.equal(amountOf(1234.56), 1234.56, 'a number, not a string')
+
+  // Mid-typing states. Refusing these on a keystroke is trap 105, which cost
+  // twenty-three rounds to find the first time.
+  assert.equal(amountOf('1.'), 1)
+  assert.equal(amountOf('.5'), 0.5)
+  assert.equal(amountOf('12.'), 12)
+})
+
 test('own never returns something the object merely inherited', () => {
   const m = { USD: '$', PHP: '\u20B1' }
   assert.equal(own(m, 'USD'), '$')

@@ -138,8 +138,29 @@ export const eff = (t, today = TODAY) => (t.status === 'pending' && t.due < toda
  */
 export const amountOf = (v) => {
   const raw = String(v).trim()
-  const n = parseFloat(raw.replace(/[^0-9.]/g, ''))
-  return raw.startsWith('-') && Number.isFinite(n) ? -n : n
+  // Strip only what is decoration on a number: spaces, thousands separators and
+  // a leading currency symbol. NOT `[^0-9.]`, which is what this used to do —
+  // that deleted the `E` and `+` from a pasted `1.20E+07` and spliced the
+  // remaining digits into `1.2007`, seven orders of magnitude out. A spreadsheet
+  // shows `1.20E+07` whenever the column is too narrow, so copying the displayed
+  // cell is an ordinary action, and the wrong number cleared every guard: it is
+  // positive, so `positiveAmountOf` passed it and the database CHECK took it.
+  // `12.34.56` was silently truncated to `12.34` the same way. Round 39.
+  const cleaned = raw.replace(/[\s\u00A0\u202F]/g, '').replace(/^[^\d.+-]+/, '')
+  // One optional sign, then digits with at most one decimal point. `1.` and `.5`
+  // are deliberately accepted: both are states a field passes through while
+  // somebody is typing a decimal, and refusing them mid-keystroke is trap 105.
+  //
+  // A comma is a thousands separator ONLY where a thousands separator can go.
+  // Blind stripping read `1 234,56` — European for 1234.56 — as 123456, a
+  // hundred times out, which is the same silent misreading in a different
+  // costume. This app prints `1,234.56` via `toLocaleString('en-US')`, so that
+  // is the shape a paste-back has, and anything else is refused rather than
+  // guessed at.
+  const grouped = /^[-+]?\d{1,3}(?:,\d{3})+(?:\.\d*)?$/.test(cleaned)
+  const plain = /^[-+]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(cleaned)
+  if (!grouped && !plain) return NaN
+  return Number(grouped ? cleaned.replace(/,/g, '') : cleaned)
 }
 
 /**

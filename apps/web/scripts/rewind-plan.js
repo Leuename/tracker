@@ -121,11 +121,20 @@ export function toSql(plan, { since, generatedAt }) {
     '',
   ]
 
+  // Anything interpolated into a `--` comment must not be able to end the
+  // comment. A newline in a value would put the rest of it on a LIVE line in a
+  // file an operator runs as `postgres`. `actor_email` is validated by GoTrue
+  // before it reaches `auth.users`, so this is not a live path — but the whole
+  // point of this file is that a human applies its output to real money, and
+  // "the other system validates it" is the assumption that stops being true
+  // quietly. Round 39.
+  const oneLine = (v) => String(v ?? '').replace(/[\r\n]+/g, ' ')
   for (const s of plan.steps) {
     const where = 'where ' + s.pk + ' = ' + lit(s.key)
-    out.push('-- ' + s.tbl + ' ' + s.pk + '=' + s.key + ' — ' +
+    out.push('-- ' + oneLine(s.tbl) + ' ' + oneLine(s.pk) + '=' + oneLine(s.key) + ' — ' +
       (s.action === 'delete' ? 'did not exist' : 'restore state') +
-      ' at the cut (audit_log ' + s.firstEntry + ', ' + s.at + (s.by ? ', ' + s.by : '') + ')')
+      ' at the cut (audit_log ' + oneLine(s.firstEntry) + ', ' + oneLine(s.at) +
+      (s.by ? ', ' + oneLine(s.by) : '') + ')')
     out.push('delete from public.' + s.tbl + ' ' + where + ';')
     if (s.action === 'restore') {
       out.push('insert into public.' + s.tbl + ' select * from jsonb_populate_record(' +
