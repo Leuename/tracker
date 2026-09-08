@@ -1,8 +1,7 @@
 import { createContext, useContext, useReducer, useRef, useState, useCallback, useEffect } from 'react'
 import { initialState } from './data.js'
 import { db, load } from './db.js'
-import { configOf } from './rows.js'
-import { createConfigSync } from './config-save.js'
+import { configOf, configPatch } from './rows.js'
 import { openingView } from './logic.js'
 import { supabase } from './supabase.js'
 import { Splash } from './Auth.jsx'
@@ -80,13 +79,24 @@ export function StoreProvider({ children }) {
   // the whole config. Four people share this row; sending all of it meant the
   // second save of any pair was built from a config loaded before the first and
   // silently discarded it. `merge_app_config` folds patches together instead.
-  // Every decision about what to send and what the baseline becomes lives in
-  // `config-save.js`, where a test can drive it without React. Three rounds in
-  // a row put a defect in these twelve lines and the suite stayed green each
-  // time, because nothing offline imports this file. What is left here is the
-  // debounce and the effect wiring.
-  const sync = useRef(null)
-  if (!sync.current) sync.current = createConfigSync({ write: db.saveConfig })
+  const savedConfig = useRef(null)
+  // The effect keys on the config's VALUE, not on `state`.
+  //
+  // It used to depend on `state`, and `reduce` returns a new object every time,
+  // so anything at all that touched state re-ran it — including `flash`, which
+  // is what `save` calls to report a failed write. That was harmless only while
+  // a failure left the baseline advanced: the next run computed a null patch and
+  // stopped. Adding the rollback below closed the circle — write fails, toast
+  // sets state, effect re-runs, baseline is back so the patch is non-null again,
+  // same write re-issued. Measured at 85 writes and 85 toasts in 500ms against
+  // one toggle on a failing connection, and it would not stop until the network
+  // returned or the tab was closed. Round 29, and family (c) exactly: the fix
+  // for a silently dropped setting bought an unbounded retry loop.
+  //
+  // Keying on the serialised config means a toast cannot re-trigger a write,
+  // because a toast does not change the config.
+  const configKey = JSON.stringify(configOf(state))
+  const readOnly = state.readOnly
   useEffect(() => {
     if (!ready) return undefined
     // A viewer's config never leaves the tab. Without this the effect would
@@ -94,14 +104,29 @@ export function StoreProvider({ children }) {
     // certain to refuse, turning a greyed-out screen into a toast storm.
     if (readOnly) return undefined
     const next = JSON.parse(configKey)
-    if (sync.current.current() === null) { sync.current.seed(next); return undefined }
-    if (!sync.current.pending(next)) return undefined
+    if (savedConfig.current === null) { savedConfig.current = next; return undefined }
+    const patch = configPatch(savedConfig.current, next)
+    if (!patch) return undefined
     const t = setTimeout(() => {
-      // `send` recomputes the diff NOW rather than using the one `pending`
-      // returned above. A rejection landing inside this debounce rolls the
-      // baseline back, and a patch frozen when the effect ran would not see it.
-      const writing = sync.current.send(next)
-      if (writing) save(writing, 'the settings')
+      // Advance the baseline optimistically, then put it back if the write is
+      // refused. `save` only reports the failure; it does not undo it. Leaving
+      // the baseline advanced means the NEXT patch is a diff against a value the
+      // database never received, so the refused change is dropped silently and
+      // for good — the screen keeps showing a setting the ledger does not have.
+      // `ackRequirePhoto` is one of these, and it is the setting that once
+      // stopped the owner liquidating a receipt.
+      //
+      // Rolled back unconditionally, NOT only when the baseline still equals
+      // what this write sent. Guarding on that skipped the rollback in the one
+      // case it was written for — a refusal overlapping a later edit, where the
+      // later patch carries only its own delta and the refused one is lost.
+      // Re-sending a value the row already holds is a no-op merge, so recomputing
+      // a superset patch next time costs nothing and recovers the lost change.
+      const prev = savedConfig.current
+      savedConfig.current = next
+      const writing = db.saveConfig(patch)
+      writing.catch(() => { savedConfig.current = prev })
+      save(writing, 'the settings')
     }, 600)
     return () => clearTimeout(t)
   }, [ready, readOnly, configKey, save])

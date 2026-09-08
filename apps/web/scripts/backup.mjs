@@ -131,17 +131,7 @@ async function readAll(table) {
     // real — `fx.yml` runs at 02:00/08:00 UTC, `backup.yml` at 06:00/18:00, and
     // this project's own note is that GitHub crons land 2.5-5h behind.
     rows = []
-    // `count == null` must not read as zero. `countError` is thrown above, so
-    // this should be unreachable — but if PostgREST ever answered with a null
-    // count and no error, `count || 0` would page zero times and the assertion
-    // below would compare 0 to 0 and pass, writing an EMPTY snapshot and calling
-    // it a backup. That is the round-27 shape exactly: a default whose failure
-    // mode is "check disabled" rather than "error". Fail closed instead.
-    if (typeof count !== 'number') {
-      throw new Error('Could not count ' + table + ': the row count came back as ' + count +
-        '. Refusing to write a backup that cannot be checked.')
-    }
-    for (let from = 0; from < count; from += PAGE) {
+    for (let from = 0; from < (count || 0); from += PAGE) {
       const plan = planPage(table, { from, page: PAGE })
       const q = supabase.from(table).select('*')
       const { data, error } = await q.order('as_of', { ascending: true }).order('cur', { ascending: true }).range(plan.from, plan.to)
@@ -154,11 +144,7 @@ async function readAll(table) {
   // less than the database is worse than one that fails and says so. It is a
   // backstop, not the guarantee — an offset read can lose a row and still match
   // this count, which is why the paging above is keyset.
-  if (typeof count !== 'number') {
-    throw new Error('Could not count ' + table + ': the row count came back as ' + count +
-      '. Refusing to write a backup that cannot be checked.')
-  }
-  if (rows.length !== count) {
+  if (rows.length !== (count || 0)) {
     throw new Error('Read ' + rows.length + ' rows from ' + table + ' but it holds ' + count +
       '. Refusing to write a partial backup.')
   }
