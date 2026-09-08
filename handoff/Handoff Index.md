@@ -8,32 +8,33 @@ purpose: "A fresh session needs ONE entry point. This note names it, and says wh
 related:
   - "[[AI Agent Context]] — the navigation hub for the whole repository"
   - "[[Handoff]] — the append-only per-pass record in docs/, a different thing from this folder"
-  - "[[Decisions]] — D1 to D79"
+  - "[[Decisions]] — D1 to D83"
   - "[[Repository Evidence]] — the factual baseline"
 up: "[[AI Agent Context]]"
 ---
 
 # Handoff Index
 
-Nineteen handoffs, one entry point. This note exists because the folder had none, and because
+Twenty handoffs, one entry point. This note exists because the folder had none, and because
 `status: current` in a handoff's own frontmatter means *"accurate when written"* rather than
 *"start here"* — several notes carry it and only one can be the entry point.
 
 ## Start here
 
-> **[[2026-09-07 Session Continuation, Rounds One to Twenty-Five]]**
-> The current complete continuation package and **the entry point**. It carries the whole session's
-> story, the loop in one table, the live state, what is *not* verified, and the one resume prompt.
+> **[[2026-09-08 The Identity Rollout, and Rounds Twenty-Six to Thirty]]**
+> The current complete continuation package and **the entry point**. It carries the
+> occurrence-identity rollout end to end, rounds 26 to 30, the live state, what is *not* verified,
+> and the one resume prompt.
 >
-> **Read it with two notes it supersedes as entry points but not as records:**
-> **[[2026-09-06 The Review Loop, Rounds One to Twenty]]** holds the round-by-round ledger, the
-> rate-limit history, and sections 4a-4f describing rounds 19-25 in detail.
-> **[[2026-09-05 The Design Port, and Three Requirements the File Did Not Show]]** holds the design
-> port itself, the twelve client requirements mapped to `file:line`, the four migrations and their
-> MD5 verification, the **eighty-one-row findings table**, and **traps 77-107**.
+> **Read it with the notes it supersedes as an entry point but not as records:**
+> **[[2026-09-07 Session Continuation, Rounds One to Twenty-Five]]** holds rounds 1-25 and the shape
+> of the loop. **[[2026-09-06 The Review Loop, Rounds One to Twenty]]** holds the round-by-round
+> ledger and the rate-limit history. **[[2026-09-05 The Design Port, and Three Requirements the File Did Not Show]]**
+> holds the design port, the twelve client requirements mapped to `file:line`, the
+> **eighty-one-row findings table**, and **traps 77-107**.
 >
-> Before all three, **[[2026-09-04 Three Answers, and a Finding That Corrected Itself]]** (phase 45)
-> remains the record of C1/C4/C5 and traps 72-76 — every trap in it still applies.
+> Before all of those, **[[2026-09-04 Three Answers, and a Finding That Corrected Itself]]** (phase
+> 45) remains the record of C1/C4/C5 and traps 72-76 — every trap in it still applies.
 >
 > **The three lines that matter most across the set:** rounds 16-18 were run by the main session by
 > hand under a rate limit and reported the work green, and round 19 — the first real verifier
