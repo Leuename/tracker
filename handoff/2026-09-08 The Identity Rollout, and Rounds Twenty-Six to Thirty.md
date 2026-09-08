@@ -6,13 +6,13 @@ status: current
 kind: complete continuation package — THE entry point. A fresh chat resumes from this file.
 supersedes: "[[2026-09-07 Session Continuation, Rounds One to Twenty-Five]] as the entry point. It is not obsolete: it remains the record of rounds 1-25 and the shape of the loop."
 covers: "the owner-authorised occurrence-identity rollout — rehearsal, two production migrations, deployment — and adversarial rounds 26 to 30, which produced decisions D80 to D83"
-decisions-made: "[[Decisions]] D80 to D85"
-verification-status: "The rollout is COMPLETE and verified. Rounds 27 to 31 each REFUTED the one before; every finding is fixed, deployed and mutation-checked. Round 30's own fix BLANKED PRODUCTION for ten and a half minutes and was reverted and relanded. Round 32 was dispatched and its result is NOT in this document."
+decisions-made: "[[Decisions]] D80 to D86"
+verification-status: "The rollout is COMPLETE and verified. Rounds 27 to 32 each REFUTED the one before; every finding is fixed, deployed and mutation-checked. Round 30's own fix BLANKED PRODUCTION for ten and a half minutes and was reverted and relanded. Round 33 was dispatched and its result is NOT in this document."
 related:
   - "[[2026-09-07 Session Continuation, Rounds One to Twenty-Five]] — rounds 1-25 and the loop's shape"
   - "[[2026-09-06 The Review Loop, Rounds One to Twenty]] — the round-by-round ledger and the rate-limit history"
   - "[[2026-09-05 The Design Port, and Three Requirements the File Did Not Show]] — the design port, the twelve client requirements, the eighty-one-row findings table, traps 77-107"
-  - "[[Decisions]] — D1 to D85, the authority on what is authorised"
+  - "[[Decisions]] — D1 to D86, the authority on what is authorised"
   - "[[Repository Evidence]] — the factual baseline"
   - "[[Remaining Work and Owner Decisions]] — A1-A2, B1-B2, C5-C8"
   - "[[Handoff Index]] — every handoff, newest first"
@@ -63,7 +63,8 @@ after the LAST phase.**
 | **30** | **REFUTED, 2** | The round-29 rollback **still** lost the change it was written to recover — the patch was computed at effect time and frozen in the debounce closure; and the whole of round 29's fix could be deleted with 201 tests green |
 | — | **a production outage** | Round 30's fix dropped two `const` declarations. `ReferenceError` from `StoreProvider`'s render, React unmounted the tree, **production blank for ten and a half minutes**. Build green, 209 tests green, gate green, deployed |
 | **31** | **REFUTED, 2** | **A `receipts.status` outside the four the dropdown offers blanked the whole app**, unrecoverable by reload — one pattern in three places, guarded in one. And **Escape was dead for every dialog opened from a row control** |
-| 32 | **dispatched; result not in this document** | |
+| **32** | **REFUTED, 4** | **A tenth `onKeyDown` site** — the button opening the *payment* dialog, missed because round 31 defined its helper locally in the two files it was handed. And **D85's justification was factually false**: `AckRec` renders a `<select>`, never a chip, so an unknown status still displayed "Pending" |
+| 33 | **dispatched; result not in this document** | |
 
 Decisions [[Decisions]] D81 to D84 carry the reasoning. Four findings across these rounds were
 introduced by the previous round's fix, which is the loop's oldest pattern.
@@ -97,7 +98,7 @@ your own writes, never against a number in a document.
 
 | | |
 |---|---|
-| `npm test` | **212/212** across 12 files, offline |
+| `npm test` | **214/214** across 12 files, offline |
 | `npx playwright test --workers=1` | **52/52**, run against a local dev server before each push and against the deployment after |
 | `npm run security` | **57 checks, 0 failed, 0 deferred**; `OCCURRENCE_IDENTITY_PHASE` now defaults to `2` |
 | `npm audit` | **0** |
@@ -125,12 +126,12 @@ now in `AGENTS.md` and `CLAUDE.md`.
 
 Also unverified:
 
-- **Round 32's result is not in this document.** Check it before treating the loop as clean.
-- Never audited by any round: `src/App.jsx`, `src/icons.jsx`, `src/screens/Settings.jsx`,
-  `Dashboard.jsx`, `Masterlist.jsx`, `Tracker.jsx`, `src/modals/*.jsx` other than `PayMethod`,
-  `scripts/rewind.mjs`, `scripts/fx.mjs`. Round 29 cleared the migrations; round 31 covered
-  `AckRec.jsx`, `Telegraphic.jsx` and `ui.jsx` — **and found a defect in each of the first two.**
-- **The loop has never returned clean in thirty-one rounds.** Do not report this work as defect-free.
+- **Round 33's result is not in this document.** Check it before treating the loop as clean.
+- Never audited by any round: `src/icons.jsx`, `src/screens/Masterlist.jsx`, and every file in
+  `src/modals/` except `PayMethod.jsx`; `scripts/rewind.mjs`, `scripts/fx.mjs`. Round 29 cleared the
+  migrations; rounds 31 and 32 covered `AckRec.jsx`, `Telegraphic.jsx`, `ui.jsx`, `Tracker.jsx`,
+  `Dashboard.jsx`, `App.jsx` and `Settings.jsx` — **and found six defects between them.**
+- **The loop has never returned clean in thirty-two rounds.** Do not report this work as defect-free.
 
 ## 7. Still open — none of it is mine to close
 
@@ -223,12 +224,12 @@ NON-NULL __e2eHeld a run was killed mid-spec — do not clear it by hand, run th
 beforeAll give the value back. Afterwards run `rm -rf apps/web/test-results`: traces hold
 E2E_PASSWORD and live refresh tokens in plaintext.
 
-CONTINUE THE REVIEW LOOP. Round 32 was dispatched against round 31's fixes and ITS RESULT IS NOT IN
-THE HANDOFF — find out whether it finished before assuming anything. Round 31's fixes are in commit
-b0e5b19: apps/web/src/logic.js gained tagOf, which AckRec.jsx, Telegraphic.jsx and ui.jsx's Tag all
-route through so an unrecognised status cannot throw out of render; and stopRowKeys replaced
-onKeyDown={stop} in those two screens so Escape reaches modals opened from row controls.
-ROUNDS 1-31 ALL FOUND SOMETHING. THE LOOP HAS NEVER RETURNED CLEAN, NO ROUND HAS EVER SURVIVED THE
+CONTINUE THE REVIEW LOOP. Round 33 was dispatched against round 32's fixes and ITS RESULT IS NOT IN
+THE HANDOFF — find out whether it finished before assuming anything. Round 32's fixes are in commit
+ded768d: stopRowKeys and stopRowClick now live once in apps/web/src/ui.jsx and all three screens
+import them; statusOptions in logic.js makes a status <select> offer the value the row actually
+holds; tagOf guards its lookup with hasOwnProperty; and unaccountedRows plus a rewritten Dashboard
+note name a shortfall instead of asserting the four tiles add up. ROUNDS 1-32 ALL FOUND SOMETHING. THE LOOP HAS NEVER RETURNED CLEAN, NO ROUND HAS EVER SURVIVED THE
 NEXT ONE, and roughly half of all findings were introduced by the fix for the previous defect.
 
 RUN THE E2E SUITE AGAINST A LOCAL DEV SERVER BEFORE PUSHING ANYTHING UNDER apps/web/src/.
@@ -266,6 +267,15 @@ THE TRAPS THAT KEEP BITING, AND HOW THE LAST FOUR ROUNDS FOUND THEIR DEFECTS:
 - A GUARD ADDED FOR A RARE HARM CAN BLOCK THE COMMON CASE. Round 29's second finding: the rollback
   guard skipped exactly the situation the rollback existed for.
 - TRAP 98: delete each fix AT ITS CALL SITE, not in the helper.
+- AND THE HABIT BEHIND IT, which round 32 named: a round fixes the sites it was TOLD about and
+  defines its helper locally in each, so the instance in a file nobody named survives. Round 31 did
+  that with onKeyDown and missed the tenth site — the button that opens the PAYMENT dialog. After
+  any fix, GREP FOR THE PATTERN across src/, scripts/, e2e/ and security/, not for the helper's
+  name: an inline anonymous copy will never match the name.
+- A DECISION RECORD THAT DESCRIBES INTENT RATHER THAN BEHAVIOUR. Round 32 found D85 asserting that a
+  screen showed the raw status "in a neutral chip" when that screen renders a <select> and has no
+  chip at all — so it silently displayed "Pending" instead. Check a record's claims against what the
+  code renders, not against what it meant to.
 - TRAP 101: moving a guard to where it belongs can move it out of where it was tested.
 
 ALSO ASK WHAT HAS NEVER BEEN IN SCOPE. Rounds 21, 23, 24, 27 and 31 each found their worst defect in
