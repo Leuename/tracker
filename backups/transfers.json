@@ -127,7 +127,7 @@
     "note": "",
     "rate": 72.801,
     "rate_as_of": "2026-09-07",
-    "status": "pending"
+    "status": "released"
   },
   {
     "amount": 75000,
@@ -140,7 +140,7 @@
     "note": "",
     "rate": 72.801,
     "rate_as_of": "2026-09-07",
-    "status": "pending"
+    "status": "released"
   },
   {
     "amount": 80850.5,
@@ -153,6 +153,6 @@
     "note": "",
     "rate": 62.640681,
     "rate_as_of": "2026-09-07",
-    "status": "pending"
+    "status": "released"
   }
 ]

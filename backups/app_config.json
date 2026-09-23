@@ -54,11 +54,6 @@
         {
           "done": false,
           "linked": false,
-          "t": "Remind Ms sa mga unpaid govt payments"
-        },
-        {
-          "done": false,
-          "linked": false,
           "t": "ZONE Liquidations - Jan to May put account codes"
         },
         {
@@ -67,9 +62,39 @@
           "t": "ZONE - if refunds, tag as Security Deposit"
         },
         {
-          "done": false,
+          "done": true,
           "linked": false,
           "t": "FEPA - CDV"
+        },
+        {
+          "done": true,
+          "linked": false,
+          "t": "Hineram ng HR yung Halimede 2025 payment ng maxicare. oct nov"
+        },
+        {
+          "done": true,
+          "linked": false,
+          "t": "Hineram ni Ms Roch yung ANG BIR Oct 2025 to present"
+        },
+        {
+          "done": false,
+          "linked": false,
+          "t": "Yung kay edison"
+        },
+        {
+          "done": false,
+          "linked": false,
+          "t": "File P&L"
+        },
+        {
+          "done": false,
+          "linked": false,
+          "t": "tele invoices"
+        },
+        {
+          "done": false,
+          "linked": false,
+          "t": "arthaland payments"
         }
       ],
       "settings": {
@@ -87,6 +112,6 @@
       }
     },
     "id": true,
-    "updated_at": "2026-09-08T15:17:34.578263+00:00"
+    "updated_at": "2026-09-16T07:21:09.502052+00:00"
   }
 ]

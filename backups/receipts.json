@@ -34,5 +34,17 @@
     "id": 1788488902286,
     "name": "Kuya Randy",
     "status": "released"
+  },
+  {
+    "actual": null,
+    "amount": 3000,
+    "co": "ZON",
+    "created_at": "2026-09-18T02:27:03.301851+00:00",
+    "date": null,
+    "description": "Budget",
+    "file_path": null,
+    "id": 1789698422946,
+    "name": "Kuya Randy",
+    "status": "released"
   }
 ]
