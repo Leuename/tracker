@@ -3568,6 +3568,34 @@ not introduced by rounds 45-47, and is not fixed here.
 
 238 assertions across 13 files.
 
+## D102: The Construction Tracker Is Unparked
+
+**Decision, 2026-09-24. Supersedes [D18](#d18--the-construction-tracker-is-parked).**
+
+The owner gave the explicit instruction D18 waited for: scope, design and build the construction
+tracker for the family business. The source spec is `construction_tracker/construction.csv`, which
+matches the `papa` tab of the owner's sheet cell for cell. Work happens on `feature/papa-tracker`.
+Planning documents live in `docs/papa/`: PRD, Data Model, App Flows, Build Plan.
+
+## D103: One Supabase Project, Scoped by Workspace, Separate Tables
+
+**Decision, 2026-09-24. Owner choice.**
+
+Papa's data lives in the same Supabase project as the ERP tracker, in its own `papa_*` tables.
+Access is scoped by a `workspace_members` table with two workspaces, `erp` and `papa`, each with an
+`admin` or `viewer` role per account.
+
+This changes the existing ERP policies. Every ERP read policy is `using (true)` today, and
+`audit_log` stores full row images under the same open policy, so any new account would read the
+whole ERP ledger. Phase 0 of the Build Plan closes that before any `papa_*` table exists: ERP
+policies move to `private.is_member('erp')`, writes to `private.can_write('erp')`, and `audit_log`
+reads are filtered by table prefix.
+
+The Papa frontend is a separate app, `apps/papa`, with its own Vercel project. It does not touch the
+ERP bundle, which cannot currently deploy (C9).
+
+Papa rows must not enter the committed `backups/` snapshot while the repository is public.
+
 ## Guideline Basis
 
 - **AGENT-03** ensures adapter workflows stop rather than invent authorization.
