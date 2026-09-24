@@ -649255,5 +649255,73 @@
     "op": "UPDATE",
     "row_id": 1789698422946,
     "tbl": "receipts"
+  },
+  {
+    "actor": "14f0d1af-f37a-4936-b278-e280bcb25129",
+    "actor_email": "admin@admin.com",
+    "after": {
+      "as_of": "2026-09-23",
+      "cur": "USD",
+      "fetched_at": "2026-09-24T07:17:43.416607+00:00",
+      "rate": 62.545789,
+      "source": "ECB via frankfurter.dev"
+    },
+    "at": "2026-09-24T07:17:43.416607+00:00",
+    "before": null,
+    "id": 15199,
+    "op": "INSERT",
+    "row_id": null,
+    "tbl": "fx_rates"
+  },
+  {
+    "actor": "14f0d1af-f37a-4936-b278-e280bcb25129",
+    "actor_email": "admin@admin.com",
+    "after": {
+      "as_of": "2026-09-23",
+      "cur": "GBP",
+      "fetched_at": "2026-09-24T07:17:43.416607+00:00",
+      "rate": 83.037813,
+      "source": "ECB via frankfurter.dev"
+    },
+    "at": "2026-09-24T07:17:43.416607+00:00",
+    "before": null,
+    "id": 15200,
+    "op": "INSERT",
+    "row_id": null,
+    "tbl": "fx_rates"
+  },
+  {
+    "actor": "14f0d1af-f37a-4936-b278-e280bcb25129",
+    "actor_email": "admin@admin.com",
+    "after": {
+      "as_of": "2026-09-23",
+      "cur": "EUR",
+      "fetched_at": "2026-09-24T07:17:43.416607+00:00",
+      "rate": 71.371,
+      "source": "ECB via frankfurter.dev"
+    },
+    "at": "2026-09-24T07:17:43.416607+00:00",
+    "before": null,
+    "id": 15201,
+    "op": "INSERT",
+    "row_id": null,
+    "tbl": "fx_rates"
+  },
+  {
+    "actor": "14f0d1af-f37a-4936-b278-e280bcb25129",
+    "actor_email": "admin@admin.com",
+    "after": {
+      "as_of": "2026-09-23",
+      "cur": "AUD",
+      "fetched_at": "2026-09-24T07:17:43.416607+00:00",
+      "rate": 44.203518,
+      "source": "ECB via frankfurter.dev"
+    },
+    "at": "2026-09-24T07:17:43.416607+00:00",
+    "before": null,
+    "id": 15202,
+    "op": "INSERT",
+    "row_id": null,
+    "tbl": "fx_rates"
   }
 ]
