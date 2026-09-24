@@ -103,7 +103,7 @@
         "ackRequirePhoto": false,
         "dashDefaultScope": "All companies",
         "dashShowNotes": true,
-        "dashWindow": "Next 30 days",
+        "dashWindow": "Next 7 days",
         "mlDefaultFreq": "Monthly",
         "trkGroupDefault": "Company",
         "trkOverdueRed": true,
@@ -112,6 +112,6 @@
       }
     },
     "id": true,
-    "updated_at": "2026-09-16T07:21:09.502052+00:00"
+    "updated_at": "2026-09-24T19:51:33.305544+00:00"
   }
 ]
