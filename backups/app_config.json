@@ -45,58 +45,7 @@
         "ZPH",
         "ZSM"
       ],
-      "notes": [
-        {
-          "done": false,
-          "linked": false,
-          "t": "File Gov't Contributio Payments"
-        },
-        {
-          "done": false,
-          "linked": false,
-          "t": "ZONE Liquidations - Jan to May put account codes"
-        },
-        {
-          "done": false,
-          "linked": false,
-          "t": "ZONE - if refunds, tag as Security Deposit"
-        },
-        {
-          "done": true,
-          "linked": false,
-          "t": "FEPA - CDV"
-        },
-        {
-          "done": true,
-          "linked": false,
-          "t": "Hineram ng HR yung Halimede 2025 payment ng maxicare. oct nov"
-        },
-        {
-          "done": true,
-          "linked": false,
-          "t": "Hineram ni Ms Roch yung ANG BIR Oct 2025 to present"
-        },
-        {
-          "done": false,
-          "linked": false,
-          "t": "Yung kay edison"
-        },
-        {
-          "done": false,
-          "linked": false,
-          "t": "File P&L"
-        },
-        {
-          "done": false,
-          "linked": false,
-          "t": "tele invoices"
-        },
-        {
-          "done": false,
-          "linked": false,
-          "t": "arthaland payments"
-        }
-      ],
+      "notes": [],
       "settings": {
         "__e2eHeld": null,
         "ackDefaultStatus": "Pending",
@@ -112,6 +61,6 @@
       }
     },
     "id": true,
-    "updated_at": "2026-10-05T22:23:46.088647+00:00"
+    "updated_at": "2026-10-06T11:28:24.897179+00:00"
   }
 ]
