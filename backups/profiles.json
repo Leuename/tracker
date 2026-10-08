@@ -20,6 +20,11 @@
     "user_id": "8444efad-f65a-4ba1-bde7-39b355c78cbf"
   },
   {
+    "created_at": "2026-10-08T16:05:34.039987+00:00",
+    "role": "admin",
+    "user_id": "9775af2b-1a6b-4de9-beb8-266eaa62799b"
+  },
+  {
     "created_at": "2026-09-01T17:05:44.607992+00:00",
     "role": "admin",
     "user_id": "e7091e64-a638-4ebb-8ac6-a6ac7ae198f5"
