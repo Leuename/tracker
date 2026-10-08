@@ -780666,5 +780666,22 @@
     "row_id": 1791407174450,
     "tbl": "transfers",
     "workspace": "erp"
+  },
+  {
+    "actor": "14f0d1af-f37a-4936-b278-e280bcb25129",
+    "actor_email": "admin@admin.com",
+    "after": {
+      "amount": 10000,
+      "effective_date": "2026-10-08",
+      "id": true,
+      "updated_at": "2026-10-08T01:55:36.405188+00:00"
+    },
+    "at": "2026-10-08T01:55:36.405188+00:00",
+    "before": null,
+    "id": 17590,
+    "op": "INSERT",
+    "row_id": null,
+    "tbl": "papa_opening_balance",
+    "workspace": "papa"
   }
 ]
