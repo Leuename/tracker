@@ -4,16 +4,16 @@ Written by `apps/web/scripts/backup.mjs`. Do not edit by hand.
 
 | | |
 |---|---|
-| Taken | 2026-10-13T14:02:12.424Z |
+| Taken | 2026-10-13T22:15:45.520Z |
 | Project | jusifpditdigqdjiwdaj.supabase.co |
 | `txns` rows | 49 |
 | `receipts` rows | 4 |
 | `recurring` rows | 0 |
 | `transfers` rows | 12 |
 | `app_config` rows | 1 |
-| `audit_log` rows | 18649 |
+| `audit_log` rows | 18776 |
 | `profiles` rows | 6 |
-| `fx_rates` rows | 68 |
+| `fx_rates` rows | 72 |
 | Accounts in the roster | 6 |
 | Stored files | 1 |
 | Transactions total | ₱2,226,438.00 |
