@@ -530,5 +530,33 @@
     "fetched_at": "2026-10-15T07:02:44.258521+00:00",
     "rate": 62.878964,
     "source": "ECB via frankfurter.dev"
+  },
+  {
+    "as_of": "2026-10-15",
+    "cur": "AUD",
+    "fetched_at": "2026-10-16T06:47:08.206349+00:00",
+    "rate": 43.589222,
+    "source": "ECB via frankfurter.dev"
+  },
+  {
+    "as_of": "2026-10-15",
+    "cur": "EUR",
+    "fetched_at": "2026-10-16T06:47:08.206349+00:00",
+    "rate": 70.693,
+    "source": "ECB via frankfurter.dev"
+  },
+  {
+    "as_of": "2026-10-15",
+    "cur": "GBP",
+    "fetched_at": "2026-10-16T06:47:08.206349+00:00",
+    "rate": 83.55159,
+    "source": "ECB via frankfurter.dev"
+  },
+  {
+    "as_of": "2026-10-15",
+    "cur": "USD",
+    "fetched_at": "2026-10-16T06:47:08.206349+00:00",
+    "rate": 63.073697,
+    "source": "ECB via frankfurter.dev"
   }
 ]
